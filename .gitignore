@@ -1,0 +1,46 @@
+# WordPress core files
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/xmlrpc.php
+
+# DDEV generated local configuration
+/wp-config-ddev.php
+
+# WordPress generated content
+/wp-content/uploads/
+/wp-content/upgrade/
+/wp-content/cache/
+/wp-content/backup-db/
+/wp-content/backups/
+
+# Ignore default plugins and themes; keep custom code tracked.
+/wp-content/plugins/*
+!/wp-content/plugins/your-custom-plugin/
+/wp-content/themes/*
+!/wp-content/themes/twentytwentyfive/
+
+# Dependencies and generated build output
+/vendor/
+/node_modules/
+composer.lock
+/wp-content/themes/*/style.min.css
+
+# Environment, database dumps, and logs
+.env
+.env.*
+!.env.example
+*.log
+*.sql
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+Thumbs.io
+desktop.ini
+.idea/
+.vscode/
+
+# Keep project documentation tracked
+!.gitignore
+!README.md
