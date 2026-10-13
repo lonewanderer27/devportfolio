@@ -309,3 +309,199 @@ function cptdp_register_collateral_meta(): void {
 	);
 }
 add_action( 'cptdp_register_post_types', 'cptdp_register_collateral_meta', 16 );
+
+/**
+ * Add the Collateral meta boxes.
+ */
+function cptdp_collateral_add_meta_boxes(): void {
+	remove_meta_box( 'postcustom', 'collateral', 'normal' );
+
+	add_meta_box(
+		'cptdp_collateral_details',
+		esc_html__( 'Collateral', 'custom-post-types-dp' ),
+		'cptdp_collateral_render_details_box',
+		'collateral',
+		'normal',
+		'high'
+	);
+
+	add_meta_box(
+		'cptdp_collateral_software_tools',
+		esc_html__( 'Software Tools', 'custom-post-types-dp' ),
+		'cptdp_collateral_render_software_tools_box',
+		'collateral',
+		'side',
+		'default'
+	);
+
+	add_meta_box(
+		'cptdp_collateral_highlight',
+		esc_html__( 'Highlight', 'custom-post-types-dp' ),
+		'cptdp_collateral_render_highlight_box',
+		'collateral',
+		'side',
+		'default'
+	);
+}
+add_action( 'add_meta_boxes_collateral', 'cptdp_collateral_add_meta_boxes' );
+
+/**
+ * Render the Collateral details meta box (file, embed URL, paper size, pages).
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_collateral_render_details_box( WP_Post $post ): void {
+	$file_id    = cptdp_collateral_sanitize_file( get_post_meta( $post->ID, 'cptdp_collateral_file', true ) );
+	$file_name  = $file_id ? wp_basename( (string) get_attached_file( $file_id ) ) : '';
+	$embed_url  = (string) get_post_meta( $post->ID, 'cptdp_embed_url', true );
+	$paper_size = (string) get_post_meta( $post->ID, 'cptdp_paper_size', true );
+	$pages      = (int) get_post_meta( $post->ID, 'cptdp_total_pages', true );
+
+	wp_nonce_field( 'cptdp_collateral', 'cptdp_collateral_nonce' );
+	?>
+	<p>
+		<strong><?php esc_html_e( 'Collateral File', 'custom-post-types-dp' ); ?></strong><br>
+		<input type="hidden" id="cptdp_collateral_file" name="cptdp_collateral_file" value="<?php echo esc_attr( (string) $file_id ); ?>">
+		<button type="button" class="button" id="cptdp-collateral-file-select"><?php esc_html_e( 'Select file', 'custom-post-types-dp' ); ?></button>
+		<span id="cptdp-collateral-file-name"><?php echo esc_html( $file_name ); ?></span>
+		<a href="#" id="cptdp-collateral-file-remove" <?php echo $file_id ? '' : 'style="display:none"'; ?>><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></a>
+	</p>
+	<p>
+		<label for="cptdp_embed_url"><strong><?php esc_html_e( 'Embed URL', 'custom-post-types-dp' ); ?></strong></label><br>
+		<input type="url" id="cptdp_embed_url" name="cptdp_embed_url" class="widefat" placeholder="https://" value="<?php echo esc_attr( $embed_url ); ?>">
+	</p>
+	<p>
+		<label for="cptdp_paper_size"><strong><?php esc_html_e( 'Paper Size', 'custom-post-types-dp' ); ?></strong></label><br>
+		<input type="text" id="cptdp_paper_size" name="cptdp_paper_size" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. A4', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $paper_size ); ?>">
+	</p>
+	<p>
+		<label for="cptdp_total_pages"><strong><?php esc_html_e( 'Total Pages', 'custom-post-types-dp' ); ?></strong></label><br>
+		<input type="number" id="cptdp_total_pages" name="cptdp_total_pages" min="0" step="1" value="<?php echo $pages > 0 ? esc_attr( (string) $pages ) : ''; ?>">
+	</p>
+	<?php
+}
+
+/**
+ * Render the Software Tools meta box.
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_collateral_render_software_tools_box( WP_Post $post ): void {
+	$selected = array_map( 'absint', (array) get_post_meta( $post->ID, 'cptdp_software_tools', true ) );
+	$tools    = get_posts(
+		array(
+			'post_type'      => 'software_tool',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'menu_order title',
+			'order'          => 'ASC',
+		)
+	);
+
+	if ( ! $tools ) {
+		printf(
+			'<p>%s <a href="%s">%s</a></p>',
+			esc_html__( 'No software tools yet.', 'custom-post-types-dp' ),
+			esc_url( admin_url( 'post-new.php?post_type=software_tool' ) ),
+			esc_html__( 'Add a Software Tool', 'custom-post-types-dp' )
+		);
+		return;
+	}
+
+	foreach ( $tools as $tool ) {
+		printf(
+			'<label style="display:block;margin-bottom:4px"><input type="checkbox" name="cptdp_software_tools[]" value="%1$d" %2$s> %3$s</label>',
+			(int) $tool->ID,
+			checked( in_array( $tool->ID, $selected, true ), true, false ),
+			esc_html( get_the_title( $tool ) )
+		);
+	}
+}
+
+/**
+ * Render the Highlight meta box.
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_collateral_render_highlight_box( WP_Post $post ): void {
+	?>
+	<label>
+		<input type="checkbox" name="cptdp_highlight" value="1" <?php checked( (bool) get_post_meta( $post->ID, 'cptdp_highlight', true ) ); ?>>
+		<?php esc_html_e( 'Mark as highlight (Selected work)', 'custom-post-types-dp' ); ?>
+	</label>
+	<?php
+}
+
+/**
+ * Save the Collateral meta.
+ *
+ * @param int $post_id Post ID.
+ */
+function cptdp_collateral_save_meta( int $post_id ): void {
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( ! isset( $_POST['cptdp_collateral_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['cptdp_collateral_nonce'] ) ), 'cptdp_collateral' ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$file = isset( $_POST['cptdp_collateral_file'] ) ? cptdp_collateral_sanitize_file( wp_unslash( $_POST['cptdp_collateral_file'] ) ) : 0;
+	$file ? update_post_meta( $post_id, 'cptdp_collateral_file', $file ) : delete_post_meta( $post_id, 'cptdp_collateral_file' );
+
+	$embed = isset( $_POST['cptdp_embed_url'] ) ? cptdp_collateral_sanitize_url( wp_unslash( $_POST['cptdp_embed_url'] ) ) : '';
+	'' !== $embed ? update_post_meta( $post_id, 'cptdp_embed_url', $embed ) : delete_post_meta( $post_id, 'cptdp_embed_url' );
+
+	$paper = isset( $_POST['cptdp_paper_size'] ) ? sanitize_text_field( wp_unslash( $_POST['cptdp_paper_size'] ) ) : '';
+	'' !== $paper ? update_post_meta( $post_id, 'cptdp_paper_size', $paper ) : delete_post_meta( $post_id, 'cptdp_paper_size' );
+
+	$pages = isset( $_POST['cptdp_total_pages'] ) ? absint( wp_unslash( $_POST['cptdp_total_pages'] ) ) : 0;
+	$pages > 0 ? update_post_meta( $post_id, 'cptdp_total_pages', $pages ) : delete_post_meta( $post_id, 'cptdp_total_pages' );
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
+	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_collateral_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
+	$tools ? update_post_meta( $post_id, 'cptdp_software_tools', $tools ) : delete_post_meta( $post_id, 'cptdp_software_tools' );
+
+	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
+}
+add_action( 'save_post_collateral', 'cptdp_collateral_save_meta' );
+
+/**
+ * Enqueue the Collateral admin script on Collateral edit screens.
+ *
+ * @param string $hook Current admin page.
+ */
+function cptdp_collateral_enqueue_admin( string $hook ): void {
+	if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+		return;
+	}
+
+	$screen = get_current_screen();
+
+	if ( ! $screen || 'collateral' !== $screen->post_type ) {
+		return;
+	}
+
+	wp_enqueue_media();
+	wp_enqueue_script(
+		'cptdp-admin-collateral',
+		CPTDP_URL . 'assets/admin-collateral.js',
+		array( 'jquery' ),
+		CPTDP_VERSION,
+		true
+	);
+	wp_localize_script(
+		'cptdp-admin-collateral',
+		'cptdpCollateral',
+		array(
+			'selectTitle'  => esc_html__( 'Select file', 'custom-post-types-dp' ),
+			'selectButton' => esc_html__( 'Use this file', 'custom-post-types-dp' ),
+		)
+	);
+}
+add_action( 'admin_enqueue_scripts', 'cptdp_collateral_enqueue_admin' );
