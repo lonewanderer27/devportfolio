@@ -25,6 +25,8 @@
 /node_modules/
 composer.lock
 /wp-content/themes/*/style.min.css
+/wp-content/plugins/custom-post-types-dp/vendor/
+.phpunit.result.cache
 
 # Environment, database dumps, and logs
 .env
