@@ -5,7 +5,7 @@
  * Attaches the `video_category` and `aspect_ratio` taxonomies. Meta keys:
  * `cptdp_video_file` (attachment ID), `cptdp_embed_url`, `cptdp_post_url`,
  * `cptdp_length` (seconds), `cptdp_software_tools` (software_tool IDs),
- * `cptdp_highlight`. Callers must escape meta on output (esc_url, esc_html).
+ * `cptdp_highlight`, `cptdp_post_statistics` (rows of label/value strings). Callers must escape meta on output (esc_url, esc_html).
  *
  * @package CustomPostTypesDP
  */
@@ -217,6 +217,42 @@ function cptdp_video_sanitize_software_tools( $ids ): array {
 }
 
 /**
+ * Sanitize Post Statistics: rows of `label` and `value` text.
+ *
+ * Drops non-array rows and rows with both fields empty, then reindexes.
+ *
+ * @param mixed $rows Raw value.
+ * @return array<int, array{label: string, value: string}>
+ */
+function cptdp_video_sanitize_statistics( $rows ): array {
+	if ( ! is_array( $rows ) ) {
+		return array();
+	}
+
+	$clean = array();
+
+	foreach ( $rows as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+
+		$label = isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '';
+		$value = isset( $row['value'] ) ? sanitize_text_field( (string) $row['value'] ) : '';
+
+		if ( '' === $label && '' === $value ) {
+			continue;
+		}
+
+		$clean[] = array(
+			'label' => $label,
+			'value' => $value,
+		);
+	}
+
+	return $clean;
+}
+
+/**
  * Format seconds as m:ss or h:mm:ss.
  *
  * @param int $seconds Length in seconds.
@@ -310,6 +346,31 @@ function cptdp_register_video_meta(): void {
 			'auth_callback'     => $auth,
 		)
 	);
+
+	register_post_meta(
+		'video',
+		'cptdp_post_statistics',
+		array(
+			'type'              => 'array',
+			'single'            => true,
+			'default'           => array(),
+			'show_in_rest'      => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'                 => 'object',
+						'properties'           => array(
+							'label' => array( 'type' => 'string' ),
+							'value' => array( 'type' => 'string' ),
+						),
+						'additionalProperties' => false,
+					),
+				),
+			),
+			'sanitize_callback' => 'cptdp_video_sanitize_statistics',
+			'auth_callback'     => $auth,
+		)
+	);
 }
 add_action( 'cptdp_register_post_types', 'cptdp_register_video_meta', 16 );
 
@@ -332,6 +393,15 @@ function cptdp_video_add_meta_boxes(): void {
 		'cptdp_video_software_tools',
 		esc_html__( 'Software Tools', 'custom-post-types-dp' ),
 		'cptdp_video_render_software_tools_box',
+		'video',
+		'normal',
+		'default'
+	);
+
+	add_meta_box(
+		'cptdp_video_post_statistics',
+		esc_html__( 'Post Statistics', 'custom-post-types-dp' ),
+		'cptdp_video_render_statistics_box',
 		'video',
 		'normal',
 		'default'
@@ -422,6 +492,45 @@ function cptdp_video_render_software_tools_box( WP_Post $post ): void {
 }
 
 /**
+ * Render one Post Statistics row.
+ *
+ * @param string $index Row index, or a placeholder for the template row.
+ * @param string $label Label.
+ * @param string $value Value.
+ */
+function cptdp_video_render_statistics_row( string $index, string $label, string $value ): void {
+	?>
+	<div class="cptdp-stat-row" style="display:flex;gap:8px;margin-bottom:8px">
+		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][label]" placeholder="<?php esc_attr_e( 'e.g. Views', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $label ); ?>">
+		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][value]" placeholder="<?php esc_attr_e( 'e.g. 12K', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $value ); ?>">
+		<button type="button" class="button cptdp-stat-remove"><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></button>
+	</div>
+	<?php
+}
+
+/**
+ * Render the Post Statistics meta box.
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_video_render_statistics_box( WP_Post $post ): void {
+	$rows = cptdp_video_sanitize_statistics( get_post_meta( $post->ID, 'cptdp_post_statistics', true ) );
+	?>
+	<div id="cptdp-stat-rows">
+		<?php
+		foreach ( $rows as $i => $row ) {
+			cptdp_video_render_statistics_row( (string) $i, $row['label'], $row['value'] );
+		}
+		?>
+	</div>
+	<template id="cptdp-stat-template">
+		<?php cptdp_video_render_statistics_row( '__INDEX__', '', '' ); ?>
+	</template>
+	<p><button type="button" class="button" id="cptdp-stat-add"><?php esc_html_e( 'Add statistic', 'custom-post-types-dp' ); ?></button></p>
+	<?php
+}
+
+/**
  * Render the Highlight meta box.
  *
  * @param WP_Post $post Post being edited.
@@ -468,6 +577,10 @@ function cptdp_video_save_meta( int $post_id ): void {
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
 	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_video_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
 	$tools ? update_post_meta( $post_id, 'cptdp_software_tools', $tools ) : delete_post_meta( $post_id, 'cptdp_software_tools' );
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
+	$stats = isset( $_POST['cptdp_post_statistics'] ) ? cptdp_video_sanitize_statistics( wp_unslash( $_POST['cptdp_post_statistics'] ) ) : array();
+	$stats ? update_post_meta( $post_id, 'cptdp_post_statistics', $stats ) : delete_post_meta( $post_id, 'cptdp_post_statistics' );
 
 	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
 }
