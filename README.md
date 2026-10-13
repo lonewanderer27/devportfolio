@@ -64,11 +64,33 @@ Most design is controlled by `theme.json`, `styles/`, `templates/`, `parts/` and
 | --- | --- |
 | `.ddev/config.yaml` | DDEV project config (tracked) |
 | `wp-content/themes/twentytwentyfive/` | Tracked theme |
-| `wp-content/plugins/your-custom-plugin/` | Place for custom plugin (whitelisted in `.gitignore`) |
+| `wp-content/plugins/custom-post-types-dp/` | Master plugin: portfolio CPTs, taxonomies and settings (tracked) |
+| `.claude/plans/` | Per-ticket implementation plans (`DPB-NNN-*.md`) |
+| `.github/pull_request_template.md` | PR template |
 | `wp-admin/`, `wp-includes/`, root `wp-*.php` | WordPress core, **git-ignored**, do not edit |
 | `wp-content/uploads/` | Media, git-ignored |
 
 Only custom code is committed. Core, third-party plugins, other themes, DB dumps (`*.sql`), `.env*`, and logs are ignored. See `.gitignore`.
+
+## Custom plugin
+
+`custom-post-types-dp` registers the portfolio content model. Modules in `includes/post-types/` and `includes/settings/` are auto-loaded.
+
+| Type | Slug | Notes |
+| --- | --- | --- |
+| CPT | `service` | Services offered |
+| CPT | `statistic` | Archive `/statistics/` |
+| CPT | `software_tool` | Archive `/software-tools/`, site URL meta |
+| CPT | `video` | Archive `/videos/`; file/embed/post URL, length, tools, highlight, post statistics |
+| CPT | `document` | Archive `/documents/`; file/embed, file type, author, pages, highlight, post statistics |
+| Taxonomy | `video_category`, `aspect_ratio`, `document_category` | Aspect ratio is private and seeded once (`16x9`, `9x16`, `1x1`, `4x3`) |
+| Settings | Settings → Contact | Email, WhatsApp and LinkedIn URLs (option `cptdp_contact`) |
+
+See `AGENTS.md` for field-level detail.
+
+## Contributing
+
+Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`), and open a PR using the template in `.github/`.
 
 ## License
 
