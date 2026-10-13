@@ -16,7 +16,7 @@
 
 # Ignore default plugins and themes; keep custom code tracked.
 /wp-content/plugins/*
-!/wp-content/plugins/your-custom-plugin/
+!/wp-content/plugins/custom-post-types-dp/
 /wp-content/themes/*
 !/wp-content/themes/twentytwentyfive/
 
