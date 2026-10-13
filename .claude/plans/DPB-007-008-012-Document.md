@@ -14,7 +14,7 @@ Tickets:
 | DPB-012 precondition typo | Ticket says "A video record exists". Read as "A Document record exists". Flag to ticket owner, do not build against Video. |
 | Document Category | Flat taxonomy, `public` true, same shape as `video_category`. Keep default tag box (multi), same as Video. Spec says "foreign id" but ticket AC says "available for assignment", so multi is fine. |
 | Taxonomy menu | Temporary top-level "Document Categories" menu only while `document` post type does not exist (same trick as `video-category.php`). Once Phase 2 lands it lists under Documents. |
-| Document file | Meta `cptdp_document_file` (attachment ID). Any attachment type accepted by the WP uploader, but must exist and not be an image/video/audio attachment (`wp_attachment_is` negative checks), else row deleted. Picker uses `wp.media()` with no type filter. |
+| Document file | Meta `cptdp_document_file` (attachment ID). Accepts documents (PDF, Word, Excel, PowerPoint, text, etc.) and common image formats (JPG, PNG, GIF, WebP, etc.), i.e. any attachment the WP uploader allows. Must exist as an attachment and must not be a video or audio file (checked on `get_post_mime_type()` prefixes `video/` and `audio/`, not `wp_attachment_is`, which needs a file on disk), else row deleted. Picker uses `wp.media()` with no type filter. Videos belong to the `video` CPT. |
 | File type | Meta `cptdp_filetype`, free text string (spec: "enter a File Type value"), `sanitize_text_field`, e.g. `PDF`. No auto-detect from file. |
 | Author | Meta `cptdp_author`, string. Prefixed to avoid clash with core post author (`author` is not in `supports`). |
 | Total pages | Meta `cptdp_total_pages`, `absint`, empty → delete. |
@@ -138,7 +138,7 @@ Commits, in order:
 Files: `document.php`, `admin-document.js` (new), `AGENTS.md`, `custom-post-types-dp.php` (→ 0.11.0).
 
 - `register_post_meta` (all `single`, `show_in_rest`, auth `edit_posts`, own sanitize):
-  - `cptdp_document_file`: int; absint; keep only if attachment exists and is not image/video/audio, else delete.
+  - `cptdp_document_file`: int; absint; keep only if attachment exists and its MIME type does not start with `video/` or `audio/` (documents and images allowed), else delete.
   - `cptdp_embed_url`: string; `esc_url_raw` http/https only via local `cptdp_document_sanitize_url`.
   - `cptdp_filetype`: string; `sanitize_text_field`; empty → delete.
   - `cptdp_author`: string; `sanitize_text_field`; empty → delete.
@@ -155,9 +155,9 @@ Files: `document.php`, `admin-document.js` (new), `AGENTS.md`, `custom-post-type
 Gate:
 - `ddev wp eval 'print_r( array_keys( get_registered_meta_keys( "post", "document" ) ) );'`: the six keys above.
 - CLI round trip with `ddev wp post meta set/get` for each key.
-- Security: `javascript:alert(1)` embed URL stored empty; forged image attachment ID in `cptdp_document_file` rejected; no nonce / no `edit_post` leaves meta unchanged; autosave does not touch meta.
+- Security: `javascript:alert(1)` embed URL stored empty; forged video or audio attachment ID, and a non-attachment post ID, in `cptdp_document_file` rejected; image and PDF attachment IDs accepted; no nonce / no `edit_post` leaves meta unchanged; autosave does not touch meta.
 - REST: `GET /wp/v2/document/<ID>` includes the meta.
-- UI (manual, AC 2-14 except 10): content, thumbnail, pick PDF via picker, Remove, embed URL, "PDF", author, 12 pages, category, highlight, Order 3 → Publish → reload: file and embed URL persist (AC 12). Clear each, Update → cleared.
+- UI (manual, AC 2-14 except 10): content, thumbnail, pick PDF via picker, then an image (PNG/JPG) via picker, Remove, embed URL, "PDF", author, 12 pages, category, highlight, Order 3 → Publish → reload: file and embed URL persist (AC 12). Clear each, Update → cleared.
 - Regression: Phase 2 checks pass; other CPTs registered.
 
 ## Phase 4: Post Statistics repeater (DPB-012)
@@ -196,5 +196,5 @@ Frontend rendering (templates, patterns, viewer / embed, highlight query), seed 
 ## Open questions
 - **DPB-012 precondition** says "A video record exists". Assumed typo for Document.
 - **Menu positions**: 25 (Documents) and 26 (temp Document Categories menu). 24 is already Software Tool.
-- **Document file restriction**: current plan rejects image/video/audio only. Alternative: allowlist (pdf, doc/docx, xls/xlsx, ppt/pptx, txt). Confirm if stricter wanted.
+- **Document file restriction**: documents and images accepted, video and audio rejected (denylist). Alternative: strict allowlist (pdf, doc/docx, xls/xlsx, ppt/pptx, txt, jpg, png, gif, webp). Confirm if stricter wanted.
 - **Document Category cardinality**: multi (tag box) chosen to match Video. Switch to single select if one category per document is intended.
