@@ -1,0 +1,20 @@
+{
+	"name": "lonewanderer27/custom-post-types-dp",
+	"description": "Portfolio custom post types and settings. Dev dependencies for the PHPUnit suite.",
+	"type": "wordpress-plugin",
+	"license": "MIT",
+	"require": {
+		"php": ">=8.4"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^9.6",
+		"yoast/phpunit-polyfills": "^2.0"
+	},
+	"config": {
+		"process-timeout": 0,
+		"sort-packages": true
+	},
+	"scripts": {
+		"test": "phpunit"
+	}
+}
