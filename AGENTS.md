@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repo.
 
 ## Overview
 
-WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Block theme (Twenty Twenty-Five 1.5) is the base. No custom theme exists yet. Master plugin `custom-post-types-dp` (`wp-content/plugins/custom-post-types-dp/`) loads portfolio modules from `includes/post-types/*.php`. Each module hooks its `register_post_type` call to the `cptdp_register_post_types` action (fired on `init` and on plugin activation, followed by a rewrite flush). Registered CPTs: `service` (`includes/post-types/service.php`).
+WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Block theme (Twenty Twenty-Five 1.5) is the base. No custom theme exists yet. Master plugin `custom-post-types-dp` (`wp-content/plugins/custom-post-types-dp/`) loads portfolio modules from `includes/post-types/*.php`. Each module hooks its `register_post_type` call to the `cptdp_register_post_types` action (fired on `init` and on plugin activation, followed by a rewrite flush). Registered CPTs: `service` (`includes/post-types/service.php`). The loader also requires `includes/settings/*.php` (Settings API modules that self-hook on `admin_menu`/`admin_init`). Settings pages: Settings → Contact (`includes/settings/contact.php`), stored in option `cptdp_contact` (`email`, `whatsapp_url`, `linkedin_url`); read via `cptdp_get_contact()`.
 
 ## Environment
 
