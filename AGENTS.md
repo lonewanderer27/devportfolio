@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repo.
 
 ## Overview
 
-WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Block theme (Twenty Twenty-Five 1.5) is the base. No custom theme/plugin exists yet.
+WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Block theme (Twenty Twenty-Five 1.5) is the base. No custom theme exists yet. Master plugin `custom-post-types-dp` (`wp-content/plugins/custom-post-types-dp/`) loads portfolio modules from `includes/post-types/*.php`; no CPTs registered yet.
 
 ## Environment
 
@@ -30,12 +30,12 @@ No test suite, linter, or CI configured.
 
 ## What is tracked vs ignored
 
-`.gitignore` is allowlist-style. Tracked: `.ddev/config.yaml`, `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `wp-content/index.php`, and `wp-content/themes/twentytwentyfive/`.
+`.gitignore` is allowlist-style. Tracked: `.ddev/config.yaml`, `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `wp-content/index.php`, `wp-content/themes/twentytwentyfive/`, and `wp-content/plugins/custom-post-types-dp/`.
 
 Ignored (do **not** edit expecting it to persist, do not commit):
 - WP core: `wp-admin/`, `wp-includes/`, root `wp-*.php` (including `wp-config.php`), `xmlrpc.php`
 - `wp-content/uploads|upgrade|cache|backups|backup-db`
-- All plugins except `wp-content/plugins/your-custom-plugin/`
+- All plugins except `wp-content/plugins/custom-post-types-dp/`
 - All themes except `twentytwentyfive`
 - `vendor/`, `node_modules/`, `composer.lock`, `style.min.css` in themes, `*.sql`, `.env*`, `*.log`
 
