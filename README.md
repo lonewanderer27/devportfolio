@@ -58,6 +58,29 @@ npm run watch
 
 Most design is controlled by `theme.json`, `styles/`, `templates/`, `parts/` and `patterns/`. Edit those rather than adding bespoke PHP where possible.
 
+## Testing
+
+The `custom-post-types-dp` plugin has a PHPUnit suite built on WordPress's `WP_UnitTestCase`. It covers CPT and taxonomy registration, meta sanitizers, meta box saving, REST access, admin columns, Contact settings, and the loader.
+
+Tests run inside DDEV against a separate `wordpress_test` database. The WP test library drops every table in its database, so it must never point at the dev DB (`db`). The bootstrap and install script refuse to.
+
+One-time setup (repeat the second command after `ddev restart` or a rebuild, since the test library lives in the container's `/tmp`):
+
+```bash
+ddev composer --working-dir=wp-content/plugins/custom-post-types-dp install
+ddev exec "bash wp-content/plugins/custom-post-types-dp/bin/install-wp-tests.sh"
+```
+
+Run the suite:
+
+```bash
+ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit
+```
+
+Useful flags: `--testdox` (readable list), `--filter CPTDP_Test_Video` (one class), `--group settings` (one group; groups: `video`, `document`, `collateral`, `service`, `statistic`, `software-tool`, `taxonomies`, `settings`, `loader`).
+
+Tests live in `wp-content/plugins/custom-post-types-dp/tests/`. When adding a CPT, add a test class extending `CPTDP_CPT_Test_Case` (or `CPTDP_Media_CPT_Test_Case` for the file/URL/statistics pattern). See `AGENTS.md` for gotchas.
+
 ## Repository layout
 
 | Path | Purpose |
@@ -90,7 +113,7 @@ See `AGENTS.md` for field-level detail.
 
 ## Contributing
 
-Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`), and open a PR using the template in `.github/`.
+Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`), run the [tests](#testing), and open a PR using the template in `.github/`.
 
 ## License
 
