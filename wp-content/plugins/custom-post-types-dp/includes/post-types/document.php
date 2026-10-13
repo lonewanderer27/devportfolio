@@ -187,7 +187,8 @@ function cptdp_document_sanitize_url( $url ): string {
 /**
  * Sanitize a document file attachment ID.
  *
- * Must be an existing attachment that is not an image, video or audio file.
+ * Must be an existing attachment that is not a video or audio file. Documents
+ * and images are allowed.
  *
  * @param mixed $id Raw value.
  * @return int Attachment ID, or 0 when invalid.
@@ -201,7 +202,7 @@ function cptdp_document_sanitize_file( $id ): int {
 
 	$mime = (string) get_post_mime_type( $id );
 
-	foreach ( array( 'image/', 'video/', 'audio/' ) as $prefix ) {
+	foreach ( array( 'video/', 'audio/' ) as $prefix ) {
 		if ( str_starts_with( $mime, $prefix ) ) {
 			return 0;
 		}
