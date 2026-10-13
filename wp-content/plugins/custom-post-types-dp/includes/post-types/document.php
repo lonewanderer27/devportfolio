@@ -211,6 +211,42 @@ function cptdp_document_sanitize_file( $id ): int {
 }
 
 /**
+ * Sanitize Post Statistics: rows of `label` and `value` text.
+ *
+ * Drops non-array rows and rows with both fields empty, then reindexes.
+ *
+ * @param mixed $rows Raw value.
+ * @return array<int, array{label: string, value: string}>
+ */
+function cptdp_document_sanitize_statistics( $rows ): array {
+	if ( ! is_array( $rows ) ) {
+		return array();
+	}
+
+	$clean = array();
+
+	foreach ( $rows as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+
+		$label = isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '';
+		$value = isset( $row['value'] ) ? sanitize_text_field( (string) $row['value'] ) : '';
+
+		if ( '' === $label && '' === $value ) {
+			continue;
+		}
+
+		$clean[] = array(
+			'label' => $label,
+			'value' => $value,
+		);
+	}
+
+	return $clean;
+}
+
+/**
  * Register Document meta.
  */
 function cptdp_register_document_meta(): void {
@@ -281,6 +317,31 @@ function cptdp_register_document_meta(): void {
 			'default'           => false,
 			'show_in_rest'      => true,
 			'sanitize_callback' => 'rest_sanitize_boolean',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'document',
+		'cptdp_post_statistics',
+		array(
+			'type'              => 'array',
+			'single'            => true,
+			'default'           => array(),
+			'show_in_rest'      => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'                 => 'object',
+						'properties'           => array(
+							'label' => array( 'type' => 'string' ),
+							'value' => array( 'type' => 'string' ),
+						),
+						'additionalProperties' => false,
+					),
+				),
+			),
+			'sanitize_callback' => 'cptdp_document_sanitize_statistics',
 			'auth_callback'     => $auth,
 		)
 	);
