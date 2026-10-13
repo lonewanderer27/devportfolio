@@ -404,6 +404,15 @@ function cptdp_collateral_add_meta_boxes(): void {
 	);
 
 	add_meta_box(
+		'cptdp_collateral_post_statistics',
+		esc_html__( 'Post Statistics', 'custom-post-types-dp' ),
+		'cptdp_collateral_render_statistics_box',
+		'collateral',
+		'normal',
+		'default'
+	);
+
+	add_meta_box(
 		'cptdp_collateral_software_tools',
 		esc_html__( 'Software Tools', 'custom-post-types-dp' ),
 		'cptdp_collateral_render_software_tools_box',
@@ -497,6 +506,45 @@ function cptdp_collateral_render_software_tools_box( WP_Post $post ): void {
 }
 
 /**
+ * Render one Post Statistics row.
+ *
+ * @param string $index Row index, or a placeholder for the template row.
+ * @param string $label Label.
+ * @param string $value Value.
+ */
+function cptdp_collateral_render_statistics_row( string $index, string $label, string $value ): void {
+	?>
+	<div class="cptdp-stat-row" style="display:flex;gap:8px;margin-bottom:8px">
+		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][label]" placeholder="<?php esc_attr_e( 'e.g. Downloads', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $label ); ?>">
+		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][value]" placeholder="<?php esc_attr_e( 'e.g. 1.2K', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $value ); ?>">
+		<button type="button" class="button cptdp-stat-remove"><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></button>
+	</div>
+	<?php
+}
+
+/**
+ * Render the Post Statistics meta box.
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_collateral_render_statistics_box( WP_Post $post ): void {
+	$rows = cptdp_collateral_sanitize_statistics( get_post_meta( $post->ID, 'cptdp_post_statistics', true ) );
+	?>
+	<div id="cptdp-stat-rows">
+		<?php
+		foreach ( $rows as $i => $row ) {
+			cptdp_collateral_render_statistics_row( (string) $i, $row['label'], $row['value'] );
+		}
+		?>
+	</div>
+	<template id="cptdp-stat-template">
+		<?php cptdp_collateral_render_statistics_row( '__INDEX__', '', '' ); ?>
+	</template>
+	<p><button type="button" class="button" id="cptdp-stat-add"><?php esc_html_e( 'Add statistic', 'custom-post-types-dp' ); ?></button></p>
+	<?php
+}
+
+/**
  * Render the Highlight meta box.
  *
  * @param WP_Post $post Post being edited.
@@ -544,6 +592,10 @@ function cptdp_collateral_save_meta( int $post_id ): void {
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
 	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_collateral_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
 	$tools ? update_post_meta( $post_id, 'cptdp_software_tools', $tools ) : delete_post_meta( $post_id, 'cptdp_software_tools' );
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
+	$stats = isset( $_POST['cptdp_post_statistics'] ) ? cptdp_collateral_sanitize_statistics( wp_unslash( $_POST['cptdp_post_statistics'] ) ) : array();
+	$stats ? update_post_meta( $post_id, 'cptdp_post_statistics', $stats ) : delete_post_meta( $post_id, 'cptdp_post_statistics' );
 
 	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
 }
