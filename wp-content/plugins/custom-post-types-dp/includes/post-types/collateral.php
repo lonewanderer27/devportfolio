@@ -157,3 +157,155 @@ function cptdp_collateral_admin_css(): void {
 	echo '<style>.column-thumbnail{width:60px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_collateral_admin_css' );
+
+/**
+ * Sanitize a URL: http(s) only, empty string when invalid.
+ *
+ * @param mixed $url Raw value.
+ */
+function cptdp_collateral_sanitize_url( $url ): string {
+	return esc_url_raw( trim( (string) $url ), array( 'http', 'https' ) );
+}
+
+/**
+ * Sanitize a collateral file attachment ID.
+ *
+ * Must be an existing attachment that is not a video or audio file. Documents
+ * and images are allowed.
+ *
+ * @param mixed $id Raw value.
+ * @return int Attachment ID, or 0 when invalid.
+ */
+function cptdp_collateral_sanitize_file( $id ): int {
+	$id = absint( $id );
+
+	if ( ! $id || 'attachment' !== get_post_type( $id ) ) {
+		return 0;
+	}
+
+	$mime = (string) get_post_mime_type( $id );
+
+	foreach ( array( 'video/', 'audio/' ) as $prefix ) {
+		if ( str_starts_with( $mime, $prefix ) ) {
+			return 0;
+		}
+	}
+
+	return $id;
+}
+
+/**
+ * Sanitize Software Tools: unique IDs of existing `software_tool` posts.
+ *
+ * @param mixed $ids Raw value.
+ * @return int[]
+ */
+function cptdp_collateral_sanitize_software_tools( $ids ): array {
+	if ( ! is_array( $ids ) ) {
+		return array();
+	}
+
+	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+
+	return array_values(
+		array_filter(
+			$ids,
+			static function ( int $id ): bool {
+				return 'software_tool' === get_post_type( $id );
+			}
+		)
+	);
+}
+
+/**
+ * Register Collateral meta.
+ */
+function cptdp_register_collateral_meta(): void {
+	$auth = static function (): bool {
+		return current_user_can( 'edit_posts' );
+	};
+
+	register_post_meta(
+		'collateral',
+		'cptdp_collateral_file',
+		array(
+			'type'              => 'integer',
+			'single'            => true,
+			'default'           => 0,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_collateral_sanitize_file',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'collateral',
+		'cptdp_embed_url',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'default'           => '',
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_collateral_sanitize_url',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'collateral',
+		'cptdp_paper_size',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'default'           => '',
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'sanitize_text_field',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'collateral',
+		'cptdp_total_pages',
+		array(
+			'type'              => 'integer',
+			'single'            => true,
+			'default'           => 0,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'absint',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'collateral',
+		'cptdp_software_tools',
+		array(
+			'type'              => 'array',
+			'single'            => true,
+			'default'           => array(),
+			'show_in_rest'      => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'integer' ),
+				),
+			),
+			'sanitize_callback' => 'cptdp_collateral_sanitize_software_tools',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'collateral',
+		'cptdp_highlight',
+		array(
+			'type'              => 'boolean',
+			'single'            => true,
+			'default'           => false,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'auth_callback'     => $auth,
+		)
+	);
+}
+add_action( 'cptdp_register_post_types', 'cptdp_register_collateral_meta', 16 );
