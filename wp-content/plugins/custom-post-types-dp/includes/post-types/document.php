@@ -74,7 +74,7 @@ function cptdp_document_classic_editor( bool $use_block_editor, string $post_typ
 add_filter( 'use_block_editor_for_post_type', 'cptdp_document_classic_editor', 10, 2 );
 
 /**
- * Add Thumbnail and Order columns after Title.
+ * Add Thumbnail, File Type, Pages, Highlight and Order columns after Title.
  *
  * The Category column comes from `show_admin_column`.
  *
@@ -87,8 +87,11 @@ function cptdp_document_columns( array $columns ): array {
 		$new[ $key ] = $label;
 
 		if ( 'title' === $key ) {
-			$new['thumbnail']  = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
-			$new['menu_order'] = esc_html__( 'Order', 'custom-post-types-dp' );
+			$new['thumbnail']         = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
+			$new['cptdp_filetype']    = esc_html__( 'File Type', 'custom-post-types-dp' );
+			$new['cptdp_total_pages'] = esc_html__( 'Pages', 'custom-post-types-dp' );
+			$new['cptdp_highlight']   = esc_html__( 'Highlight', 'custom-post-types-dp' );
+			$new['menu_order']        = esc_html__( 'Order', 'custom-post-types-dp' );
 		}
 	}
 
@@ -107,6 +110,20 @@ function cptdp_document_column_content( string $column, int $post_id ): void {
 		case 'thumbnail':
 			$thumb = get_the_post_thumbnail( $post_id, array( 50, 50 ) );
 			echo $thumb ? wp_kses_post( $thumb ) : '&mdash;';
+			break;
+
+		case 'cptdp_filetype':
+			$filetype = (string) get_post_meta( $post_id, 'cptdp_filetype', true );
+			echo '' !== $filetype ? esc_html( $filetype ) : '&mdash;';
+			break;
+
+		case 'cptdp_total_pages':
+			$pages = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
+			echo $pages > 0 ? esc_html( (string) $pages ) : '&mdash;';
+			break;
+
+		case 'cptdp_highlight':
+			echo get_post_meta( $post_id, 'cptdp_highlight', true ) ? '<span class="dashicons dashicons-star-filled" title="' . esc_attr__( 'Highlight', 'custom-post-types-dp' ) . '"></span>' : '&mdash;';
 			break;
 
 		case 'menu_order':
@@ -154,7 +171,7 @@ function cptdp_document_admin_css(): void {
 		return;
 	}
 
-	echo '<style>.column-thumbnail{width:60px}.column-menu_order{width:70px}</style>';
+	echo '<style>.column-thumbnail{width:60px}.column-cptdp_filetype,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_document_admin_css' );
 
