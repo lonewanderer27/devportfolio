@@ -157,3 +157,115 @@ function cptdp_document_admin_css(): void {
 	echo '<style>.column-thumbnail{width:60px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_document_admin_css' );
+
+/**
+ * Sanitize a URL: http(s) only, empty string when invalid.
+ *
+ * @param mixed $url Raw value.
+ */
+function cptdp_document_sanitize_url( $url ): string {
+	return esc_url_raw( trim( (string) $url ), array( 'http', 'https' ) );
+}
+
+/**
+ * Sanitize a document file attachment ID.
+ *
+ * Must be an existing attachment that is not an image, video or audio file.
+ *
+ * @param mixed $id Raw value.
+ * @return int Attachment ID, or 0 when invalid.
+ */
+function cptdp_document_sanitize_file( $id ): int {
+	$id = absint( $id );
+
+	if ( ! $id || 'attachment' !== get_post_type( $id ) ) {
+		return 0;
+	}
+
+	$mime = (string) get_post_mime_type( $id );
+
+	foreach ( array( 'image/', 'video/', 'audio/' ) as $prefix ) {
+		if ( str_starts_with( $mime, $prefix ) ) {
+			return 0;
+		}
+	}
+
+	return $id;
+}
+
+/**
+ * Register Document meta.
+ */
+function cptdp_register_document_meta(): void {
+	$auth = static function (): bool {
+		return current_user_can( 'edit_posts' );
+	};
+
+	register_post_meta(
+		'document',
+		'cptdp_document_file',
+		array(
+			'type'              => 'integer',
+			'single'            => true,
+			'default'           => 0,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_document_sanitize_file',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'document',
+		'cptdp_embed_url',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'default'           => '',
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_document_sanitize_url',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	foreach ( array( 'cptdp_filetype', 'cptdp_author' ) as $key ) {
+		register_post_meta(
+			'document',
+			$key,
+			array(
+				'type'              => 'string',
+				'single'            => true,
+				'default'           => '',
+				'show_in_rest'      => true,
+				'sanitize_callback' => 'sanitize_text_field',
+				'auth_callback'     => $auth,
+			)
+		);
+	}
+
+	register_post_meta(
+		'document',
+		'cptdp_total_pages',
+		array(
+			'type'              => 'integer',
+			'single'            => true,
+			'default'           => 0,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'absint',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'document',
+		'cptdp_highlight',
+		array(
+			'type'              => 'boolean',
+			'single'            => true,
+			'default'           => false,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'auth_callback'     => $auth,
+		)
+	);
+}
+add_action( 'cptdp_register_post_types', 'cptdp_register_document_meta', 16 );
