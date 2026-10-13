@@ -26,7 +26,27 @@ npm run build                        # style.css -> style.min.css (postcss + css
 npm run watch
 ```
 
-No test suite, linter, or CI configured.
+### Tests (plugin `custom-post-types-dp`, PHPUnit 9 + `WP_UnitTestCase`)
+
+Suite lives in `wp-content/plugins/custom-post-types-dp/tests/` (config `phpunit.xml.dist`, dev deps in the plugin's `composer.json`, `vendor/` git-ignored). It runs against a dedicated DB `wordpress_test` (table prefix `wptests_`). The WP test library **drops every table in its DB**, so never point it at the dev DB `db`; `tests/bootstrap.php` and `bin/install-wp-tests.sh` both refuse that.
+
+```bash
+# one-time (and after `ddev restart`/rebuild: the test lib lives in the container's /tmp)
+ddev composer --working-dir=wp-content/plugins/custom-post-types-dp install
+ddev exec "bash wp-content/plugins/custom-post-types-dp/bin/install-wp-tests.sh"
+
+# run
+ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit
+# filters: --filter CPTDP_Test_Video | --group settings | --testdox
+```
+
+`ddev composer ... test` also works but hides PHPUnit's output on failure; prefer the `ddev exec` form.
+
+Layout: shared base classes `tests/class-cptdp-*-test-case.php` (`CPTDP_CPT_Test_Case` for registration/columns/order/archive, `CPTDP_Media_CPT_Test_Case` for the video/document/collateral file+URL+statistics+save+REST pattern); one `test-*.php` per module under `tests/post-types/`, `tests/taxonomies/`, `tests/settings/`, plus `tests/test-loader.php`. A new CPT = a new test class extending the matching base and implementing its `expected*()` methods.
+
+Gotchas: `WP_UnitTestCase` unregisters all meta after every test and wipes terms after bootstrap (options survive), so `CPTDP_Test_Case::set_up()` re-runs `cptdp_register_post_types`, and the aspect ratio tests re-seed. Core only assigns default terms when the current user can assign terms. Bootstrap forces `flush_rewrite_rules_hard` off so tests never write `.htaccess`.
+
+No linter or CI configured.
 
 ## What is tracked vs ignored
 
@@ -37,7 +57,7 @@ Ignored (do **not** edit expecting it to persist, do not commit):
 - `wp-content/uploads|upgrade|cache|backups|backup-db`
 - All plugins except `wp-content/plugins/custom-post-types-dp/`
 - All themes except `twentytwentyfive`
-- `vendor/`, `node_modules/`, `composer.lock`, `style.min.css` in themes, `*.sql`, `.env*`, `*.log`
+- `vendor/` (root and `wp-content/plugins/custom-post-types-dp/vendor/`), `node_modules/`, `composer.lock`, `.phpunit.result.cache`, `style.min.css` in themes, `*.sql`, `.env*`, `*.log`
 
 Note: `style.min.css` is ignored by the pattern `/wp-content/themes/*/style.min.css` but may appear in the working tree; regenerate with `npm run build`.
 
