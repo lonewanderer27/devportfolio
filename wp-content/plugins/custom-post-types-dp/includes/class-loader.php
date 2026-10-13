@@ -23,11 +23,12 @@ class CPTDP_Loader {
 	 * Require each module file. No modules = no-op.
 	 */
 	public static function load_modules(): void {
-		$files = glob( CPTDP_PATH . 'includes/post-types/*.php' );
-
-		if ( false === $files ) {
-			return;
-		}
+		$post_types = glob( CPTDP_PATH . 'includes/post-types/*.php' );
+		$settings   = glob( CPTDP_PATH . 'includes/settings/*.php' );
+		$files      = array_merge(
+			false === $post_types ? array() : $post_types,
+			false === $settings ? array() : $settings
+		);
 
 		foreach ( $files as $file ) {
 			if ( 'index.php' === basename( $file ) ) {

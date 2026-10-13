@@ -1,8 +1,10 @@
 <?php
 /**
- * Uninstall cleanup. Nothing stored yet.
+ * Uninstall cleanup.
  *
  * @package CustomPostTypesDP
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+
+delete_option( 'cptdp_contact' );
