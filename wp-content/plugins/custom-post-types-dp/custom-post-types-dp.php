@@ -6,7 +6,7 @@
  * Requires at least: 6.5
  * Requires PHP:      8.4
  * Author:            Ian James Puzon
- * Author URI:        mailto:adrianejames27@gmail.com
+ * Author URI:        https://jay.thedev.id
  * License:           MIT
  * License URI:       https://opensource.org/licenses/MIT
  * Text Domain:       custom-post-types-dp
