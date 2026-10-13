@@ -72,3 +72,88 @@ function cptdp_collateral_classic_editor( bool $use_block_editor, string $post_t
 	return 'collateral' === $post_type ? false : $use_block_editor;
 }
 add_filter( 'use_block_editor_for_post_type', 'cptdp_collateral_classic_editor', 10, 2 );
+
+/**
+ * Add Thumbnail and Order columns after Title.
+ *
+ * The Category column comes from `show_admin_column`.
+ *
+ * @param array $columns Existing columns.
+ */
+function cptdp_collateral_columns( array $columns ): array {
+	$new = array();
+
+	foreach ( $columns as $key => $label ) {
+		$new[ $key ] = $label;
+
+		if ( 'title' === $key ) {
+			$new['thumbnail']  = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
+			$new['menu_order'] = esc_html__( 'Order', 'custom-post-types-dp' );
+		}
+	}
+
+	return $new;
+}
+add_filter( 'manage_collateral_posts_columns', 'cptdp_collateral_columns' );
+
+/**
+ * Render custom column cells.
+ *
+ * @param string $column  Column key.
+ * @param int    $post_id Post ID.
+ */
+function cptdp_collateral_column_content( string $column, int $post_id ): void {
+	switch ( $column ) {
+		case 'thumbnail':
+			$thumb = get_the_post_thumbnail( $post_id, array( 50, 50 ) );
+			echo $thumb ? wp_kses_post( $thumb ) : '&mdash;';
+			break;
+
+		case 'menu_order':
+			echo esc_html( (string) (int) get_post_field( 'menu_order', $post_id ) );
+			break;
+	}
+}
+add_action( 'manage_collateral_posts_custom_column', 'cptdp_collateral_column_content', 10, 2 );
+
+/**
+ * Make Order sortable.
+ *
+ * @param array $columns Sortable columns.
+ */
+function cptdp_collateral_sortable_columns( array $columns ): array {
+	$columns['menu_order'] = 'menu_order';
+	return $columns;
+}
+add_filter( 'manage_edit-collateral_sortable_columns', 'cptdp_collateral_sortable_columns' );
+
+/**
+ * Default the admin list to Order ascending.
+ *
+ * @param WP_Query $query Query being run.
+ */
+function cptdp_collateral_default_order( WP_Query $query ): void {
+	if ( ! is_admin() || ! $query->is_main_query() || 'collateral' !== $query->get( 'post_type' ) ) {
+		return;
+	}
+
+	if ( empty( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$query->set( 'orderby', 'menu_order title' );
+		$query->set( 'order', 'ASC' );
+	}
+}
+add_action( 'pre_get_posts', 'cptdp_collateral_default_order' );
+
+/**
+ * Column widths on the Collaterals list screen.
+ */
+function cptdp_collateral_admin_css(): void {
+	$screen = get_current_screen();
+
+	if ( ! $screen || 'edit-collateral' !== $screen->id ) {
+		return;
+	}
+
+	echo '<style>.column-thumbnail{width:60px}.column-menu_order{width:70px}</style>';
+}
+add_action( 'admin_head-edit.php', 'cptdp_collateral_admin_css' );
