@@ -26,6 +26,15 @@ npm run build                        # style.css -> style.min.css (postcss + css
 npm run watch
 ```
 
+### Seed Software Tools
+
+```bash
+ddev wp eval-file wp-content/plugins/custom-post-types-dp/bin/seed-software-tools.php dry-run   # preview
+ddev wp eval-file wp-content/plugins/custom-post-types-dp/bin/seed-software-tools.php           # create
+```
+
+Reads `bin/software-tools.csv` (`order,title,site_url,description`). Idempotent: a tool whose title already exists (any status, incl. Trash) is skipped, never modified. Thumbnails are added manually in wp-admin.
+
 ### Tests (plugin `custom-post-types-dp`, PHPUnit 9 + `WP_UnitTestCase`)
 
 Suite lives in `wp-content/plugins/custom-post-types-dp/tests/` (config `phpunit.xml.dist`, dev deps in the plugin's `composer.json`, `vendor/` git-ignored). It runs against a dedicated DB `wordpress_test` (table prefix `wptests_`). The WP test library **drops every table in its DB**, so never point it at the dev DB `db`; `tests/bootstrap.php` and `bin/install-wp-tests.sh` both refuse that.
