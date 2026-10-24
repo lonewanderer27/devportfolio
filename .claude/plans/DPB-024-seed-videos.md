@@ -230,5 +230,5 @@ Phase 1 (videos): done. Branch `dpb-024-seed-videos`. All five decisions took th
 - Verified on dev DB: dry run 6 would be created; real run 6 created (IDs 173-178, term `9x16`, meta set); re-run 0 created, 6 skipped. Seeded rows left in the dev DB. Snapshot `devportfolio_20261024234747` taken beforehand.
 
 Phase 2 (aspect ratios): done. All four decisions took the proposed option.
-- Tests: `CPTDP_Test_Seeder_Aspect_Ratios` 22 tests OK; full suite 396 tests OK (12 pre-existing skips). Tests must `delete_option( 'default_term_aspect_ratio' )` before deleting terms: WP refuses to delete a taxonomy's default term (`16x9`).
+- Tests: `CPTDP_Test_Seeder_Aspect_Ratios` 16 tests OK; full suite 396 tests OK (12 pre-existing skips). Tests must `delete_option( 'default_term_aspect_ratio' )` before deleting terms: WP refuses to delete a taxonomy's default term (`16x9`).
 - Verified on dev DB (snapshot `devportfolio_20261024235845`): cleared aspect ratios and videos, re-seeded both. `16x9` cannot stay deleted: WP recreates the default term on the next request (new term ID 19), so only 3 of 4 were created by the seeder. Videos re-seeded as IDs 186-191, all `9x16`, lengths 5/40/101/7/44/85. Featured images re-attached to the kept attachments 179-184 (seeder does not set thumbnails). `seed --all`: 0 created, 60 skipped.
