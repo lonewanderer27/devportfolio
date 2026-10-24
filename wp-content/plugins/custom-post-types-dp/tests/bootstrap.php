@@ -48,3 +48,4 @@ foreach ( array( 'plugin', 'template', 'class-wp-screen', 'screen' ) as $cptdp_a
 require_once __DIR__ . '/class-cptdp-test-case.php';
 require_once __DIR__ . '/class-cptdp-cpt-test-case.php';
 require_once __DIR__ . '/class-cptdp-media-cpt-test-case.php';
+require_once __DIR__ . '/class-cptdp-seeder-test-case.php';
