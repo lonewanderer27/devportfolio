@@ -131,5 +131,71 @@ Branch `feat/DPB-021-Populate-Software-Tools`. Commits:
 ## Open questions
 1. Production run: via SSH `wp eval-file`, or re-run on prod after DB sync from local? Local DB is not the source of truth for prod content.
 
+## Phase 2: Seeder framework (planned, not started)
+More seeders are coming (e.g. services, statistics, then videos/collaterals that reference tools). Phase 1 above is a one-off `bin/` script run with `eval-file`; each new seeder would repeat the CSV, skip and logging code and need its own long command. Phase 2 replaces it with one WP-CLI command and one small file per seeder. Phase 1 behaviour and tests are preserved.
+
+### Layout
+```
+custom-post-types-dp/
+  includes/
+    cli/
+      class-seed-command.php     # `wp cptdp seed ...`, loaded only when WP_CLI
+      seeder-helpers.php         # read_csv(), find_by_title(), result reporting
+    seeders/
+      software-tools.php         # registers one seeder, defines cptdp_seed_software_tools()
+  data/seeders/
+    software-tools.csv           # data apart from code (moved from bin/)
+  tests/seeders/
+    class-cptdp-seeder-test-case.php   # shared CSV-sanity and idempotency helpers
+    test-software-tools.php            # moved from tests/post-types/test-seed-software-tools.php
+  bin/                           # dev tooling only (install-wp-tests.sh)
+```
+
+### Commands
+```bash
+ddev wp cptdp seed list                       # show registered seeders
+ddev wp cptdp seed software-tools             # run one
+ddev wp cptdp seed --all [--dry-run]          # run all, in registration order
+```
+`--dry-run` is a real flag now (Phase 1's positional `dry-run` arg goes away).
+
+### Contract
+- Each seeder file registers itself via a `cptdp_seeders` filter: `name => [ 'label', 'callback', 'csv' ]`. Callback signature `( bool $dry_run, string $csv_path )`, returns `[ created, skipped ]` (title lists) or `WP_Error`.
+- The loader globs `includes/seeders/*.php` the same way it does `includes/post-types` and `includes/settings` (skipping `index.php`). `includes/cli/` is required only `if ( defined( 'WP_CLI' ) && WP_CLI )`, so there is no cost on web requests. Seeder files only define functions and a filter, so loading them in tests is safe.
+- Shared helpers in `seeder-helpers.php` replace the Phase 1 copies: `cptdp_seed_read_csv( $path, array $header )` (exact header, per-row validation, whole file validated before any write), `cptdp_seed_find_by_title( $post_type, $title )` (any status incl. Trash), and result formatting for the CLI.
+- `--all` runs seeders in registration order. Seeders that depend on others (videos reference `software_tool` IDs) register later and look dependencies up by title; a missing dependency is a `WP_Error`, not a silent skip.
+
+### Rules every seeder keeps
+- Idempotent: skip by key (title or slug), never overwrite manual edits or resurrect deleted/trashed items.
+- Content, not structure: never run on activation. Structural defaults (e.g. `aspect_ratio` terms) stay in their modules.
+- Validate the whole CSV before writing anything.
+- Plain-text CSV in `data/seeders/<name>.csv`, header row, one file per seeder.
+
+### Steps
+1. `git mv` the CSV to `data/seeders/software-tools.csv`; `git mv` the script to `includes/seeders/software-tools.php`, dropping the `eval-file` guard block and WP_CLI output (moved to the command class).
+2. Extract `read_csv` and the title lookup into `includes/cli/seeder-helpers.php`; keep function names stable where tests use them, or update tests.
+3. Add `includes/cli/class-seed-command.php` with `list`, `<name>`, `--all`, `--dry-run`. Errors via `WP_CLI::error`, per-row `WP_CLI::log`, final `WP_CLI::success`.
+4. Extend `class-loader.php`: glob `includes/seeders/`, and require `includes/cli/` under the `WP_CLI` guard. Register the command with `WP_CLI::add_command( 'cptdp seed', ... )`.
+5. Tests: add `CPTDP_Seeder_Test_Case` (CSV well-formed, seeds one per row, order, idempotent, existing not modified, trashed not recreated, dry-run, missing/wrong-header/empty-title errors), make the software-tools test extend it and keep only tool-specific assertions. Add loader test: seeders registered via the filter, `list` data complete (name, label, existing CSV). Command class itself is not unit-tested; verify manually.
+6. Docs: `AGENTS.md` (replace the "Seed Software Tools" section with the `wp cptdp seed` commands, update the Overview paths and the layout/tests notes), README if it mentions seeding. Add a short "Adding a seeder" checklist: CSV in `data/seeders/`, one file in `includes/seeders/` registering the filter, one test extending the base class.
+7. Bump the plugin `Version` header (new CLI feature shipped in the plugin): 0.15.0 to 0.16.0, in both header and `CPTDP_VERSION`, per the repo convention (confirm below).
+
+### Verification
+```bash
+ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit      # full suite green
+ddev wp cptdp seed list
+ddev wp cptdp seed --all --dry-run                     # 0 written
+ddev wp cptdp seed software-tools                      # on seeded DB: 0 created, 31 skipped
+```
+Take `ddev snapshot` before any run that writes.
+
+### Git
+Same branch or a new one, decided below. Commits: `refactor(custom-post-types-dp): move software tool seeder into seeder framework`, `feat(custom-post-types-dp): add wp cptdp seed command`, `test(custom-post-types-dp): add seeder base test case`, `docs(agents): document seeder framework`, `chore(custom-post-types-dp): bump version to 0.16.0`.
+
+### Open questions (Phase 2)
+1. Land on this branch before the PR, or merge Phase 1 first and do Phase 2 as its own ticket/branch (suggest the latter: Phase 1 is reviewable and working).
+2. Version bump to 0.16.0 for a CLI-only feature, or skip (as for Phase 1)?
+3. Data dir name: `data/seeders/` vs `seeders/data/`.
+
 ## Status
-Executed 2026-10-24 on branch `feat/DPB-021-Populate-Software-Tools`. Ticket number settled as DPB-021 (plan file renamed). Local dev DB seeded (31 created; re-run: 0 created, 31 skipped); snapshot `pre-seed-software-tools` taken first. Full PHPUnit suite green (314 tests, 12 skipped, same as before). Test file lives at `tests/post-types/test-seed-software-tools.php`. Production run still to do.
+Phase 1 executed 2026-10-24 on branch `feat/DPB-021-Populate-Software-Tools`. Ticket number settled as DPB-021 (plan file renamed). Local dev DB seeded (31 created; re-run: 0 created, 31 skipped); snapshot `pre-seed-software-tools` taken first. Full PHPUnit suite green (314 tests, 12 skipped, same as before). Test file lives at `tests/post-types/test-seed-software-tools.php`. Production run still to do.
