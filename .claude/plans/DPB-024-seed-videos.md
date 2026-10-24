@@ -223,6 +223,143 @@ Same branch `dpb-024-seed-videos`. Commits:
 3. Keep the automatic on-`init` seeding (proposed) or move it behind the seeder and require a seed run after install (breaks the `video` default term on fresh installs).
 4. Keep a CSV at all (proposed, matches the framework, drift covered by a test) or hard-code the list in the seeder (no CSV, but the registry requires one).
 
+## Phase 3: Video categories seeder
+
+### Context
+`video_category` (`includes/post-types/video-category.php`) is a flat, public taxonomy attached to `video`, rewrite `/video-category/`. It has no default term and no automatic seeding, so unlike `aspect_ratio` nothing creates its terms: they are made by hand in wp-admin. The videos seeder does not assign any category yet.
+
+State of the dev DB (checked 2026-10-25): exactly one term exists, **`Short Form`** (ID 4, slug `short-form`, count 0), made by hand before any seeder. The six seeded test videos (IDs 186-191) have no category. The seeder must **match** that term, not duplicate it: same spelling (`Short Form`, not `Short-form` as in the `Short-form videos` service), and an existing term is skipped, never modified.
+
+Requested categories:
+- Content Creation
+- Short Form (matches the existing term)
+- AI-Generated
+
+Seeding order for this phase: aspect ratios first, video categories second, videos third (videos assign both taxonomies, so both must exist first).
+
+### Goals
+- Add a `video-categories` seeder (`wp cptdp seed video-categories`) that creates the three terms from `data/seeders/video-categories.csv`.
+- Register it between `aspect-ratios` and `videos`, so `wp cptdp seed --all` runs aspect ratios, then video categories, then videos. The loader globs `includes/seeders/*.php` alphabetically, and `video-categories.php` sorts before `videos.php` (`-` is before `s`) and after `aspect-ratios.php`. Assert the relative order in a test, do not rely on it silently.
+- Extend the videos seeder with a `category` column that assigns one `video_category` term per video.
+- Safe to re-run: an existing term (by slug **or** name) is skipped, never modified or duplicated.
+
+### Non-goals
+- Hierarchy (the taxonomy is flat), term descriptions, term meta.
+- More than one category per video (single `category` slug per row; widen later if needed).
+- Seeding categories automatically on `init`. Explicit run only, like every other seeder.
+- Changing the taxonomy registration or anything in `video.php` / `video-category.php`. No plugin behaviour change, so **no version bump**.
+- Modifying existing videos from the seeder: it still skips by title, so already-seeded videos are not re-categorised (see Verification for the dev DB).
+
+### Data
+`data/seeders/video-categories.csv`, columns `title,slug` (`title` is the term name; the shared helpers require a `title` column):
+
+```csv
+title,slug
+Content Creation,content-creation
+Short Form,short-form
+AI-Generated,ai-generated
+```
+
+`Short Form` / `short-form` is identical to the existing dev term on purpose.
+
+`data/seeders/videos.csv` gains a `category` column (term slug) after `aspect_ratio`. New header: `order,title,embed_url,post_url,length,aspect_ratio,category,highlight,description`. Proposed assignment (every category has at least one test video, so archive filters can be exercised; the three YouTube Shorts are Short Form to match the existing term):
+
+| Video | Source | `category` |
+|---|---|---|
+| Test Vertical Video 1 | YouTube Short | `short-form` |
+| Test Vertical Video 2 | YouTube Short | `short-form` |
+| Test Vertical Video 3 | YouTube Short | `short-form` |
+| Test Vertical Video 4 | Vimeo | `content-creation` |
+| Test Vertical Video 5 | Vimeo | `ai-generated` |
+| Test Vertical Video 6 | Vimeo | `content-creation` |
+
+The assignment is arbitrary test data, like the videos themselves.
+
+### Approach
+**`includes/seeders/video-categories.php`** (copy `aspect-ratios.php`):
+- Filter `cptdp_seeders` entry `video-categories`: label `Video Categories`, callback `cptdp_seed_video_category_terms`, csv `CPTDP_PATH . 'data/seeders/video-categories.csv'`, taxonomy `video_category`, columns `array( 'title', 'slug' )`.
+- Callback `cptdp_seed_video_category_terms( bool $dry_run, string $csv_path )`:
+  1. `WP_Error` `cptdp_seed_no_taxonomy` unless `taxonomy_exists( 'video_category' )`.
+  2. `cptdp_seed_read_csv()` with the exact header; return its `WP_Error`.
+  3. Validate every row before any write (`cptdp_seed_csv_row`, with row number): `slug` is non-empty and equals `sanitize_title( slug )`; titles unique; slugs unique.
+  4. Per row: skip when a term exists by **slug or name** (`get_term_by( 'slug', ... )` or `get_term_by( 'name', ... )`). Matching the name too means a hand-made term whose slug was edited is still recognised and no `-2` duplicate appears. Else (unless dry run) `wp_insert_term( title, 'video_category', array( 'slug' => slug ) )`; return its `WP_Error`.
+  5. Return `array( 'created' => ..., 'skipped' => ... )`.
+- Like the aspect ratios seeder: no Trash for terms, so an explicit run recreates a deleted term. Documented in the file header.
+
+**`includes/seeders/videos.php`** changes:
+- Add `category` to the registry `columns` and the `cptdp_seed_read_csv()` header.
+- Row validation: `category` is empty (no category) or equals `sanitize_title( category )`.
+- Before any write, resolve every distinct non-empty `category` to a term ID with `get_term_by( 'slug', ... )`, the same way as the aspect ratio slugs. A missing term returns `WP_Error` `cptdp_seed_term_missing` (code reused), so a video is never created with a silently dropped category and `wp_set_object_terms` never creates a stray term from a string.
+- After the aspect ratio assignment, `wp_set_object_terms( $post_id, array( $term_id ), 'video_category' )` when `category` is not empty; return its `WP_Error`.
+- Update the file docblock (categories now assigned).
+
+### Files to create
+- `wp-content/plugins/custom-post-types-dp/data/seeders/video-categories.csv`
+- `wp-content/plugins/custom-post-types-dp/includes/seeders/video-categories.php`
+- `wp-content/plugins/custom-post-types-dp/tests/seeders/test-video-categories.php`
+
+### Files to edit
+- `data/seeders/videos.csv`: new `category` column and values.
+- `includes/seeders/videos.php`: as above.
+- `tests/seeders/test-videos.php`: new header and `category` field in every inline CSV; new assertions below.
+- `AGENTS.md`: Overview `video` entry (seeder now assigns `video_category`) and `video_category` entry (seeder `video-categories`, `ddev wp cptdp seed video-categories`); Seeders section: one line giving the `--all` order (aspect-ratios, services, software-tools, statistics, video-categories, videos).
+
+### Tests
+`CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case` (term seeder, same reasoning as the aspect ratios test). `set_up()` clears all `video_category` terms. Cover:
+- Registered with `label`, `callback`, `csv`, `taxonomy`, `columns`; CSV exists under `/data/seeders/`.
+- Registry order: `aspect-ratios` before `video-categories` before `videos`.
+- CSV well-formed: unique titles and slugs, slug equals `sanitize_title( slug )`, the three expected titles incl. exactly `Short Form` and `AI-Generated`.
+- Run on empty creates the three with correct name and slug; dry run writes nothing (reports 3 created).
+- Idempotent: second run creates 0, skips 3, term count unchanged.
+- Matches the existing term: pre-create `Short Form` / `short-form` (the dev state), run: that term is skipped, same term ID, no `short-form-2`, the other two created.
+- Matches by name: pre-create name `Short Form` with a different slug, run: skipped, no duplicate.
+- Existing term not modified (custom description kept).
+- Restores a deleted term; others untouched.
+- Missing CSV, wrong header, empty title; temp-CSV errors with nothing written: empty slug, slug not sanitized, duplicate title, duplicate slug.
+
+Videos tests (`test-videos.php`): `set_up()` also runs the `video-categories` seeder. Add:
+- Columns map: each created video has exactly its `category` term.
+- CSV: every non-empty `category` slug exists in `video-categories.csv`; every category has at least one video.
+- Video with empty `category` gets no `video_category` term.
+- Unknown category slug: `cptdp_seed_term_missing`, nothing written; same when the term was deleted.
+- Existing video keeps its categories (pre-create a video with another category, run, unchanged).
+- Chain: delete a category and a ratio, run `aspect-ratios`, `video-categories`, `videos` in that order, videos created with both terms.
+
+Run: `ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit --filter 'CPTDP_Test_Seeder_(Video_Categories|Videos)'`, then the full suite.
+
+### Verification
+```bash
+ddev snapshot
+ddev wp term list video_category --fields=term_id,name,slug,count   # only Short Form (ID 4)
+ddev wp cptdp seed list                          # order: aspect-ratios ... video-categories, videos
+ddev wp cptdp seed video-categories --dry-run    # 2 would be created, 1 skipped (Short Form)
+ddev wp cptdp seed video-categories              # 2 created, 1 skipped
+ddev wp term list video_category --fields=term_id,name,slug   # Short Form still ID 4, no short-form-2
+```
+Dev DB videos (IDs 186-191) already exist and the seeder skips by title, so re-categorise by clearing and re-seeding in the requested order, as in phase 2:
+1. Clear aspect ratios (`16x9` is the default term and comes back on the next request; that is expected).
+2. Clear videos: `ddev wp post delete $(ddev wp post list --post_type=video --post_status=any --format=ids) --force`. Keep the media attachments (179-184).
+3. Re-seed in order: `ddev wp cptdp seed aspect-ratios`, `ddev wp cptdp seed video-categories`, `ddev wp cptdp seed videos`.
+4. Re-attach the featured images (seeder does not set thumbnails): `ddev wp post meta update <new video id> _thumbnail_id <attachment 179..184>` per `Test Vertical Video N`.
+5. Check each video: `ddev wp post term list <id> video_category --field=slug` matches the table above; `ddev wp term list video_category --fields=name,slug,count` counts are 3 / 2 / 1; `ddev wp cptdp seed --all` creates 0.
+
+Then open Videos in wp-admin: the Categories column is filled, and `/video-category/short-form/` lists Test Vertical Videos 1-3.
+
+### Git
+New branch `dpb-024-3-seed-video-categories` off `main` (PR #15 with phases 1-2 is merged). Commits:
+- `feat(custom-post-types-dp): add video categories seeder`
+- `feat(custom-post-types-dp): assign video categories in videos seeder`
+- `test(custom-post-types-dp): cover video categories seeder`
+- `docs(agents): note video categories seeder`
+- `docs(plans): add DPB-024 phase 3 video categories seeder`
+
+### Decisions to confirm (phase 3)
+1. `category` mapping: YouTube Shorts = Short Form, Vimeo spread across the other two (proposed) or every test video Short Form.
+2. One category per video via a single slug column (proposed) or several, `|`-separated.
+3. Matching an existing term by slug **or** name (proposed) or slug only.
+4. Missing category term at run time: error `cptdp_seed_term_missing` (proposed) or skip the category and create the video uncategorised.
+5. Dev DB re-categorisation: clear and re-seed the six videos, re-attaching thumbnails (proposed) or one-off `wp post term set` on the existing videos (keeps IDs, but then the seed path is not exercised end to end).
+
 ## Status
 Phase 1 (videos): done. Branch `dpb-024-seed-videos`. All five decisions took the proposed option.
 - Deviation: the term-missing check runs for dry runs too, and assignment uses the term ID rather than the slug string. Dropped the "invalid URL dropped by sanitizer" test: `esc_url_raw` percent-encodes a space rather than emptying the URL, and the seeder's own validation already rejects unsupported hosts and non-https.
@@ -232,3 +369,7 @@ Phase 1 (videos): done. Branch `dpb-024-seed-videos`. All five decisions took th
 Phase 2 (aspect ratios): done. All four decisions took the proposed option.
 - Tests: `CPTDP_Test_Seeder_Aspect_Ratios` 16 tests OK; full suite 396 tests OK (12 pre-existing skips). Tests must `delete_option( 'default_term_aspect_ratio' )` before deleting terms: WP refuses to delete a taxonomy's default term (`16x9`).
 - Verified on dev DB (snapshot `devportfolio_20261024235845`): cleared aspect ratios and videos, re-seeded both. `16x9` cannot stay deleted: WP recreates the default term on the next request (new term ID 19), so only 3 of 4 were created by the seeder. Videos re-seeded as IDs 186-191, all `9x16`, lengths 5/40/101/7/44/85. Featured images re-attached to the kept attachments 179-184 (seeder does not set thumbnails). `seed --all`: 0 created, 60 skipped.
+
+Phase 3 (video categories): done. Branch `dpb-024-3-seed-video-categories` off `main`. All five decisions took the proposed option.
+- Tests: `CPTDP_Test_Seeder_Video_Categories` 17 tests OK, `CPTDP_Test_Seeder_Videos` 30 tests OK; full suite 420 tests OK (12 pre-existing skips). The phase 2 chain test (`test_missing_term_is_restored_so_videos_can_seed`) also had to run the `video-categories` seeder, since videos now need those terms.
+- Verified on dev DB (snapshot `devportfolio_20261025002142`): `video-categories` dry run 2 would be created, 1 skipped; real run created `Content Creation` (23) and `AI-Generated` (24); hand-made `Short Form` kept ID 4, no `short-form-2`. Cleared ratios and videos, re-seeded in order ratios, categories, videos: videos IDs 209-214, all `9x16`, categories short-form x3 / content-creation x2 / ai-generated x1 (term counts 3/2/1), thumbnails re-attached (attachments 179-184). `seed --all`: 0 created, 63 skipped.
