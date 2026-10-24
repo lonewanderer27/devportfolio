@@ -1,0 +1,17 @@
+order,title,parent,content
+1,Social Media Marketing,,Strategic content that builds your audience.
+2,Digital Marketing,,Marketing support that turns attention into customers.
+3,Web Creation / Management,,"Websites built, updated and kept running."
+1,Analytics,Social Media Marketing,
+2,Scheduled posting,Social Media Marketing,
+3,Content calendar,Social Media Marketing,
+4,Content creation,Social Media Marketing,
+5,Short-form videos,Social Media Marketing,
+6,AI-generated videos,Social Media Marketing,
+1,Ad analytics,Digital Marketing,
+2,Brand collaterals,Digital Marketing,
+3,Digital creation,Digital Marketing,
+4,Product mockups,Digital Marketing,
+1,Websites & portfolios,Web Creation / Management,
+2,GoDaddy,Web Creation / Management,
+3,WordPress,Web Creation / Management,
