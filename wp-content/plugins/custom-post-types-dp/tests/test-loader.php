@@ -19,13 +19,40 @@ class CPTDP_Test_Loader extends CPTDP_Test_Case {
 	public function test_loader_requires_every_module_except_index(): void {
 		$included = array_map( 'realpath', get_included_files() );
 
-		foreach ( array_merge( glob( CPTDP_PATH . 'includes/post-types/*.php' ), glob( CPTDP_PATH . 'includes/settings/*.php' ) ) as $file ) {
+		foreach ( array_merge( glob( CPTDP_PATH . 'includes/post-types/*.php' ), glob( CPTDP_PATH . 'includes/settings/*.php' ), glob( CPTDP_PATH . 'includes/seeders/*.php' ) ) as $file ) {
 			if ( 'index.php' === basename( $file ) ) {
 				continue;
 			}
 
 			$this->assertContains( realpath( $file ), $included, basename( $file ) . ' not loaded' );
 		}
+	}
+
+	public function test_seeder_helpers_load_without_wp_cli(): void {
+		$this->assertFalse( defined( 'WP_CLI' ) && WP_CLI );
+		$this->assertTrue( function_exists( 'cptdp_get_seeders' ) );
+		$this->assertTrue( function_exists( 'cptdp_run_seeder' ) );
+		$this->assertFalse( class_exists( 'CPTDP_Seed_Command', false ), 'The seed command must load only under WP-CLI.' );
+	}
+
+	public function test_every_registered_seeder_has_an_existing_csv_in_data_seeders(): void {
+		$seeders = cptdp_get_seeders();
+
+		$this->assertArrayHasKey( 'software-tools', $seeders );
+		$this->assertNotContains( 'list', array_keys( $seeders ), '`list` is reserved by the command.' );
+
+		foreach ( $seeders as $name => $seeder ) {
+			$this->assertNotSame( '', (string) $seeder['label'], $name );
+			$this->assertFileExists( $seeder['csv'], $name );
+			$this->assertSame( CPTDP_PATH . 'data/seeders/' . $name . '.csv', $seeder['csv'], $name );
+		}
+	}
+
+	public function test_running_an_unknown_seeder_errors(): void {
+		$result = cptdp_run_seeder( 'nope' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'cptdp_seed_unknown', $result->get_error_code() );
 	}
 
 	public function test_loading_modules_twice_is_safe(): void {
