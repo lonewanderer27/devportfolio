@@ -3,8 +3,9 @@
  * Videos seeder.
  *
  * Creates one published `video` per row of data/seeders/videos.csv, with embed
- * and post URLs, length, highlight flag and an Aspect Ratio term. Uploaded
- * files (`cptdp_video_file`) are not seeded.
+ * and post URLs, length, highlight flag, an Aspect Ratio term and an optional
+ * Video Category term. Both terms must exist (see the `aspect-ratios` and
+ * `video-categories` seeders). Uploaded files (`cptdp_video_file`) are not seeded.
  * Run: wp cptdp seed videos [--dry-run]
  *
  * @package CustomPostTypesDP
@@ -23,7 +24,7 @@ function cptdp_register_seeder_videos( array $seeders ): array {
 		'callback'  => 'cptdp_seed_videos',
 		'csv'       => CPTDP_PATH . 'data/seeders/videos.csv',
 		'post_type' => 'video',
-		'columns'   => array( 'order', 'title', 'embed_url', 'post_url', 'length', 'aspect_ratio', 'highlight', 'description' ),
+		'columns'   => array( 'order', 'title', 'embed_url', 'post_url', 'length', 'aspect_ratio', 'category', 'highlight', 'description' ),
 	);
 
 	return $seeders;
@@ -42,7 +43,7 @@ function cptdp_seed_videos( bool $dry_run, string $csv_path ) {
 		return new WP_Error( 'cptdp_seed_no_post_type', 'The video post type is not registered.' );
 	}
 
-	$rows = cptdp_seed_read_csv( $csv_path, array( 'order', 'title', 'embed_url', 'post_url', 'length', 'aspect_ratio', 'highlight', 'description' ) );
+	$rows = cptdp_seed_read_csv( $csv_path, array( 'order', 'title', 'embed_url', 'post_url', 'length', 'aspect_ratio', 'category', 'highlight', 'description' ) );
 	if ( is_wp_error( $rows ) ) {
 		return $rows;
 	}
@@ -84,6 +85,10 @@ function cptdp_seed_videos( bool $dry_run, string $csv_path ) {
 			$errors[] = sprintf( 'Unknown aspect_ratio "%s"', $row['aspect_ratio'] );
 		}
 
+		if ( '' !== $row['category'] && sanitize_title( $row['category'] ) !== $row['category'] ) {
+			$errors[] = sprintf( 'Invalid category "%s"', $row['category'] );
+		}
+
 		if ( ! empty( $errors ) ) {
 			return new WP_Error( 'cptdp_seed_csv_row', sprintf( '%1$s for "%2$s" (row %3$d).', implode( '; ', $errors ), $row['title'], $line ) );
 		}
@@ -99,6 +104,18 @@ function cptdp_seed_videos( bool $dry_run, string $csv_path ) {
 		}
 
 		$term_ids[ $slug ] = (int) $term->term_id;
+	}
+
+	// Slug => term ID of each category in use. Same rule as above: no term is created from a string.
+	$category_ids = array();
+	foreach ( array_unique( array_filter( wp_list_pluck( $rows, 'category' ) ) ) as $slug ) {
+		$term = get_term_by( 'slug', $slug, 'video_category' );
+
+		if ( ! $term instanceof WP_Term ) {
+			return new WP_Error( 'cptdp_seed_term_missing', sprintf( 'Video Category term "%s" does not exist.', $slug ) );
+		}
+
+		$category_ids[ $slug ] = (int) $term->term_id;
 	}
 
 	$result = array(
@@ -146,6 +163,13 @@ function cptdp_seed_videos( bool $dry_run, string $csv_path ) {
 			$set = wp_set_object_terms( $post_id, array( $term_ids[ $row['aspect_ratio'] ] ), 'aspect_ratio' );
 			if ( is_wp_error( $set ) ) {
 				return $set;
+			}
+
+			if ( '' !== $row['category'] ) {
+				$set = wp_set_object_terms( $post_id, array( $category_ids[ $row['category'] ] ), 'video_category' );
+				if ( is_wp_error( $set ) ) {
+					return $set;
+				}
 			}
 		}
 

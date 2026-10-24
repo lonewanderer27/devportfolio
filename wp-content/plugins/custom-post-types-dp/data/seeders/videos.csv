@@ -1,7 +1,7 @@
-order,title,embed_url,post_url,length,aspect_ratio,highlight,description
-10,Test Vertical Video 1,https://www.youtube.com/embed/KlE9YewV7SU,https://www.youtube.com/shorts/KlE9YewV7SU,5,9x16,1,Placeholder 9:16 short for layout testing.
-20,Test Vertical Video 2,https://www.youtube.com/embed/MAkPGtxU9iM,https://www.youtube.com/shorts/MAkPGtxU9iM,40,9x16,0,Placeholder 9:16 short for layout testing.
-30,Test Vertical Video 3,https://www.youtube.com/embed/XjFGjPAKImI,https://www.youtube.com/shorts/XjFGjPAKImI,101,9x16,0,Placeholder 9:16 short for layout testing.
-40,Test Vertical Video 4,https://player.vimeo.com/video/674533939,https://vimeo.com/674533939,7,9x16,0,Placeholder 9:16 Vimeo video for layout testing.
-50,Test Vertical Video 5,https://player.vimeo.com/video/1228877855,https://vimeo.com/1228877855,44,9x16,0,Placeholder 9:16 Vimeo video for layout testing.
-60,Test Vertical Video 6,https://player.vimeo.com/video/1175466808,https://vimeo.com/1175466808,85,9x16,0,Placeholder 9:16 Vimeo video for layout testing.
+order,title,embed_url,post_url,length,aspect_ratio,category,highlight,description
+10,Test Vertical Video 1,https://www.youtube.com/embed/KlE9YewV7SU,https://www.youtube.com/shorts/KlE9YewV7SU,5,9x16,short-form,1,Placeholder 9:16 short for layout testing.
+20,Test Vertical Video 2,https://www.youtube.com/embed/MAkPGtxU9iM,https://www.youtube.com/shorts/MAkPGtxU9iM,40,9x16,short-form,0,Placeholder 9:16 short for layout testing.
+30,Test Vertical Video 3,https://www.youtube.com/embed/XjFGjPAKImI,https://www.youtube.com/shorts/XjFGjPAKImI,101,9x16,short-form,0,Placeholder 9:16 short for layout testing.
+40,Test Vertical Video 4,https://player.vimeo.com/video/674533939,https://vimeo.com/674533939,7,9x16,content-creation,0,Placeholder 9:16 Vimeo video for layout testing.
+50,Test Vertical Video 5,https://player.vimeo.com/video/1228877855,https://vimeo.com/1228877855,44,9x16,ai-generated,0,Placeholder 9:16 Vimeo video for layout testing.
+60,Test Vertical Video 6,https://player.vimeo.com/video/1175466808,https://vimeo.com/1175466808,85,9x16,content-creation,0,Placeholder 9:16 Vimeo video for layout testing.
