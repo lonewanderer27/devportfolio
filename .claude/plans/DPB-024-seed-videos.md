@@ -129,8 +129,106 @@ Branch `dpb-024-seed-videos` off `main`. Commits:
 4. Third-party content: OK as throwaway test embeds (proposed) or use own footage only.
 5. Missing `aspect_ratio` term at run time: error `cptdp_seed_term_missing` (proposed) or let WP create the term.
 
+## Phase 2: Aspect ratios seeder
+
+### Context
+`aspect_ratio` terms (`16x9`, `9x16`, `1x1`, `4x3`) are created today by `cptdp_seed_aspect_ratios()` (`includes/post-types/aspect-ratio.php`), hooked to `cptdp_register_post_types` at priority 20 and guarded by option `cptdp_aspect_ratio_seeded`, so a term an admin deletes is not recreated on every request. The fixed list lives in `cptdp_aspect_ratio_terms()` and also drives the meta box order.
+
+Gap: once the option is set there is no supported way to bring a deleted term back (the videos seeder then fails with `cptdp_seed_term_missing`). Phase 2 adds an explicit, on-demand seeder for them, so `wp cptdp seed --all` is self-contained and the videos seeder can depend on it.
+
+### Goals
+- Add an `aspect-ratios` seeder (`wp cptdp seed aspect-ratios`) that creates any missing term from `data/seeders/aspect-ratios.csv`.
+- Run before `videos` in `--all` (the loader globs `includes/seeders/*.php` alphabetically, so `aspect-ratios.php` registers before `videos.php`; assert this in a test, do not rely on it silently).
+- Safe to re-run: existing terms are skipped, never modified.
+
+### Non-goals
+- Removing or changing the automatic once-per-install seeding on `init`. It stays: the `video` default term (`16x9`) needs the terms to exist before any seeder runs. The seeder is the explicit "restore" path.
+- New terms beyond the four, term meta, term descriptions. The set is fixed by `cptdp_aspect_ratio_terms()`.
+- Resetting `cptdp_aspect_ratio_seeded`. The seeder neither reads nor writes the option.
+- Plugin behaviour change, so **no version bump**.
+
+### Data (`data/seeders/aspect-ratios.csv`)
+Columns: `title,slug`. `title` is the term name (the shared helpers require a `title` column), `slug` the term slug. Today both are identical, as in `wp_insert_term( $name, ..., array( 'slug' => $name ) )`.
+
+```csv
+title,slug
+16x9,16x9
+9x16,9x16
+1x1,1x1
+4x3,4x3
+```
+
+Two sources of truth (CSV and `cptdp_aspect_ratio_terms()`) can drift, so a test asserts the CSV titles equal `cptdp_aspect_ratio_terms()` in order. The seeder validates each row against that function too (unknown term = `cptdp_seed_csv_row`), so a CSV edit cannot create a ratio the meta box does not offer.
+
+### Approach
+Terms are not posts, so the registry entry takes a `taxonomy` key **instead of** `post_type`. Only the test base class reads `post_type` (`tests/class-cptdp-seeder-test-case.php:52,127`); `seeder-helpers.php` and the WP-CLI command do not, so no production code changes. Update the docblock of `cptdp_get_seeders()` to say "`post_type` or `taxonomy`".
+
+`includes/seeders/aspect-ratios.php` (copy `software-tools.php`):
+- Filter `cptdp_seeders` entry `aspect-ratios`: label `Aspect Ratios`, callback `cptdp_seed_aspect_ratio_terms`, csv `CPTDP_PATH . 'data/seeders/aspect-ratios.csv'`, taxonomy `aspect_ratio`, columns `array( 'title', 'slug' )`.
+- Callback `cptdp_seed_aspect_ratio_terms( bool $dry_run, string $csv_path )` (distinct name from the existing `cptdp_seed_aspect_ratios()`):
+  1. `WP_Error` `cptdp_seed_no_taxonomy` unless `taxonomy_exists( 'aspect_ratio' )`.
+  2. `cptdp_seed_read_csv()` with the exact header; return its `WP_Error`.
+  3. Validate every row before any write (`cptdp_seed_csv_row`, with row number): `title` is in `cptdp_aspect_ratio_terms()`, `slug` equals `title`, titles unique.
+  4. Per row: `term_exists( slug, 'aspect_ratio' )` then `skipped`. Else (unless dry run) `wp_insert_term( title, 'aspect_ratio', array( 'slug' => slug ) )`; return its `WP_Error`.
+  5. Return `array( 'created' => ..., 'skipped' => ... )` (titles).
+
+Difference from post seeders: terms have no Trash, so a term an admin deleted **is recreated** by an explicit run. That is the point of the seeder (restore on demand), and it never runs automatically. Documented in the file header and in AGENTS.md.
+
+### Files to create
+- `wp-content/plugins/custom-post-types-dp/data/seeders/aspect-ratios.csv`
+- `wp-content/plugins/custom-post-types-dp/includes/seeders/aspect-ratios.php`
+- `wp-content/plugins/custom-post-types-dp/tests/seeders/test-aspect-ratios.php`
+
+### Files to edit
+- `includes/cli/seeder-helpers.php`: docblock only (`taxonomy` as an alternative to `post_type`).
+- `AGENTS.md`: Overview `aspect_ratio` entry, one clause noting the seeder (`ddev wp cptdp seed aspect-ratios`, restores deleted terms); Seeders section: one line that an entry may carry `taxonomy` instead of `post_type`.
+
+### Tests
+`CPTDP_Test_Seeder_Aspect_Ratios extends CPTDP_Test_Case` (not the post-based `CPTDP_Seeder_Test_Case`, whose generic tests assume posts, titles and Trash). `set_up()` as in `test-aspect-ratio.php`: delete the seeded option, start from a known term state. Cover:
+- Registered with `label`, `callback`, `csv`, `taxonomy`, `columns`; callable; CSV exists under `/data/seeders/`; has a `title` column; registered before `videos` in `cptdp_get_seeders()` order.
+- CSV titles equal `cptdp_aspect_ratio_terms()`, slug equals title, unique.
+- Run on an empty term table creates all four with the right name and slug; dry run writes nothing (reports 4 created).
+- Idempotent: second run creates 0, skips 4, term count unchanged.
+- Restores a deleted term (delete `4x3`, run, `4x3` back, others untouched). Does not touch `cptdp_aspect_ratio_seeded`.
+- Existing term not modified (rename `1x1` to a custom name keeping the slug, run, name unchanged, no duplicate).
+- Missing CSV, wrong header, empty title (`cptdp_seed_csv_header` / `cptdp_seed_csv_row`), as in the base class.
+- Temp-CSV validation errors, nothing written: title not in the fixed list, slug differing from title, duplicate title.
+- Chain: delete the `9x16` term, run `aspect-ratios` then `videos`, videos get created (phase 1's `cptdp_seed_term_missing` no longer blocks).
+
+Run: `ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit --filter CPTDP_Test_Seeder_Aspect_Ratios`, then the full suite.
+
+### Verification
+```bash
+ddev snapshot
+ddev wp cptdp seed list                          # aspect-ratios appears, before videos
+ddev wp cptdp seed aspect-ratios --dry-run       # 0 created, 4 skipped
+ddev wp cptdp seed aspect-ratios                 # 0 created, 4 skipped
+ddev wp term delete aspect_ratio $(ddev wp term get aspect_ratio 4x3 --by=slug --field=term_id)
+ddev wp cptdp seed aspect-ratios                 # 1 created (4x3), 3 skipped
+ddev wp term list aspect_ratio --fields=name,slug
+ddev wp cptdp seed --all                         # nothing new on a seeded DB
+```
+Confirm the video default term still works: a new video saved without choosing a ratio gets `16x9` (unchanged, covered by existing tests).
+
+### Git
+Same branch `dpb-024-seed-videos`. Commits:
+- `feat(custom-post-types-dp): add aspect ratios seeder`
+- `test(custom-post-types-dp): cover aspect ratios seeder`
+- `docs(agents): note aspect ratios seeder`
+- `docs(plans): add DPB-024 phase 2 aspect ratios seeder`
+
+### Decisions to confirm (phase 2)
+1. Registry shape: `taxonomy` key instead of `post_type` (proposed, two lines in the test base unaffected) or keep `post_type => video` and special-case the generic tests.
+2. Deleted term on explicit run: recreate (proposed, the seeder's purpose) or skip like trashed posts (then the seeder could never restore anything).
+3. Keep the automatic on-`init` seeding (proposed) or move it behind the seeder and require a seed run after install (breaks the `video` default term on fresh installs).
+4. Keep a CSV at all (proposed, matches the framework, drift covered by a test) or hard-code the list in the seeder (no CSV, but the registry requires one).
+
 ## Status
-Done. Branch `dpb-024-seed-videos`. All five decisions took the proposed option.
+Phase 1 (videos): done. Branch `dpb-024-seed-videos`. All five decisions took the proposed option.
 - Deviation: the term-missing check runs for dry runs too, and assignment uses the term ID rather than the slug string. Dropped the "invalid URL dropped by sanitizer" test: `esc_url_raw` percent-encodes a space rather than emptying the URL, and the seeder's own validation already rejects unsupported hosts and non-https.
 - Tests: `CPTDP_Test_Seeder_Videos` 24 tests OK; full suite 380 tests OK (12 pre-existing skips).
 - Verified on dev DB: dry run 6 would be created; real run 6 created (IDs 173-178, term `9x16`, meta set); re-run 0 created, 6 skipped. Seeded rows left in the dev DB. Snapshot `devportfolio_20261024234747` taken beforehand.
+
+Phase 2 (aspect ratios): done. All four decisions took the proposed option.
+- Tests: `CPTDP_Test_Seeder_Aspect_Ratios` 22 tests OK; full suite 396 tests OK (12 pre-existing skips). Tests must `delete_option( 'default_term_aspect_ratio' )` before deleting terms: WP refuses to delete a taxonomy's default term (`16x9`).
+- Verified on dev DB (snapshot `devportfolio_20261024235845`): cleared aspect ratios and videos, re-seeded both. `16x9` cannot stay deleted: WP recreates the default term on the next request (new term ID 19), so only 3 of 4 were created by the seeder. Videos re-seeded as IDs 186-191, all `9x16`, lengths 5/40/101/7/44/85. Featured images re-attached to the kept attachments 179-184 (seeder does not set thumbnails). `seed --all`: 0 created, 60 skipped.
