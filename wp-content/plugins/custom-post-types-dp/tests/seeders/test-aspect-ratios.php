@@ -231,6 +231,7 @@ class CPTDP_Test_Seeder_Aspect_Ratios extends CPTDP_Test_Case {
 
 	public function test_missing_term_is_restored_so_videos_can_seed(): void {
 		$this->run_seeder();
+		$this->assertIsArray( cptdp_run_seeder( 'video-categories' ) );
 		wp_delete_term( get_term_by( 'slug', '9x16', 'aspect_ratio' )->term_id, 'aspect_ratio' );
 
 		$blocked = cptdp_run_seeder( 'videos' );
