@@ -131,7 +131,7 @@ Branch `feat/DPB-021-Populate-Software-Tools`. Commits:
 ## Open questions
 1. Production run: via SSH `wp eval-file`, or re-run on prod after DB sync from local? Local DB is not the source of truth for prod content.
 
-## Phase 2: Seeder framework (planned, not started)
+## Phase 2: Seeder framework (done)
 More seeders are coming (e.g. services, statistics, then videos/collaterals that reference tools). Phase 1 above is a one-off `bin/` script run with `eval-file`; each new seeder would repeat the CSV, skip and logging code and need its own long command. Phase 2 replaces it with one WP-CLI command and one small file per seeder. Phase 1 behaviour and tests are preserved.
 
 ### Layout
@@ -199,3 +199,5 @@ Same branch or a new one, decided below. Commits: `refactor(custom-post-types-dp
 
 ## Status
 Phase 1 executed 2026-10-24 on branch `feat/DPB-021-Populate-Software-Tools`. Ticket number settled as DPB-021 (plan file renamed). Local dev DB seeded (31 created; re-run: 0 created, 31 skipped); snapshot `pre-seed-software-tools` taken first. Full PHPUnit suite green (314 tests, 12 skipped, same as before). Test file lives at `tests/post-types/test-seed-software-tools.php`. Production run still to do.
+
+Phase 2 executed 2026-10-24 on branch `feat/DPB-021-Seeder-Framework` (branched from Phase 1; open questions resolved as: own branch, bump to 0.16.0, `data/seeders/`). Deviations from the plan above: `includes/cli/seeder-helpers.php` is required on every request (not only under WP-CLI) so seeders and tests can call it; only `class-seed-command.php` is WP-CLI-gated. Registry entries also carry `post_type` and `columns` so the shared base test case stays generic. Full suite green (323 tests, 12 skipped). `wp cptdp seed list`, `--all --dry-run`, `software-tools` (0 created, 31 skipped) and the unknown/missing-name errors verified on the dev DB.
