@@ -58,6 +58,29 @@ npm run watch
 
 Most design is controlled by `theme.json`, `styles/`, `templates/`, `parts/` and `patterns/`. Edit those rather than adding bespoke PHP where possible.
 
+## Seeding content
+
+The `custom-post-types-dp` plugin ships WP-CLI seeders that populate placeholder content (and some taxonomy terms) from CSV files. Run them inside DDEV:
+
+```bash
+ddev wp cptdp seed list                      # registered seeders
+ddev wp cptdp seed software-tools            # run one seeder
+ddev wp cptdp seed --all --dry-run           # preview everything, writes nothing
+ddev wp cptdp seed --all                     # run all, in registration order
+```
+
+Available seeders: `aspect-ratios`, `services`, `software-tools`, `statistics`, `video-categories`, `videos`.
+
+- **Data** lives in `wp-content/plugins/custom-post-types-dp/data/seeders/<name>.csv`. Edit the CSV, not the code.
+- **Idempotent**: an item whose title already exists (any status, including Trash) is skipped, never modified. Term seeders (`aspect-ratios`, `video-categories`) recreate a term that was deleted in wp-admin.
+- **Validated first**: the whole CSV is checked before anything is written. Use `--dry-run` to preview.
+- **Order matters**: `videos` needs the `aspect-ratios` and `video-categories` seeders to have run first. `--all` handles this.
+- **Content, not structure**: seeders never run on plugin activation.
+- **Thumbnails and uploaded files** are not seeded; add them manually in wp-admin. Seeded videos use YouTube/Vimeo embed URLs.
+- Take a `ddev snapshot` before a real run on a database you care about.
+
+To add a seeder, create `data/seeders/<name>.csv` (header row including `title`), `includes/seeders/<name>.php` (copy `software-tools.php`) and `tests/seeders/test-<name>.php`. See `AGENTS.md` for details.
+
 ## Testing
 
 The `custom-post-types-dp` plugin has a PHPUnit suite built on WordPress's `WP_UnitTestCase`. It covers CPT and taxonomy registration, meta sanitizers, meta box saving, REST access, admin columns, Contact settings, and the loader.
