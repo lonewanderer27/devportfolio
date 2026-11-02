@@ -19,6 +19,7 @@
 !/wp-content/plugins/custom-post-types-dp/
 /wp-content/themes/*
 !/wp-content/themes/twentytwentyfive/
+!/wp-content/themes/devportfolio/
 
 # Dependencies and generated build output
 /vendor/
