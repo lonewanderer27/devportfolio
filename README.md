@@ -22,15 +22,32 @@ Personal developer portfolio for Dave John Deluta, built on WordPress and develo
 git clone <repo-url> devportfolio
 cd devportfolio
 ddev start
-ddev launch          # open the site in a browser
 ```
 
-First run: visit the site and complete the WordPress installer, or import an existing database:
+When DDEV finishes starting, you should see this success message:
+
+```
+Your project can be reached at https://devportfolio.ddev.site
+```
+
+WordPress core is git-ignored, so it isn't in the clone yet. Install it with one of the two options below.
+
+**Option A: fresh install**
+
+```bash
+ddev wp core download
+```
+
+Wait for the download to finish, then open https://devportfolio.ddev.site (or run `ddev launch`) and complete the WordPress setup in the browser.
+
+**Option B: import a database dump**
 
 ```bash
 ddev import-db --file=path/to/dump.sql.gz
 ddev import-files --source=path/to/uploads   # restores wp-content/uploads
 ```
+
+Core still needs to be present, so run `ddev wp core download` first if `wp-admin/` and `wp-includes/` are missing.
 
 DDEV generates `wp-config-ddev.php` (DB credentials, `WP_HOME`, `WP_SITEURL`, `WP_DEBUG`) automatically. `wp-config.php` loads it when `IS_DDEV_PROJECT=true`. No manual DB config needed.
 
