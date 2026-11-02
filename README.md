@@ -97,26 +97,39 @@ To add a seeder, create `data/seeders/<name>.csv` (header row including `title`)
 
 ## Testing
 
-The `custom-post-types-dp` plugin has a PHPUnit suite built on WordPress's `WP_UnitTestCase`. It covers CPT and taxonomy registration, meta sanitizers, meta box saving, REST access, admin columns, Contact settings, and the loader.
+There are two PHPUnit suites, both built on WordPress's `WP_UnitTestCase`:
 
-Tests run inside DDEV against a separate `wordpress_test` database. The WP test library drops every table in its database, so it must never point at the dev DB (`db`). The bootstrap and install script refuse to.
+| Suite | Location | Covers |
+| --- | --- | --- |
+| Plugin | `wp-content/plugins/custom-post-types-dp/tests/` | CPT and taxonomy registration, meta sanitizers, meta box saving, REST access, admin columns, Contact settings, seeders, and the loader |
+| Theme | `wp-content/themes/devportfolio/tests/` | The main navigation: link order and targets, the active-page state on each archive and the front page, anchor links, and the lo-fi nav styling in `theme.json` |
 
-One-time setup (repeat the second command after `ddev restart` or a rebuild, since the test library lives in the container's `/tmp`):
+Tests run inside DDEV against a separate `wordpress_test` database. The WP test library drops every table in its database, so it must never point at the dev DB (`db`). Both bootstraps (and the plugin's install script) refuse to.
+
+The two suites share one PHPUnit install (the plugin's `vendor/`), one WP test library and one test database, so setup is done once (repeat the second command after `ddev restart` or a rebuild, since the test library lives in the container's `/tmp`):
 
 ```bash
 ddev composer --working-dir=wp-content/plugins/custom-post-types-dp install
 ddev exec "bash wp-content/plugins/custom-post-types-dp/bin/install-wp-tests.sh"
 ```
 
-Run the suite:
+Run the plugin suite:
 
 ```bash
 ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit
 ```
 
-Useful flags: `--testdox` (readable list), `--filter CPTDP_Test_Video` (one class), `--group settings` (one group; groups: `video`, `document`, `collateral`, `service`, `statistic`, `software-tool`, `taxonomies`, `settings`, `loader`).
+Run the theme suite (it uses the plugin's PHPUnit and loads the plugin, because the nav links to its archives):
 
-Tests live in `wp-content/plugins/custom-post-types-dp/tests/`. When adding a CPT, add a test class extending `CPTDP_CPT_Test_Case` (or `CPTDP_Media_CPT_Test_Case` for the file/URL/statistics pattern). See `AGENTS.md` for gotchas.
+```bash
+ddev exec --dir=/var/www/html/wp-content/themes/devportfolio ../../plugins/custom-post-types-dp/vendor/bin/phpunit
+```
+
+Run both before opening a PR that touches the plugin or the theme: a plugin change (for example a CPT's archive slug) can break the theme tests.
+
+Useful flags: `--testdox` (readable list), `--filter CPTDP_Test_Video` / `--filter Devportfolio_Test_Navigation` (one class), `--group settings` (one group). Plugin groups: `video`, `document`, `collateral`, `service`, `statistic`, `software-tool`, `taxonomies`, `settings`, `loader`. Theme group: `theme`.
+
+When adding a CPT, add a plugin test class extending `CPTDP_CPT_Test_Case` (or `CPTDP_Media_CPT_Test_Case` for the file/URL/statistics pattern). When adding theme behaviour (a nav link, template or filter), add a `tests/test-*.php` in the theme. See `AGENTS.md` for gotchas.
 
 ## Repository layout
 
@@ -151,7 +164,7 @@ See `AGENTS.md` for field-level detail.
 
 ## Contributing
 
-Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`), run the [tests](#testing), and open a PR using the template in `.github/`.
+Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`), run the plugin and theme [tests](#testing), and open a PR using the template in `.github/`.
 
 ## License
 
