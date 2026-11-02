@@ -36,29 +36,41 @@ Data lives in `wp-content/plugins/custom-post-types-dp/data/seeders/<name>.csv` 
 
 Adding a seeder: (1) CSV in `data/seeders/<name>.csv` with a header row incl. `title`; (2) `includes/seeders/<name>.php` that adds its entry to the `cptdp_seeders` filter and defines the callback (copy `software-tools.php`; use `cptdp_seed_read_csv()` and `cptdp_seed_title_exists()`); (3) `tests/seeders/test-<name>.php` extending `CPTDP_Seeder_Test_Case` (implement `seeder_name()`, add column-mapping assertions). `list` is a reserved seeder name. `--all` order: `aspect-ratios`, `document-categories`, `services`, `software-tools`, `statistics`, `video-categories`, `videos` (the videos seeder needs both term seeders first). Term seeders (`aspect-ratios`, `document-categories`, `video-categories`) recreate a term deleted in wp-admin, since terms have no Trash; WP always recreates a taxonomy's default term (`16x9`) on the next request.
 
-### Tests (plugin `custom-post-types-dp`, PHPUnit 9 + `WP_UnitTestCase`)
+### Tests (PHPUnit 9 + `WP_UnitTestCase`, two suites)
 
-Suite lives in `wp-content/plugins/custom-post-types-dp/tests/` (config `phpunit.xml.dist`, dev deps in the plugin's `composer.json`, `vendor/` git-ignored). It runs against a dedicated DB `wordpress_test` (table prefix `wptests_`). The WP test library **drops every table in its DB**, so never point it at the dev DB `db`; `tests/bootstrap.php` and `bin/install-wp-tests.sh` both refuse that.
+There are two independent suites: **plugin** (`custom-post-types-dp`, the content model) and **theme** (`devportfolio`, the main navigation). Both share one PHPUnit install (the plugin's `vendor/`), one WP test library and one test DB, so the setup is done once. Both run against the dedicated DB `wordpress_test` (table prefix `wptests_`). The WP test library **drops every table in its DB**, so never point it at the dev DB `db`; both `tests/bootstrap.php` files and the plugin's `bin/install-wp-tests.sh` refuse that.
 
 ```bash
 # one-time (and after `ddev restart`/rebuild: the test lib lives in the container's /tmp)
 ddev composer --working-dir=wp-content/plugins/custom-post-types-dp install
 ddev exec "bash wp-content/plugins/custom-post-types-dp/bin/install-wp-tests.sh"
 
-# run
+# plugin suite
 ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin/phpunit
 # filters: --filter CPTDP_Test_Video | --group settings | --testdox
 
-# devportfolio theme tests (wp-content/themes/devportfolio/tests/, own phpunit.xml.dist + bootstrap;
-# reuses the plugin's PHPUnit install and the same test DB / test lib, and loads the plugin)
+# theme suite (runner is the plugin's PHPUnit; the theme has no Composer deps of its own)
 ddev exec --dir=/var/www/html/wp-content/themes/devportfolio ../../plugins/custom-post-types-dp/vendor/bin/phpunit
+# filters: --filter Devportfolio_Test_Navigation | --group theme | --testdox
 ```
 
-`ddev composer ... test` also works but hides PHPUnit's output on failure; prefer the `ddev exec` form.
+Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 438 tests (12 skipped), theme 15 tests.
 
-Layout: shared base classes `tests/class-cptdp-*-test-case.php` (`CPTDP_CPT_Test_Case` for registration/columns/order/archive, `CPTDP_Media_CPT_Test_Case` for the video/document/collateral file+URL+statistics+save+REST pattern); one `test-*.php` per module under `tests/post-types/`, `tests/taxonomies/`, `tests/settings/`, plus `tests/test-loader.php`. A new CPT = a new test class extending the matching base and implementing its `expected*()` methods.
+#### Plugin suite (`wp-content/plugins/custom-post-types-dp/tests/`)
+
+Config `phpunit.xml.dist`, dev deps in the plugin's `composer.json`, `vendor/` git-ignored. Layout: shared base classes `tests/class-cptdp-*-test-case.php` (`CPTDP_CPT_Test_Case` for registration/columns/order/archive, `CPTDP_Media_CPT_Test_Case` for the video/document/collateral file+URL+statistics+save+REST pattern); one `test-*.php` per module under `tests/post-types/`, `tests/taxonomies/`, `tests/settings/`, `tests/seeders/`, plus `tests/test-loader.php`. A new CPT = a new test class extending the matching base and implementing its `expected*()` methods.
 
 Gotchas: `WP_UnitTestCase` unregisters all meta after every test and wipes terms after bootstrap (options survive), so `CPTDP_Test_Case::set_up()` re-runs `cptdp_register_post_types`, and the aspect ratio tests re-seed. Core only assigns default terms when the current user can assign terms. Bootstrap forces `flush_rewrite_rules_hard` off so tests never write `.htaccess`.
+
+#### Theme suite (`wp-content/themes/devportfolio/tests/`)
+
+Own `phpunit.xml.dist` (suite `devportfolio`, globs `tests/test-*.php`) and `tests/bootstrap.php`. The bootstrap loads the WP test library **and the plugin** (the nav links to its CPT archives), defaults the polyfills path to the plugin's `vendor/`, and forces `flush_rewrite_rules_hard` off. Classes extend `WP_UnitTestCase` directly (no dependency on the plugin's test base classes), are named `Devportfolio_Test_*` and tagged `@group theme`.
+
+Covers the main navigation (`tests/test-navigation.php`, DPH-002): the 7 links in order and their targets, no hardcoded domain in `parts/header.html`, `get_post_type_archive_link()` resolution under plain and pretty permalinks, the active link on each archive (`aria-current="page"`), Home flagged on the front page only, anchor links (`/#testimonials`, `/#contact`) never active, nothing active on posts/pages/search, the `devportfolio_prepare_navigation_link` filter in isolation, and the lo-fi styling rules in `theme.json`.
+
+Gotchas: the test lib restores hooks after every test, so `set_up()` re-adds the theme's `render_block_data` filter after `require_once`ing `functions.php`, and calls `do_action( 'cptdp_register_post_types' )` because meta is unregistered between tests. Tests render `parts/header.html` with `do_blocks()` after `go_to( $url )`; to test a new template or part, render it the same way. Core mangles comma-separated selectors and `body.home &` in `theme.json` block `css` strings, and forces link `color: inherit`, so the styling test asserts on the rule structure, not just that a string exists.
+
+New theme behaviour (a nav link, a template, a filter) = a new `tests/test-*.php` in the theme, not in the plugin. New plugin behaviour = the plugin suite.
 
 No linter or CI configured.
 
@@ -83,7 +95,7 @@ Block (FSE) theme, intentionally tiny (no patterns, style variations, fonts, ima
 - `parts/header.html` — main navigation, 7 inline links (Home, Services, Documents, Videos, Collaterals, Testimonials, Contact) with root-relative URLs, centred, core mobile overlay; `parts/footer.html` — site title
 - `functions.php` — one filter: resolves nav links (post type archives via `get_post_type_archive_link()`, others via `home_url()`) so core marks the current archive link with `aria-current` and flags Home on the front page
 - `style.css` — theme header only
-- `tests/` + `phpunit.xml.dist` — main navigation tests (`Devportfolio_Test_Navigation`, `@group theme`); the bootstrap loads the WP test lib and the plugin (nav links to its archives); see Tests for the command
+- `tests/` + `phpunit.xml.dist` — the theme test suite (main navigation, `Devportfolio_Test_Navigation`, `@group theme`); the bootstrap loads the WP test lib and the plugin; see Tests for the command and what it covers
 
 Testimonials and Contact are Home-page sections, linked as anchors `/#testimonials` and `/#contact`; the Home page sections need matching `id`s. Anchor links are never marked active.
 
@@ -97,5 +109,5 @@ Testimonials and Contact are Home-page sections, linked as anchors `/#testimonia
 
 ## Git
 
-- Branch `main`; work lands via feature branches and PRs (e.g. `feat/DPB-007-008-012-Document`). Use Conventional Commit style with plugin scope (`feat(custom-post-types-dp):`, `fix(...)`, `docs(agents):`, `docs(plans):`, `chore(...): bump version to X.Y.Z`, `build:`).
+- Branch `main`; work lands via feature branches and PRs (e.g. `feat/DPB-007-008-012-Document`). Use Conventional Commit style with plugin scope (`feat(custom-post-types-dp):`, `fix(...)`, `feat(theme):`, `test(theme):`, `docs(agents):`, `docs(plans):`, `chore(...): bump version to X.Y.Z`, `build:`).
 - Each ticket gets a plan in `.claude/plans/DPB-NNN-*.md`. Bump the plugin `Version` header when a feature ships, and update the Overview section here with new CPTs/taxonomies/meta/settings.
