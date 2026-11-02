@@ -5,10 +5,9 @@ Personal developer portfolio for Dave John Deluta, built on WordPress and develo
 ## Stack
 
 - WordPress (block theme / Full Site Editing)
-- Theme: Twenty Twenty-Five v1.5 (tracked in this repo; base for customisation)
+- Theme: `devportfolio` (standalone, tracked in this repo; Twenty Twenty-Five stays installed as a fallback)
 - PHP 8.4, nginx-fpm
 - MariaDB 11.8
-- Node 24 (only needed for theme CSS build)
 - Composer 2
 
 ## Prerequisites
@@ -64,16 +63,14 @@ ddev stop
 
 ## Theme development
 
-Active theme lives in `wp-content/themes/twentytwentyfive/`.
+Active theme lives in `wp-content/themes/devportfolio/` (no build step). On a fresh environment activate it once:
 
 ```bash
-cd wp-content/themes/twentytwentyfive
-npm install
-npm run build    # style.css -> style.min.css (postcss + cssnano)
-npm run watch
+ddev wp theme activate devportfolio
+ddev wp rewrite structure '/%postname%/' --hard   # pretty permalinks, needed for /documents/ etc.
 ```
 
-Most design is controlled by `theme.json`, `styles/`, `templates/`, `parts/` and `patterns/`. Edit those rather than adding bespoke PHP where possible.
+Most design is controlled by `theme.json`, `templates/` and `parts/`. Edit those rather than adding bespoke PHP where possible.
 
 ## Seeding content
 
@@ -126,7 +123,8 @@ Tests live in `wp-content/plugins/custom-post-types-dp/tests/`. When adding a CP
 | Path | Purpose |
 | --- | --- |
 | `.ddev/config.yaml` | DDEV project config (tracked) |
-| `wp-content/themes/twentytwentyfive/` | Tracked theme |
+| `wp-content/themes/devportfolio/` | Tracked theme (active) |
+| `wp-content/themes/twentytwentyfive/` | Tracked, unused reference theme |
 | `wp-content/plugins/custom-post-types-dp/` | Master plugin: portfolio CPTs, taxonomies and settings (tracked) |
 | `.claude/plans/` | Per-ticket implementation plans (`DPB-NNN-*.md`) |
 | `.github/pull_request_template.md` | PR template |
