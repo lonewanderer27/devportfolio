@@ -86,10 +86,10 @@ ddev wp cptdp seed --all --dry-run           # preview everything, writes nothin
 ddev wp cptdp seed --all                     # run all, in registration order
 ```
 
-Available seeders: `aspect-ratios`, `services`, `software-tools`, `statistics`, `video-categories`, `videos`.
+Available seeders: `aspect-ratios`, `document-categories`, `services`, `software-tools`, `statistics`, `video-categories`, `videos`.
 
 - **Data** lives in `wp-content/plugins/custom-post-types-dp/data/seeders/<name>.csv`. Edit the CSV, not the code.
-- **Idempotent**: an item whose title already exists (any status, including Trash) is skipped, never modified. Term seeders (`aspect-ratios`, `video-categories`) recreate a term that was deleted in wp-admin.
+- **Idempotent**: an item whose title already exists (any status, including Trash) is skipped, never modified. Term seeders (`aspect-ratios`, `document-categories`, `video-categories`) recreate a term that was deleted in wp-admin.
 - **Validated first**: the whole CSV is checked before anything is written. Use `--dry-run` to preview.
 - **Order matters**: `videos` needs the `aspect-ratios` and `video-categories` seeders to have run first. `--all` handles this.
 - **Content, not structure**: seeders never run on plugin activation.
