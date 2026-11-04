@@ -170,4 +170,55 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertLessThan( $block, $container );
 		$this->assertNotFalse( $close );
 	}
+
+	/**
+	 * Block stylesheet.
+	 *
+	 * @return string
+	 */
+	private function css(): string {
+		return (string) file_get_contents( $this->theme_dir() . '/blocks/document-categories/style.css' );
+	}
+
+	/**
+	 * Declarations of the first rule whose selector contains $selector.
+	 *
+	 * @param string $css      Stylesheet.
+	 * @param string $selector Selector fragment.
+	 * @return string
+	 */
+	private function rule( string $css, string $selector ): string {
+		$this->assertSame( 1, preg_match( '/' . preg_quote( $selector, '/' ) . '\s*\{([^}]*)\}/', $css, $m ), "Rule {$selector} missing." );
+		return $m[1];
+	}
+
+	public function test_pill_style_is_outlined_and_fully_rounded(): void {
+		$rule = $this->rule( $this->css(), '.documents-categories__pill' );
+
+		$this->assertStringContainsString( 'border: 1.5px solid var(--wp--preset--color--contrast)', $rule );
+		$this->assertStringContainsString( 'border-radius: 9999px', $rule );
+	}
+
+	public function test_active_pill_is_filled_dark_with_light_text(): void {
+		$rule = $this->rule( $this->css(), '.documents-categories__pill[aria-pressed="true"]' );
+
+		$this->assertStringContainsString( 'background: var(--wp--preset--color--contrast)', $rule );
+		$this->assertStringContainsString( 'color: var(--wp--preset--color--base)', $rule );
+	}
+
+	public function test_desktop_group_wraps(): void {
+		$rule = $this->rule( $this->css(), '.wp-block-devportfolio-document-categories' );
+
+		$this->assertStringContainsString( 'flex-wrap: wrap', $rule );
+	}
+
+	public function test_mobile_group_is_a_sticky_single_scrolling_row(): void {
+		$css = $this->css();
+		$this->assertSame( 1, preg_match( '/@media \(max-width: 820px\)\s*\{(.*)\}\s*$/s', $css, $m ), 'Mobile media query missing.' );
+
+		$rule = $this->rule( $m[1], '.wp-block-devportfolio-document-categories' );
+		$this->assertStringContainsString( 'position: sticky', $rule );
+		$this->assertStringContainsString( 'overflow-x: auto', $rule );
+		$this->assertStringContainsString( 'flex-wrap: nowrap', $rule );
+	}
 }
