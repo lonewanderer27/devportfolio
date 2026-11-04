@@ -29,6 +29,29 @@
 	outline-offset: 2px;
 }
 
+/* View Transition: only the pill group fades between states (see view.js); the rest of the page switches instantly. */
+.wp-block-devportfolio-document-categories {
+	view-transition-name: documents-categories;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+}
+
+::view-transition-old(documents-categories),
+::view-transition-new(documents-categories) {
+	animation-duration: 0.2s;
+	animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(documents-categories),
+	::view-transition-new(documents-categories) {
+		animation: none;
+	}
+}
+
 @media (max-width: 820px) {
 	.wp-block-devportfolio-document-categories {
 		position: sticky;

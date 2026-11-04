@@ -102,6 +102,18 @@
 			}
 		}
 
+		// Fade the pills between states with a View Transition where supported; otherwise (or with reduced motion) apply instantly.
+		function applyAnimated( slug ) {
+			var reduce = window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+			if ( ! document.startViewTransition || reduce ) {
+				apply( slug );
+				return;
+			}
+			document.startViewTransition( function () {
+				apply( slug );
+			} );
+		}
+
 		// Initial state from the URL; a bad param is cleaned without adding a history entry.
 		var initial = slugFromUrl( group );
 		if ( new URL( window.location.href ).searchParams.has( PARAM ) && ! initial ) {
@@ -115,14 +127,14 @@
 				return;
 			}
 			var slug = pill.getAttribute( 'data-filter' ) || '';
-			apply( slug );
+			applyAnimated( slug );
 			window.history.pushState( { category: slug }, '', urlForSlug( slug ) );
 			pill.scrollIntoView( { inline: 'nearest', block: 'nearest' } );
 		} );
 
 		// Back/Forward step through categories without pushing again.
 		window.addEventListener( 'popstate', function () {
-			apply( slugFromUrl( group ) );
+			applyAnimated( slugFromUrl( group ) );
 		} );
 
 		if ( shelf ) {
