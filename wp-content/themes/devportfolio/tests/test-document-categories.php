@@ -221,4 +221,11 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'overflow-x: auto', $rule );
 		$this->assertStringContainsString( 'flex-wrap: nowrap', $rule );
 	}
+
+	public function test_view_script_is_declared_and_present(): void {
+		$json = json_decode( (string) file_get_contents( $this->theme_dir() . '/blocks/document-categories/block.json' ), true );
+
+		$this->assertSame( 'file:./view.js', $json['viewScript'] );
+		$this->assertFileExists( $this->theme_dir() . '/blocks/document-categories/view.js' );
+	}
 }
