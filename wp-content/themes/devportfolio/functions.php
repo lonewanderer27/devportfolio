@@ -45,3 +45,15 @@ if ( ! function_exists( 'devportfolio_prepare_navigation_link' ) ) :
 	}
 endif;
 add_filter( 'render_block_data', 'devportfolio_prepare_navigation_link' );
+
+if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
+	/**
+	 * Registers the theme's dynamic blocks.
+	 *
+	 * @since 0.2.0
+	 */
+	function devportfolio_register_blocks() {
+		register_block_type( __DIR__ . '/blocks/document-categories' );
+	}
+endif;
+add_action( 'init', 'devportfolio_register_blocks' );
