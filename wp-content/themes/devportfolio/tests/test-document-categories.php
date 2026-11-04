@@ -78,6 +78,54 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		return $out;
 	}
 
+	public function tear_down(): void {
+		unset( $_GET['category'] );
+		parent::tear_down();
+	}
+
+	public function test_url_category_marks_that_pill_pressed(): void {
+		$this->make_term( 'Reports' );
+		$this->make_term( 'Executive Docs' );
+		$_GET['category'] = 'reports';
+
+		$pressed = array_column( $this->pills(), 'pressed', 'filter' );
+
+		$this->assertSame( 'true', $pressed['reports'] );
+		$this->assertSame( 'false', $pressed[''] );
+		$this->assertSame( 'false', $pressed['executive-docs'] );
+	}
+
+	/**
+	 * @dataProvider bad_category_values
+	 */
+	public function test_bad_url_category_falls_back_to_all( string $value ): void {
+		$this->make_term( 'Reports' );
+		$_GET['category'] = $value;
+
+		$pressed = array_column( $this->pills(), 'pressed', 'filter' );
+
+		$this->assertSame( 'true', $pressed[''] );
+		$this->assertSame( 'false', $pressed['reports'] );
+	}
+
+	public function bad_category_values(): array {
+		return array(
+			'unknown slug' => array( 'nope' ),
+			'empty'        => array( '' ),
+			'all literal'  => array( 'all' ),
+			'markup'       => array( '<script>alert(1)</script>' ),
+		);
+	}
+
+	public function test_url_category_value_is_never_echoed(): void {
+		$this->make_term( 'Reports' );
+		$_GET['category'] = '<script>alert(1)</script>';
+
+		$html = $this->render_block_on_archive();
+
+		$this->assertStringNotContainsString( 'alert(1)', $html );
+	}
+
 	public function test_block_is_registered(): void {
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-categories' ) );
 	}
