@@ -260,6 +260,24 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'flex-wrap: wrap', $rule );
 	}
 
+	public function test_pill_group_has_a_view_transition_name_and_a_fade(): void {
+		$css = $this->css();
+
+		$this->assertMatchesRegularExpression( '/\.wp-block-devportfolio-document-categories\s*\{[^}]*view-transition-name: documents-categories/', $css );
+
+		$this->assertSame( 1, preg_match( '/::view-transition-new\(documents-categories\)\s*\{([^}]*)\}/', $css, $m ), 'Fade rule missing.' );
+		$this->assertStringContainsString( 'animation-duration: 0.2s', $m[1] );
+
+		$this->assertMatchesRegularExpression( '/@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*animation: none/s', $css, 'Reduced motion must disable the fade.' );
+	}
+
+	public function test_view_script_uses_view_transitions_and_respects_reduced_motion(): void {
+		$js = (string) file_get_contents( $this->theme_dir() . '/blocks/document-categories/view.js' );
+
+		$this->assertStringContainsString( 'document.startViewTransition', $js );
+		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', $js );
+	}
+
 	public function test_mobile_group_is_a_sticky_single_scrolling_row(): void {
 		$css = $this->css();
 		$this->assertSame( 1, preg_match( '/@media \(max-width: 820px\)\s*\{(.*)\}\s*$/s', $css, $m ), 'Mobile media query missing.' );
