@@ -155,4 +155,19 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'aria-label="Document categories"', $html );
 		$this->assertStringContainsString( 'type="button"', $html );
 	}
+
+	public function test_template_places_block_under_title_inside_content_container(): void {
+		$markup = (string) file_get_contents( $this->theme_dir() . '/templates/archive-document.html' );
+
+		$title     = strpos( $markup, '<h3 class="wp-block-heading">Documents</h3>' );
+		$container = strpos( $markup, 'documents-page__content' );
+		$block     = strpos( $markup, '<!-- wp:devportfolio/document-categories /-->' );
+		$close     = strpos( $markup, '</div>', $block );
+
+		$this->assertNotFalse( $title );
+		$this->assertNotFalse( $block );
+		$this->assertLessThan( $container, $title );
+		$this->assertLessThan( $block, $container );
+		$this->assertNotFalse( $close );
+	}
 }
