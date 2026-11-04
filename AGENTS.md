@@ -54,7 +54,7 @@ ddev exec --dir=/var/www/html/wp-content/themes/devportfolio ../../plugins/custo
 # filters: --filter Devportfolio_Test_Navigation | --group theme | --testdox
 ```
 
-Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 438 tests (12 skipped), theme 15 tests.
+Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 438 tests (12 skipped), theme 38 tests.
 
 #### Plugin suite (`wp-content/plugins/custom-post-types-dp/tests/`)
 
@@ -65,6 +65,8 @@ Gotchas: `WP_UnitTestCase` unregisters all meta after every test and wipes terms
 #### Theme suite (`wp-content/themes/devportfolio/tests/`)
 
 Own `phpunit.xml.dist` (suite `devportfolio`, globs `tests/test-*.php`) and `tests/bootstrap.php`. The bootstrap loads the WP test library **and the plugin** (the nav links to its CPT archives), defaults the polyfills path to the plugin's `vendor/`, and forces `flush_rewrite_rules_hard` off. Classes extend `WP_UnitTestCase` directly (no dependency on the plugin's test base classes), are named `Devportfolio_Test_*` and tagged `@group theme`.
+
+Also `tests/test-document-categories.php` (`Devportfolio_Test_Document_Categories`, DPD-002/003): pill order and labels, "All" first and pressed, escaping, URL `?category=` handling (valid, unknown, empty, markup), template placement and the block CSS structure. The filter script has no JS runner; check it in the browser.
 
 Covers the main navigation (`tests/test-navigation.php`, DPH-002): the 7 links in order and their targets, no hardcoded domain in `parts/header.html`, `get_post_type_archive_link()` resolution under plain and pretty permalinks, the active link on each archive (`aria-current="page"`), Home flagged on the front page only, anchor links (`/#testimonials`, `/#contact`) never active, nothing active on posts/pages/search, the `devportfolio_prepare_navigation_link` filter in isolation, and the lo-fi styling rules in `theme.json`.
 
@@ -94,6 +96,7 @@ Block (FSE) theme, intentionally tiny (no patterns, style variations, fonts, ima
 - `templates/` — `index`, `archive`, `search`, `single`, `page`, `404`, `archive-document` (Documents page: `<h3>Documents</h3>` plus empty `documents-page__content` container for the category buttons and shelf)
 - `parts/header.html` — main navigation, 7 inline links (Home, Services, Documents, Videos, Collaterals, Testimonials, Contact) with root-relative URLs, centred, core mobile overlay; `parts/footer.html` — site title
 - `functions.php` — one filter: resolves nav links (post type archives via `get_post_type_archive_link()`, others via `home_url()`) so core marks the current archive link with `aria-current` and flags Home on the front page
+- `blocks/document-categories/` — dynamic block `devportfolio/document-categories` (DPD-002/003), registered in `functions.php` on `init`: `block.json`, `render.php`, `style.css`, `view.js`. Sits in `archive-document.html` under the title. "All" is synthetic (always first, never stored, `data-filter=""`, `aria-pressed="true"` by default); then one `<button>` per `document_category` term in name order (the DPD-007 seeded order), empty terms included, `data-filter` = term slug. `view.js` keeps one pill active and filters in place. The active category lives in the URL as `?category=<slug>` (All = no param): `pushState` on click, `popstate` re-applies on Back/Forward, `render.php` marks the matching pill pressed on first paint, and an unknown slug falls back to All (bad param cleaned with `replaceState`). Switches run inside `document.startViewTransition()` so the pill group (`view-transition-name: documents-categories`) fades in 0.2s; the root transition is disabled, and unsupported browsers or `prefers-reduced-motion: reduce` apply the change instantly. Shelf contract for DPD-016: shelf `[data-documents-shelf]`, each item `data-document-categories="slug slug"` (direct child of the shelf), planks `[data-shelf-plank]` are owned by the script (rebuilt after every filter and resize, one per row of grid columns). Mobile (<=820px): pills are one sticky, horizontally scrolling row (sticks at `top: 0`; the header part is not sticky).
 - `style.css` — theme header only
 - `tests/` + `phpunit.xml.dist` — the theme test suite (main navigation, `Devportfolio_Test_Navigation`, `@group theme`); the bootstrap loads the WP test lib and the plugin; see Tests for the command and what it covers
 

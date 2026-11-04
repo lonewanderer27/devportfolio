@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/document-categories",
+	"title": "Document Categories",
+	"category": "widgets",
+	"description": "Pill buttons for the document categories, headed by a synthetic \"All\". Filters the documents shelf in place.",
+	"textdomain": "devportfolio",
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}
