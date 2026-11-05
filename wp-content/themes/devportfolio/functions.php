@@ -57,6 +57,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/document-book' );
 		register_block_type( __DIR__ . '/blocks/document-modal' );
 		register_block_type( __DIR__ . '/blocks/software-tags' );
+		register_block_type( __DIR__ . '/blocks/document-shelf' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -223,6 +224,35 @@ if ( ! function_exists( 'devportfolio_software_tool_names' ) ) :
 		}
 
 		return $tools;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_shelf_item' ) ) :
+	/**
+	 * Data of one shelf item under the book cover (DPD-016).
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array{title:string,description:string,format:string,categories:string[]}|null Null when the post is not a document.
+	 */
+	function devportfolio_document_shelf_item( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'document' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$slugs = wp_get_object_terms( $post_id, 'document_category', array( 'fields' => 'slugs' ) );
+
+		return array(
+			'title'       => get_the_title( $post_id ),
+			'description' => devportfolio_document_description( $post_id ),
+			'format'      => devportfolio_document_format_label(
+				get_post_meta( $post_id, 'cptdp_filetype', true ),
+				get_post_meta( $post_id, 'cptdp_total_pages', true )
+			),
+			'categories'  => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
+		);
 	}
 endif;
 

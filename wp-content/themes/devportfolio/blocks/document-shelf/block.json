@@ -1,0 +1,14 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/document-shelf",
+	"title": "Document Shelf",
+	"category": "widgets",
+	"description": "The documents bookshelf: a responsive grid of book covers with title, description and software tags, and a plank under each row.",
+	"textdomain": "devportfolio",
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}
