@@ -65,6 +65,16 @@ function cptdp_contact_register_settings(): void {
 		)
 	);
 
+}
+add_action( 'admin_init', 'cptdp_contact_register_settings' );
+add_action( 'rest_api_init', 'cptdp_contact_register_settings' );
+
+/**
+ * Register the section and fields of the Contact settings page.
+ *
+ * wp-admin only: the settings API functions are not loaded on REST requests.
+ */
+function cptdp_contact_register_sections(): void {
 	add_settings_section(
 		'cptdp_contact_section',
 		esc_html__( 'Contact', 'custom-post-types-dp' ),
@@ -106,8 +116,7 @@ function cptdp_contact_register_settings(): void {
 		);
 	}
 }
-add_action( 'admin_init', 'cptdp_contact_register_settings' );
-add_action( 'rest_api_init', 'cptdp_contact_register_settings' );
+add_action( 'admin_init', 'cptdp_contact_register_sections' );
 
 /**
  * Add Settings > Contact.

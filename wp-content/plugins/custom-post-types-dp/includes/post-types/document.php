@@ -87,11 +87,12 @@ function cptdp_document_columns( array $columns ): array {
 		$new[ $key ] = $label;
 
 		if ( 'title' === $key ) {
-			$new['thumbnail']         = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
-			$new['cptdp_filetype']    = esc_html__( 'File Type', 'custom-post-types-dp' );
-			$new['cptdp_total_pages'] = esc_html__( 'Pages', 'custom-post-types-dp' );
-			$new['cptdp_highlight']   = esc_html__( 'Highlight', 'custom-post-types-dp' );
-			$new['menu_order']        = esc_html__( 'Order', 'custom-post-types-dp' );
+			$new['thumbnail']          = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
+			$new['cptdp_filetype']     = esc_html__( 'File Type', 'custom-post-types-dp' );
+			$new['cptdp_total_pages']  = esc_html__( 'Pages', 'custom-post-types-dp' );
+			$new['cptdp_pages_status'] = esc_html__( 'Page images', 'custom-post-types-dp' );
+			$new['cptdp_highlight']    = esc_html__( 'Highlight', 'custom-post-types-dp' );
+			$new['menu_order']         = esc_html__( 'Order', 'custom-post-types-dp' );
 		}
 	}
 
@@ -120,6 +121,28 @@ function cptdp_document_column_content( string $column, int $post_id ): void {
 		case 'cptdp_total_pages':
 			$pages = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 			echo $pages > 0 ? esc_html( (string) $pages ) : '&mdash;';
+			break;
+
+		case 'cptdp_pages_status':
+			if ( null === CPTDP_Page_Store::get_source( $post_id ) ) {
+				echo '&mdash;';
+				break;
+			}
+
+			$manifest = CPTDP_Page_Store::get_manifest( $post_id );
+			$label    = cptdp_document_pages_status_label( CPTDP_Page_Store::get_status( $post_id ), null !== $manifest ? (int) $manifest['count'] : 0 );
+			$error    = CPTDP_Page_Store::get_error( $post_id );
+
+			if ( in_array( CPTDP_Page_Store::get_status( $post_id ), array( CPTDP_Page_Store::STATUS_NEEDS_BROWSER, CPTDP_Page_Store::STATUS_FAILED ), true ) ) {
+				printf(
+					'<a href="%1$s" title="%2$s">%3$s</a>',
+					esc_url( (string) get_edit_post_link( $post_id ) ),
+					esc_attr( $error ),
+					esc_html( $label )
+				);
+			} else {
+				echo '<span title="' . esc_attr( $error ) . '">' . esc_html( $label ) . '</span>';
+			}
 			break;
 
 		case 'cptdp_highlight':
@@ -171,7 +194,7 @@ function cptdp_document_admin_css(): void {
 		return;
 	}
 
-	echo '<style>.column-thumbnail{width:60px}.column-cptdp_filetype,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-menu_order{width:70px}</style>';
+	echo '<style>.column-thumbnail{width:60px}.column-cptdp_filetype,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-cptdp_pages_status{width:140px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_document_admin_css' );
 
