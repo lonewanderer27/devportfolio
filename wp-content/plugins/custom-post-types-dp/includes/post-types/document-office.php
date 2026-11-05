@@ -3,7 +3,8 @@
  * Behaviour shared by every LibreOffice-converted document kind (presentations, DPB-026, and
  * spreadsheets, DPB-027): the editor warning chrome and the native viewer URL rules.
  *
- * The per-family wording lives in document-presentations.php and document-spreadsheets.php.
+ * The per-family wording lives in document-presentations.php, document-spreadsheets.php
+ * and document-word.php.
  *
  * @package CustomPostTypesDP
  */
@@ -32,6 +33,10 @@ function cptdp_native_viewer_enabled( string $kind ): bool {
  * @param string $kind File kind.
  */
 function cptdp_office_warning( string $kind ): string {
+	if ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
+		return cptdp_docx_warning( $kind );
+	}
+
 	return CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ? cptdp_xlsx_warning( $kind ) : cptdp_pptx_warning( $kind );
 }
 
@@ -43,7 +48,7 @@ function cptdp_office_warning( string $kind ): string {
 function cptdp_office_warnings(): array {
 	$out = array();
 
-	foreach ( array( 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ) as $kind ) {
+	foreach ( array( 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt' ) as $kind ) {
 		$out[ $kind ] = cptdp_office_warning( $kind );
 	}
 
@@ -87,7 +92,7 @@ function cptdp_office_warning_html( string $first, string $kind, array $native =
  * Never makes a request.
  *
  * @param int    $post_id Document ID.
- * @param string $kind    `pptx` or `xlsx` (the kinds the bundled viewer can read).
+ * @param string $kind    A kind supported by the bundled viewer.
  * @param string $filter  Filter that sets the largest file, in bytes.
  * @param int    $bytes   Default size limit.
  */

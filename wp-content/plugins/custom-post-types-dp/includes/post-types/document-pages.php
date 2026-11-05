@@ -137,6 +137,13 @@ function cptdp_document_pages_status_label( string $status, int $count = 0, stri
 				return sprintf( _n( 'Ready, %1$d page (converted from %2$s)', 'Ready, %1$d pages (converted from %2$s)', $count, 'custom-post-types-dp' ), $count, $from );
 			}
 
+			if ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
+				$from = CPTDP_Page_Store::KIND_ODT === $kind ? __( 'OpenDocument', 'custom-post-types-dp' ) : __( 'Word', 'custom-post-types-dp' );
+
+				/* translators: 1: number of pages, 2: the format the pages were converted from. */
+				return sprintf( _n( 'Ready, %1$d page (converted from %2$s)', 'Ready, %1$d pages (converted from %2$s)', $count, 'custom-post-types-dp' ), $count, $from );
+			}
+
 			/* translators: %d: number of pages. */
 			return sprintf( _n( 'Ready, %d page', 'Ready, %d pages', $count, 'custom-post-types-dp' ), $count );
 		case CPTDP_Page_Store::STATUS_PENDING:
@@ -179,7 +186,7 @@ function cptdp_document_pages_render_box( WP_Post $post ): void {
 	$producer = null !== $manifest ? (string) ( $manifest['producer'] ?? '' ) : '';
 
 	if ( null === $source ) {
-		echo '<p>' . esc_html__( 'Select a PDF (or a PowerPoint, Excel or OpenDocument file) as the document file, and save, to generate page images for the viewer.', 'custom-post-types-dp' ) . '</p>';
+		echo '<p>' . esc_html__( 'Select a PDF or a PowerPoint, Excel, Word or OpenDocument file as the document file, and save, to generate page images for the viewer.', 'custom-post-types-dp' ) . '</p>';
 		return;
 	}
 
