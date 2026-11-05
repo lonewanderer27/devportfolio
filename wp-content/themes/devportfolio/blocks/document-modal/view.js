@@ -20,6 +20,7 @@ import {
 import { mergeLimits } from './capability.js';
 import { createViewer } from './viewer.js';
 import { viewerMode, unitOf, wording, positionText } from './mode.js';
+import { slugFromUrl, urlWithSlug, urlWithoutSlug } from './deeplink.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
@@ -53,6 +54,17 @@ if ( dialog && dataEl ) {
 	};
 	const state = { id: 0, page: 1, step: 1, pages: 0 };
 	let opener = null;
+	// Deeplink (DPD-032): the open document is `?document=<slug>`. `pushed` is true when the current
+	// history entry was added by this modal, so closing can step back instead of leaving a dead entry;
+	// `closingFromHistory` is true while Back/Forward is the reason the dialog closes.
+	let pushed = false;
+	let closingFromHistory = false;
+	const idBySlug = {};
+	Object.values( documents ).forEach( ( doc ) => {
+		if ( doc && doc.slug ) {
+			idBySlug[ doc.slug ] = doc.id;
+		}
+	} );
 	let units = {};
 	// What the open document's pieces are called: pages, or slides for a presentation (DPD-026).
 	let words = wording( 'page', units );
@@ -244,10 +256,14 @@ if ( dialog && dataEl ) {
 		}
 	};
 
-	const open = ( id, trigger ) => {
+	const open = ( id, trigger, push = true ) => {
 		const doc = documents[ id ];
-		if ( ! doc ) {
+		if ( ! doc || dialog.open ) {
 			return;
+		}
+		if ( push && doc.slug ) {
+			window.history.pushState( { document: doc.slug }, '', urlWithSlug( window.location.href, doc.slug ) );
+			pushed = true;
 		}
 		opener = trigger;
 		state.id = doc.id;
@@ -296,7 +312,41 @@ if ( dialog && dataEl ) {
 			opener.focus();
 		}
 		opener = null;
+
+		// Take `?document` out of the URL: step back over the entry we added, else rewrite the current one.
+		if ( closingFromHistory ) {
+			closingFromHistory = false;
+			pushed = false;
+		} else if ( pushed ) {
+			pushed = false;
+			window.history.back();
+		} else if ( slugFromUrl( window.location.href ) ) {
+			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
+		}
 	} );
+
+	// Back and Forward open or close the modal to match the URL, without adding entries.
+	window.addEventListener( 'popstate', () => {
+		const slug = slugFromUrl( window.location.href );
+		if ( ! slug && dialog.open ) {
+			closingFromHistory = true;
+			dialog.close();
+		} else if ( slug && ! dialog.open && idBySlug[ slug ] && desktop.matches ) {
+			open( idBySlug[ slug ], null, false );
+			pushed = true;
+		}
+	} );
+
+	// First load with a link to a document: open it. A slug that is not a published document is dropped.
+	const linked = slugFromUrl( window.location.href );
+	if ( linked ) {
+		if ( ! idBySlug[ linked ] ) {
+			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
+		} else if ( desktop.matches ) {
+			// The shelf button gets the focus back on close, as after a click.
+			open( idBySlug[ linked ], document.querySelector( `.documents-item__open[data-document-id="${ idBySlug[ linked ] }"]` ), false );
+		}
+	}
 
 	els.download.addEventListener( 'click', ( event ) => {
 		if ( els.download.getAttribute( 'aria-disabled' ) === 'true' ) {
