@@ -21,7 +21,7 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'document_category' ),
-			'columns'       => array( 'thumbnail', 'cptdp_filetype', 'cptdp_total_pages', 'cptdp_highlight', 'menu_order' ),
+			'columns'       => array( 'thumbnail', 'cptdp_filetype', 'cptdp_total_pages', 'cptdp_pages_status', 'cptdp_highlight', 'menu_order' ),
 			'default_order' => true,
 		);
 	}
