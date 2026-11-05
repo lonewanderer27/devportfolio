@@ -117,10 +117,48 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ) );
 		}
 
+		// A presentation is turned into a temporary PDF first (LibreOffice); everything after
+		// that is the same code as for an uploaded PDF. The temporary files are always removed.
+		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+			if ( ! CPTDP_Pptx_Converter::is_available() ) {
+				return new WP_Error( 'cptdp_unavailable', CPTDP_Pptx_Converter::unavailable_reason() );
+			}
+
+			$valid = CPTDP_Pptx_Converter::inspect( $source['path'], $source['kind'] );
+
+			if ( is_wp_error( $valid ) ) {
+				return $valid;
+			}
+
+			$temporary = CPTDP_Pptx_Converter::to_pdf( $source['path'], $source['kind'] );
+
+			if ( is_wp_error( $temporary ) ) {
+				return $temporary;
+			}
+
+			try {
+				return self::convert_pdf_file( $post_id, $temporary['pdf'], $source );
+			} finally {
+				CPTDP_Pptx_Converter::cleanup( $temporary['dir'] );
+			}
+		}
+
+		return self::convert_pdf_file( $post_id, $source['path'], $source );
+	}
+
+	/**
+	 * Convert a PDF file into the document's page images.
+	 *
+	 * @param int                                                                $post_id  Document ID.
+	 * @param string                                                             $pdf_path The PDF (the document's own file, or the temporary PDF of a presentation).
+	 * @param array{id:int,path:string,fingerprint:string,token:string,kind:string} $source   The document's source.
+	 * @return array{count:int,width:int,height:int,ext:string,dir:string,producer:string,crop_bottom:float,source_token:string}|WP_Error
+	 */
+	private static function convert_pdf_file( int $post_id, string $pdf_path, array $source ) {
 		// The header must be the very first thing in the file. (The PDF spec tolerates junk before
 		// it, but then a file could be a PostScript/EPS/MVG polyglot that merely mentions "%PDF-".
 		// A real PDF that fails this check goes to the admin's browser, which can read it.)
-		$head = (string) file_get_contents( $source['path'], false, null, 0, 5 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$head = (string) file_get_contents( $pdf_path, false, null, 0, 5 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 		if ( '%PDF-' !== $head ) {
 			return new WP_Error( 'cptdp_not_a_pdf', __( 'The file is not a valid PDF.', 'custom-post-types-dp' ) );
@@ -144,13 +182,13 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not create the page images folder.', 'custom-post-types-dp' ) );
 		}
 
-		$result = 'imagick' === $engine ? self::convert_with_imagick( $source['path'], $folder ) : self::convert_with_ghostscript( $source['path'], $folder );
+		$result = 'imagick' === $engine ? self::convert_with_imagick( $pdf_path, $folder ) : self::convert_with_ghostscript( $pdf_path, $folder );
 
 		// ImageMagick may list PDF yet refuse to read it (a policy.xml rule): retry with Ghostscript.
 		if ( is_wp_error( $result ) && 'imagick' === $engine && $result->get_error_data( 'cptdp_conversion_failed' ) === 'engine' && null !== self::ghostscript_binary() ) {
 			CPTDP_Page_Store::delete_dir( $folder );
 			wp_mkdir_p( $folder );
-			$result = self::convert_with_ghostscript( $source['path'], $folder );
+			$result = self::convert_with_ghostscript( $pdf_path, $folder );
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -159,11 +197,15 @@ class CPTDP_Page_Converter {
 			return $result;
 		}
 
-		// Which PDF these images were made from: the caller drops them if the file was replaced meanwhile.
+		// Which file these images were made from: the caller drops them if it was replaced meanwhile.
 		$result['source_token'] = $source['token'];
-		$result['dir']         = basename( $folder );
-		$result['producer']    = 'server';
-		$result['crop_bottom'] = CPTDP_Page_Analyzer::analyze_folder( $folder, (string) $result['ext'], (int) $result['count'] );
+		$result['dir']          = basename( $folder );
+		$result['producer']     = 'server';
+
+		// A slide has a fixed shape, so presentations are never trimmed (decision 9 of DPB-026).
+		$result['crop_bottom'] = CPTDP_Page_Store::is_presentation_kind( $source['kind'] )
+			? 0.0
+			: CPTDP_Page_Analyzer::analyze_folder( $folder, (string) $result['ext'], (int) $result['count'] );
 
 		return $result;
 	}
@@ -367,7 +409,7 @@ class CPTDP_Page_Converter {
 	 * @param int      $keep  Return at most this many bytes (the rest is read and dropped).
 	 * @return string
 	 */
-	private static function drain( $pipe, int $keep = 0 ): string {
+	public static function drain( $pipe, int $keep = 0 ): string {
 		$kept = '';
 
 		while ( true ) {

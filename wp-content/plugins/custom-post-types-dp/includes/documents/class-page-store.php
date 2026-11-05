@@ -30,6 +30,20 @@ class CPTDP_Page_Store {
 
 	const MAX_PAGES = 300;
 
+	const KIND_PDF  = 'pdf';
+	const KIND_PPTX = 'pptx';
+	const KIND_PPT  = 'ppt';
+	const KIND_ODP  = 'odp';
+
+	/**
+	 * Mime types of the presentation files that are converted to page images (DPB-026).
+	 */
+	const PRESENTATION_MIMES = array(
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation' => self::KIND_PPTX,
+		'application/vnd.ms-powerpoint'                                              => self::KIND_PPT,
+		'application/vnd.oasis.opendocument.presentation'                            => self::KIND_ODP,
+	);
+
 	/**
 	 * All statuses.
 	 *
@@ -75,13 +89,77 @@ class CPTDP_Page_Store {
 	}
 
 	/**
-	 * The PDF behind a document.
+	 * What kind of page source an attachment is: `pdf`, `pptx`, `ppt`, `odp`, or '' for anything else.
+	 *
+	 * The mime type decides. Some hosts report an Office or OpenDocument file as a generic
+	 * zip/binary type, so the file extension is used then (the content is checked again
+	 * before anything is converted).
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	public static function kind_of_attachment( int $attachment_id ): string {
+		if ( $attachment_id < 1 || 'attachment' !== get_post_type( $attachment_id ) ) {
+			return '';
+		}
+
+		$mime = (string) get_post_mime_type( $attachment_id );
+
+		if ( 'application/pdf' === $mime ) {
+			return self::KIND_PDF;
+		}
+
+		if ( isset( self::PRESENTATION_MIMES[ $mime ] ) ) {
+			return self::PRESENTATION_MIMES[ $mime ];
+		}
+
+		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
+			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $attachment_id ), PATHINFO_EXTENSION ) );
+
+			if ( in_array( $extension, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP ), true ) ) {
+				return $extension;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Attachment ID of a document's file when it is a PDF or a presentation, else 0.
 	 *
 	 * @param int $post_id Document ID.
-	 * @return array{id:int,path:string,fingerprint:string,token:string}|null Null when there is no readable PDF.
+	 */
+	public static function source_attachment_id( int $post_id ): int {
+		$attachment_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+
+		return '' !== self::kind_of_attachment( $attachment_id ) ? $attachment_id : 0;
+	}
+
+	/**
+	 * The kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp`, or '' for none.
+	 *
+	 * @param int $post_id Document ID.
+	 */
+	public static function source_kind( int $post_id ): string {
+		return self::kind_of_attachment( (int) get_post_meta( $post_id, 'cptdp_document_file', true ) );
+	}
+
+	/**
+	 * Whether a kind is a presentation (converted with LibreOffice, server only).
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_presentation_kind( string $kind ): bool {
+		return in_array( $kind, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP ), true );
+	}
+
+	/**
+	 * The file behind a document: a PDF, or a presentation that is converted to one.
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array{id:int,path:string,fingerprint:string,token:string,kind:string}|null Null when there is no readable file.
 	 */
 	public static function get_source( int $post_id ): ?array {
-		$attachment_id = self::pdf_attachment_id( $post_id );
+		$attachment_id = self::source_attachment_id( $post_id );
 
 		if ( $attachment_id < 1 ) {
 			return null;
@@ -100,6 +178,7 @@ class CPTDP_Page_Store {
 			'path'        => $path,
 			'fingerprint' => $fingerprint,
 			'token'       => $attachment_id . ':' . $fingerprint,
+			'kind'        => self::kind_of_attachment( $attachment_id ),
 		);
 	}
 
@@ -200,6 +279,12 @@ class CPTDP_Page_Store {
 
 		unset( $manifest['source_token'] );
 
+		// Only presentations are marked (a missing `source_kind` means a PDF, as before DPB-026).
+		if ( self::is_presentation_kind( $source['kind'] ) ) {
+			$manifest['source_kind']  = $source['kind'];
+			$manifest['converted_via'] = 'libreoffice';
+		}
+
 		$manifest = array_merge(
 			array(
 				'source_id'   => $source['id'],
@@ -241,12 +326,19 @@ class CPTDP_Page_Store {
 			self::set_status(
 				$post_id,
 				self::STATUS_FAILED,
-				sprintf(
-					/* translators: 1: pages found in the PDF, 2: the Total Pages field. */
-					__( 'PDF has %1$d pages, Total pages says %2$d.', 'custom-post-types-dp' ),
-					$count,
-					$total
-				)
+				self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) )
+					? sprintf(
+						/* translators: 1: slides found in the presentation, 2: the Total Pages field. */
+						__( 'The presentation has %1$d slides, Total pages says %2$d.', 'custom-post-types-dp' ),
+						$count,
+						$total
+					)
+					: sprintf(
+						/* translators: 1: pages found in the PDF, 2: the Total Pages field. */
+						__( 'PDF has %1$d pages, Total pages says %2$d.', 'custom-post-types-dp' ),
+						$count,
+						$total
+					)
 			);
 
 			return self::STATUS_FAILED;
@@ -397,6 +489,11 @@ class CPTDP_Page_Store {
 	 * @param array<string,mixed> $manifest Manifest.
 	 */
 	public static function effective_crop( array $manifest ): float {
+		// A slide has a fixed shape: presentations are never trimmed.
+		if ( self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) ) ) {
+			return 0.0;
+		}
+
 		if ( function_exists( 'cptdp_get_documents_settings' ) && ! cptdp_get_documents_settings( 'trim_bottom' ) ) {
 			return 0.0;
 		}
@@ -437,11 +534,13 @@ class CPTDP_Page_Store {
 			return null;
 		}
 
-		$crop = CPTDP_Page_Analyzer::analyze_folder(
-			self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' ),
-			(string) $manifest['ext'],
-			(int) $manifest['count']
-		);
+		$crop = self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) )
+			? 0.0
+			: CPTDP_Page_Analyzer::analyze_folder(
+				self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' ),
+				(string) $manifest['ext'],
+				(int) $manifest['count']
+			);
 
 		$manifest['crop_bottom'] = $crop;
 		update_post_meta( $post_id, self::META_MANIFEST, $manifest );

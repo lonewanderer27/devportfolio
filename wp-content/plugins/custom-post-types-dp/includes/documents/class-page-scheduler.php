@@ -184,6 +184,29 @@ class CPTDP_Page_Scheduler {
 		wp_clear_scheduled_hook( self::CRON_HOOK, array( $post_id ) );
 		update_post_meta( $post_id, CPTDP_Page_Store::META_SOURCE, $source['token'] );
 
+		// Presentations are converted by the server only (no browser can read them): the mode does
+		// not apply, and there is no `needs_browser`. Without LibreOffice the editor is told to upload a PDF.
+		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+			if ( ! CPTDP_Pptx_Converter::is_available() ) {
+				// A host without LibreOffice that lets the native viewer draw .pptx files is working as chosen:
+				// there are no page images and nothing failed.
+				if ( CPTDP_Page_Store::KIND_PPTX === $source['kind'] && cptdp_get_documents_settings( 'native_pptx' ) ) {
+					CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NONE );
+
+					return CPTDP_Page_Store::STATUS_NONE;
+				}
+
+				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, CPTDP_Pptx_Converter::unavailable_reason() );
+
+				return CPTDP_Page_Store::STATUS_FAILED;
+			}
+
+			CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_PENDING );
+			self::schedule( $post_id );
+
+			return CPTDP_Page_Store::STATUS_PENDING;
+		}
+
 		$mode = self::mode();
 
 		if ( 'browser' === $mode ) {
@@ -272,6 +295,13 @@ class CPTDP_Page_Scheduler {
 			delete_transient( $lock );
 		}
 
+		// Another presentation is being converted (one LibreOffice at a time): try again shortly.
+		if ( is_wp_error( $result ) && 'cptdp_pptx_busy' === $result->get_error_code() ) {
+			self::retry_later( $post_id );
+
+			return CPTDP_Page_Store::get_status( $post_id );
+		}
+
 		delete_transient( 'cptdp_pages_retries_' . $post_id );
 
 		return self::record_conversion( $post_id, $result, $source['token'] );
@@ -308,7 +338,8 @@ class CPTDP_Page_Scheduler {
 		if ( is_wp_error( $result ) ) {
 			$message = $result->get_error_message();
 
-			if ( 'auto' === self::mode() ) {
+			// A presentation can only be converted by the server, so a failure is final (never the browser).
+			if ( 'auto' === self::mode() && ! CPTDP_Page_Store::is_presentation_kind( $current['kind'] ) ) {
 				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message );
 
 				return CPTDP_Page_Store::STATUS_NEEDS_BROWSER;
@@ -336,8 +367,8 @@ class CPTDP_Page_Scheduler {
 
 		if ( $tries >= self::MAX_LOCK_RETRIES ) {
 			delete_transient( $key );
-			$message = __( 'The server did not finish converting the PDF.', 'custom-post-types-dp' );
-			'auto' === self::mode()
+			$message = __( 'The server did not finish converting the file.', 'custom-post-types-dp' );
+			'auto' === self::mode() && ! CPTDP_Page_Store::is_presentation_kind( CPTDP_Page_Store::source_kind( $post_id ) )
 				? CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message )
 				: CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, $message );
 

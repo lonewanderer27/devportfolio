@@ -9,6 +9,10 @@
  *                                              409 while another tab holds a run, unless `force`)
  * - POST cptdp/v1/documents/<id>/pages/<n>     raw image body for page n (header `X-CPTDP-Run`)
  * - POST cptdp/v1/documents/<id>/pages/finish  validate everything and write the manifest (header `X-CPTDP-Run`)
+ * - POST cptdp/v1/documents/<id>/pages/retry   queue the server conversion again (the only way to redo a presentation)
+ *
+ * Presentations (PPTX, PPT, ODP) are converted by the server only: `start`, `<n>` and `finish`
+ * answer 400 `cptdp_pptx_server_only` for them.
  *
  * There is no unauthenticated route: visitors never trigger conversion.
  *
@@ -82,6 +86,17 @@ class CPTDP_Page_REST {
 
 		register_rest_route(
 			self::NAMESPACE_ID,
+			$base . '/retry',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'retry' ),
+				'permission_callback' => array( __CLASS__, 'can_edit' ),
+				'args'                => $args,
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE_ID,
 			$base . '/finish',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -147,6 +162,10 @@ class CPTDP_Page_REST {
 
 		if ( null === $source ) {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
+		}
+
+		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+			return self::server_only();
 		}
 
 		// Another tab is already generating these pages: do not clear its folder from under it.
@@ -229,7 +248,12 @@ class CPTDP_Page_REST {
 		$post_id = (int) $request['id'];
 		$page    = (int) $request['n'];
 		$folder  = CPTDP_Page_Store::folder_for( $post_id );
-		$stale   = self::check_run( $request, $post_id );
+
+		if ( CPTDP_Page_Store::is_presentation_kind( CPTDP_Page_Store::source_kind( $post_id ) ) ) {
+			return self::server_only();
+		}
+
+		$stale = self::check_run( $request, $post_id );
 
 		if ( null !== $stale ) {
 			return $stale;
@@ -294,6 +318,10 @@ class CPTDP_Page_REST {
 
 		if ( null === $source ) {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
+		}
+
+		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+			return self::server_only();
 		}
 
 		$stale = self::check_run( $request, $post_id );
@@ -412,6 +440,35 @@ class CPTDP_Page_REST {
 	}
 
 	/**
+	 * Queue the server conversion again (Regenerate for presentations, or a PDF retry).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function retry( WP_REST_Request $request ) {
+		$post_id = (int) $request['id'];
+
+		if ( null === CPTDP_Page_Store::get_source( $post_id ) ) {
+			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
+		}
+
+		CPTDP_Page_Scheduler::ensure( $post_id, true );
+
+		return rest_ensure_response( self::state( $post_id ) );
+	}
+
+	/**
+	 * The error for the browser-upload routes on a presentation.
+	 */
+	private static function server_only(): WP_Error {
+		return new WP_Error(
+			'cptdp_pptx_server_only',
+			__( 'Presentations are converted by the server only. Use Regenerate, or upload a PDF.', 'custom-post-types-dp' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
 	 * Status payload returned to the admin script.
 	 *
 	 * @param int $post_id Document ID.
@@ -425,6 +482,7 @@ class CPTDP_Page_REST {
 			'error'    => CPTDP_Page_Store::get_error( $post_id ),
 			'count'    => null !== $manifest ? (int) $manifest['count'] : 0,
 			'producer' => null !== $manifest ? (string) ( $manifest['producer'] ?? '' ) : '',
+			'kind'     => CPTDP_Page_Store::source_kind( $post_id ),
 		);
 	}
 
