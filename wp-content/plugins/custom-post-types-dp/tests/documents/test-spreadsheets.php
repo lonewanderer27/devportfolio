@@ -408,8 +408,8 @@ class CPTDP_Test_Spreadsheets extends CPTDP_Pages_Test_Case {
 		$this->assertStringContainsString( 'hidden sheets', $html );
 
 		ob_start();
-		cptdp_documents_render_xlsx_status();
-		$this->assertNotSame( '', (string) ob_get_clean() );
+		cptdp_documents_render_conversion_status( array( 'family' => 'spreadsheets' ) );
+		$this->assertStringContainsString( 'One page per sheet', (string) ob_get_clean() );
 
 		$this->assertTrue( cptdp_documents_sanitize( array( 'native_xlsx' => '1' ) )['native_xlsx'] );
 

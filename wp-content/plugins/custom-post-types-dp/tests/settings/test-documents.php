@@ -207,6 +207,77 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		parent::tear_down();
 	}
 
+	public function test_conversion_has_its_own_section_between_the_documents_and_native_viewer_sections(): void {
+		global $wp_settings_sections, $wp_settings_fields;
+
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$wp_settings_sections = array();
+		$wp_settings_fields   = array();
+		cptdp_documents_register_sections();
+
+		$this->assertSame(
+			array( 'cptdp_documents_section', 'cptdp_documents_conversion_section', 'cptdp_documents_native_section' ),
+			array_keys( $wp_settings_sections['cptdp-documents'] ),
+			'Documents, then Document conversion, then Native viewer.'
+		);
+		$this->assertSame( 'Document conversion', $wp_settings_sections['cptdp-documents']['cptdp_documents_conversion_section']['title'] );
+		$this->assertSame(
+			array( 'cptdp_documents_conversion_presentations', 'cptdp_documents_conversion_spreadsheets' ),
+			array_keys( $wp_settings_fields['cptdp-documents']['cptdp_documents_conversion_section'] ),
+			'One field per document family.'
+		);
+		$this->assertArrayNotHasKey( 'cptdp_documents_pptx_status', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'], 'The status rows moved.' );
+		$this->assertArrayNotHasKey( 'cptdp_documents_xlsx_status', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'] );
+		$this->assertSame( array( 'presentations', 'spreadsheets' ), array_keys( cptdp_documents_conversion_formats() ) );
+	}
+
+	public function test_what_is_true_of_every_format_is_said_once_and_each_row_has_only_its_own_detail(): void {
+		$sentence = 'The result may differ from the original, so a PDF export is still the best option.';
+		$intro    = $this->capture( 'cptdp_documents_render_conversion_section' );
+		$rows     = '';
+
+		foreach ( array_keys( cptdp_documents_conversion_formats() ) as $family ) {
+			$rows .= $this->capture(
+				static function () use ( $family ): void {
+					cptdp_documents_render_conversion_status( array( 'family' => $family ) );
+				}
+			);
+		}
+
+		$this->assertSame( 1, substr_count( $intro . $rows, $sentence ), 'Said once, in the intro.' );
+		$this->assertStringContainsString( $sentence, $intro );
+		$this->assertStringContainsString( 'visitors never trigger it', $intro );
+
+		$this->assertStringContainsString( 'One page per slide', $rows );
+		$this->assertStringContainsString( 'animations and transitions are not exported', $rows );
+		$this->assertStringContainsString( 'One page per sheet', $rows );
+		$this->assertStringContainsString( 'formulas are not recalculated', $rows );
+	}
+
+	public function test_a_row_shows_available_with_the_version_or_unavailable_with_the_reason(): void {
+		$render = function ( string $family ): string {
+			return $this->capture(
+				static function () use ( $family ): void {
+					cptdp_documents_render_conversion_status( array( 'family' => $family ) );
+				}
+			);
+		};
+
+		add_filter( 'cptdp_pptx_available', '__return_false' );
+		$off = $render( 'spreadsheets' );
+		$this->assertStringContainsString( 'Unavailable', $off );
+		$this->assertStringContainsString( 'Excel', $off, 'The reason is the family\'s own.' );
+		$this->assertStringContainsString( 'One page per sheet', $off, 'The detail line stays.' );
+		$this->assertStringContainsString( 'PowerPoint', $render( 'presentations' ) );
+
+		remove_all_filters( 'cptdp_pptx_available' );
+		add_filter( 'cptdp_pptx_available', '__return_true' );
+		add_filter( 'cptdp_xlsx_available', '__return_true' );
+		$this->assertStringContainsString( 'Available', $render( 'spreadsheets' ) );
+
+		$this->assertSame( '', $render( 'nothing' ), 'An unknown family renders nothing.' );
+	}
+
 	public function test_a_partial_update_keeps_the_settings_it_does_not_mention(): void {
 		update_option(
 			'cptdp_documents',
