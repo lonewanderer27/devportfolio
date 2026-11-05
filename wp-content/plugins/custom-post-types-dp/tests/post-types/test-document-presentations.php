@@ -160,14 +160,22 @@ class CPTDP_Test_Document_Presentations extends CPTDP_Pages_Test_Case {
 
 	// --- Settings ------------------------------------------------------------------------------
 
+	private function conversion_status( string $family ): string {
+		return $this->capture(
+			static function () use ( $family ): void {
+				cptdp_documents_render_conversion_status( array( 'family' => $family ) );
+			}
+		);
+	}
+
 	public function test_the_settings_page_shows_whether_conversion_is_available(): void {
 		remove_all_filters( 'cptdp_pptx_available' );
 		add_filter( 'cptdp_pptx_available', '__return_false' );
-		$this->assertStringContainsString( 'Unavailable', $this->capture( 'cptdp_documents_render_pptx_status' ) );
+		$this->assertStringContainsString( 'Unavailable', $this->conversion_status( 'presentations' ) );
 
 		remove_all_filters( 'cptdp_pptx_available' );
 		add_filter( 'cptdp_pptx_available', '__return_true' );
-		$this->assertStringContainsString( 'Available', $this->capture( 'cptdp_documents_render_pptx_status' ) );
+		$this->assertStringContainsString( 'Available', $this->conversion_status( 'presentations' ) );
 	}
 
 	// --- The native viewer URL -----------------------------------------------------------------
