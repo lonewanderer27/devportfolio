@@ -39,6 +39,7 @@
 	box-shadow: 8px 10px 0 var(--book-shadow);
 	font-family: inherit;
 	text-align: left;
+	transition: transform var(--book-dur) var(--book-ease), box-shadow var(--book-dur) var(--book-ease);
 }
 
 .documents-book > * {
@@ -211,5 +212,30 @@
 
 	.documents-book[data-cover-style="midnight"] .documents-book__pat {
 		inset: 6px 6px 6px 18px;
+	}
+}
+
+/* Hover (desktop pointer only): lift, tilt, deeper shadow. */
+@media (hover: hover) {
+	.documents-book:hover {
+		transform: translateY(-6px) rotate(-1deg);
+		box-shadow: 12px 16px 0 var(--book-shadow);
+	}
+}
+
+/* Pressed state (touch has no hover, so this is what a tap shows). */
+.documents-book:active {
+	transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.documents-book {
+		transition: none;
+		animation: none;
+	}
+
+	.documents-book:hover,
+	.documents-book:active {
+		transform: none;
 	}
 }
