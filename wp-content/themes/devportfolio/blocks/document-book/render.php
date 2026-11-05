@@ -34,7 +34,7 @@ $devportfolio_format = devportfolio_document_format_label(
 	get_post_meta( $devportfolio_post_id, 'cptdp_filetype', true ),
 	get_post_meta( $devportfolio_post_id, 'cptdp_total_pages', true )
 );
-$devportfolio_style  = 'midnight';
+$devportfolio_style  = devportfolio_sanitize_cover_style( get_post_meta( $devportfolio_post_id, 'cptdp_cover_style', true ) );
 
 $devportfolio_wrapper = get_block_wrapper_attributes(
 	array(
