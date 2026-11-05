@@ -1,0 +1,241 @@
+/*
+ * Document book cover (DPD-005, DPD-006, DPD-008).
+ * Follows .claude/plans/documents/documents-hifi-wireframe (.book, .p0-.p5) and
+ * .claude/plans/design-system.html. Tokens hold the design system's light-mode values and are
+ * fixed (the theme has no dark mode yet). Each cover style sets --cv (cover), --ct (text) and
+ * --cat-c (category colour); the pattern lives in the .documents-book__pat layer.
+ */
+.documents-book {
+	--book-ink: #000000;
+	--book-ink-2: #2c2c2e;
+	--book-surface: #ffffff;
+	--book-surface-alt: #f2f2f7;
+	--book-line: #d1d1d6;
+	--book-subtle: #6a6a6f;
+	--book-g1: 26 214 253;
+	--book-g2: 29 98 240;
+	--book-grad: linear-gradient(135deg, rgb(var(--book-g1)), rgb(var(--book-g2)));
+	--book-shadow: rgb(12 27 30 / 0.22);
+	--book-edge: rgb(0 0 0 / 0.1);
+	--book-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--book-dur: 260ms;
+
+	--cv: var(--book-ink);
+	--ct: var(--book-surface);
+	--cat-c: var(--ct);
+
+	position: relative;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	width: 100%;
+	aspect-ratio: 2 / 3;
+	box-sizing: border-box;
+	padding: 18px 14px 14px 32px;
+	overflow: hidden;
+	border: 1px solid var(--book-edge);
+	border-radius: 3px 6px 6px 3px;
+	background: var(--cv);
+	color: var(--ct);
+	box-shadow: 8px 10px 0 var(--book-shadow);
+	font-family: inherit;
+	text-align: left;
+	transition: transform var(--book-dur) var(--book-ease), box-shadow var(--book-dur) var(--book-ease);
+}
+
+.documents-book > * {
+	position: relative;
+	z-index: 1;
+}
+
+/* Spine: darker strip down the left edge. */
+.documents-book::before {
+	content: "";
+	position: absolute;
+	inset: 0 auto 0 0;
+	z-index: 2;
+	width: 16px;
+	background: rgb(0 0 0 / 0.2);
+}
+
+/* Stitch: dashed line along the spine, right of it. */
+.documents-book::after {
+	content: "";
+	position: absolute;
+	top: 8px;
+	bottom: 8px;
+	left: 21px;
+	z-index: 2;
+	border-left: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.documents-book__pat {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+}
+
+.documents-book__cat {
+	min-height: 1.4em;
+	color: var(--cat-c);
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	opacity: 0.9;
+}
+
+.documents-book__ttl {
+	align-self: center;
+	padding-block: 10px;
+	font-size: 23px;
+	font-weight: 500;
+	line-height: 1.12;
+	letter-spacing: -0.015em;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* Short ornament line under the title. */
+.documents-book__ttl::after {
+	content: "";
+	display: block;
+	width: 34px;
+	height: 2px;
+	margin-top: 12px;
+	background: currentColor;
+	opacity: 0.75;
+}
+
+.documents-book__ft {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 10px;
+	font-weight: 500;
+	letter-spacing: 0.06em;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.9;
+}
+
+/* Cover styles (DPD-006): black, white and grey; only Horizon carries the gradient. */
+.documents-book[data-cover-style="midnight"] {
+	--cv: var(--book-ink);
+	--ct: var(--book-surface);
+}
+
+.documents-book[data-cover-style="midnight"] .documents-book__pat {
+	inset: 10px 10px 10px 26px;
+	border: 1px solid color-mix(in srgb, var(--book-surface) 24%, transparent);
+}
+
+.documents-book[data-cover-style="pinstripe"] {
+	--cv: var(--book-surface-alt);
+	--ct: var(--book-ink);
+}
+
+.documents-book[data-cover-style="pinstripe"] .documents-book__pat {
+	background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--book-ink) 9%, transparent) 0 1.5px, transparent 1.5px 9px);
+}
+
+.documents-book[data-cover-style="horizon"] {
+	--cv: linear-gradient(165deg, var(--book-ink-2), var(--book-ink));
+	--ct: var(--book-surface);
+}
+
+.documents-book[data-cover-style="horizon"] .documents-book__pat::after {
+	content: "";
+	position: absolute;
+	top: 15%;
+	right: 10%;
+	width: 27%;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--book-grad);
+	box-shadow: 0 0 34px 6px rgb(var(--book-g1) / 0.35);
+}
+
+.documents-book[data-cover-style="split-sky"] {
+	--cv: linear-gradient(var(--book-surface-alt) 0 30%, var(--book-ink) 30%);
+	--ct: var(--book-surface);
+	--cat-c: var(--book-ink);
+}
+
+.documents-book[data-cover-style="dot-grid"] {
+	--cv: var(--book-line);
+	--ct: var(--book-ink);
+}
+
+.documents-book[data-cover-style="dot-grid"] .documents-book__pat {
+	background: radial-gradient(color-mix(in srgb, var(--book-ink) 22%, transparent) 1.6px, transparent 2.2px) 0 0 / 17px 17px;
+}
+
+.documents-book[data-cover-style="two-tone"] {
+	--cv: linear-gradient(90deg, var(--book-ink-2) 50%, var(--book-subtle) 50%);
+	--ct: var(--book-surface);
+}
+
+/* Smaller cover (two-column shelf). */
+@media (max-width: 820px) {
+	.documents-book {
+		padding: 12px 10px 10px 22px;
+		box-shadow: 5px 6px 0 var(--book-shadow);
+	}
+
+	.documents-book::before {
+		width: 11px;
+	}
+
+	.documents-book::after {
+		top: 6px;
+		bottom: 6px;
+		left: 15px;
+	}
+
+	.documents-book__cat,
+	.documents-book__ft {
+		font-size: 8.5px;
+	}
+
+	.documents-book__ttl {
+		padding-block: 6px;
+		font-size: 17px;
+	}
+
+	.documents-book__ttl::after {
+		width: 22px;
+		height: 1.5px;
+		margin-top: 8px;
+	}
+
+	.documents-book[data-cover-style="midnight"] .documents-book__pat {
+		inset: 6px 6px 6px 18px;
+	}
+}
+
+/* Hover (desktop pointer only): lift, tilt, deeper shadow. */
+@media (hover: hover) {
+	.documents-book:hover {
+		transform: translateY(-6px) rotate(-1deg);
+		box-shadow: 12px 16px 0 var(--book-shadow);
+	}
+}
+
+/* Pressed state (touch has no hover, so this is what a tap shows). */
+.documents-book:active {
+	transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.documents-book {
+		transition: none;
+		animation: none;
+	}
+
+	.documents-book:hover,
+	.documents-book:active {
+		transform: none;
+	}
+}
