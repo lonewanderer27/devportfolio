@@ -40,6 +40,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 	array(
 		'class'            => 'documents-book',
 		'data-cover-style' => $devportfolio_style,
+		'data-document-id' => (string) $devportfolio_post_id,
 	)
 );
 ?>
