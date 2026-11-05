@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.3" office:mimetype="application/vnd.oasis.opendocument.text">
+ <office:automatic-styles>
+  <style:style style:name="P1" style:family="paragraph" style:parent-style-name="Standard">
+   <style:text-properties fo:font-size="18pt" fo:font-weight="bold"/>
+  </style:style>
+  <style:style style:name="PB" style:family="paragraph" style:parent-style-name="Standard">
+   <style:paragraph-properties fo:break-before="page"/>
+  </style:style>
+ </office:automatic-styles>
+ <office:body><office:text>
+  <text:p text:style-name="P1">DOCX conversion fixture</text:p>
+  <text:p>This document exercises the Writer conversion path.</text:p>
+  <text:p>Page one contains ordinary text and a small table.</text:p>
+  <table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
+   <table:table-row><table:table-cell><text:p>Label</text:p></table:table-cell><table:table-cell><text:p>Value</text:p></table:table-cell></table:table-row>
+   <table:table-row><table:table-cell><text:p>Word</text:p></table:table-cell><table:table-cell><text:p>Writer</text:p></table:table-cell></table:table-row>
+  </table:table>
+  <text:p text:style-name="PB">Second page</text:p>
+  <text:p>The page count is deliberately determined by LibreOffice.</text:p>
+  <text:p text:style-name="P1">End of fixture</text:p>
+ </office:text></office:body>
+</office:document>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html><head><meta charset='utf-8'><style>
+@page { size: Letter; margin: 0.65in; }
+body { font-family: Arial, sans-serif; color:#20242a; font-size:11pt; line-height:1.35; }
+h1 { color:#17324d; font-size:28pt; margin:0 0 8pt; }
+h2 { color:#1e587a; font-size:18pt; border-bottom:2px solid #78a8bd; padding-bottom:4pt; margin:0 0 12pt; }
+h3 { color:#17324d; font-size:13pt; margin:14pt 0 5pt; }
+p { margin:0 0 8pt; } ul,ol { margin-top:4pt; } li { margin-bottom:5pt; }
+.kicker { color:#6b7785; text-transform:uppercase; letter-spacing:1.5pt; font-size:9pt; }
+.callout { margin:12pt 0; padding:0; }
+table { width:100%; border-collapse:collapse; margin:10pt 0; font-size:9.5pt; } th { background:#17324d; color:#fff; text-align:left; } th,td { border:1px solid #b9c5cc; padding:6pt; vertical-align:top; }
+.small { color:#5f6b75; font-size:9pt; } .page { page-break-after:always; } .page:last-child { page-break-after:auto; }
+</style></head><body>
+<section class='page'>
+<div class='kicker'>Operations / Q4 2026</div><h1>Q4 2026<br>Operations Playbook</h1>
+<p><strong>Prepared for:</strong> Delivery, Support, and Operations teams<br><strong>Owner:</strong> Dave John Deluta &nbsp;|&nbsp; <strong>Version:</strong> 1.0 &nbsp;|&nbsp; <strong>Review date:</strong> 06 November 2026</p>
+<div class='callout'><strong>Purpose.</strong> This playbook turns the Q4 operating plan into a practical weekly rhythm: protect customer commitments, surface risk early, and make handoffs clear enough that work continues without a single point of failure.</div>
+<h3>What success looks like</h3><ul><li>Committed work is visible, sequenced, and owned.</li><li>Customer-impacting risks are raised before they become incidents.</li><li>Every completed initiative leaves behind a decision record and a named follow-up owner.</li></ul>
+<h3>Quarter priorities</h3><ol><li>Improve delivery predictability through smaller release slices.</li><li>Reduce repeat support issues with durable documentation and enablement.</li><li>Close the year with clean operational metrics and a ready Q1 backlog.</li></ol>
+<p class='small'>Internal working document. Use the latest approved version in the shared workspace when making commitments.</p>
+</section>
+<section class='page'><h2>1. Operating Model</h2>
+<p>The team operates as one delivery system. Product intent, implementation detail, customer context, and operational readiness are reviewed together rather than passed between disconnected queues.</p>
+<h3>Decision principles</h3><ul><li><strong>Make the next decision reversible.</strong> Prefer small experiments when the cost of waiting is low.</li><li><strong>Escalate with evidence.</strong> Bring the observed impact, the affected commitment, and a recommended next step.</li><li><strong>Write it down once.</strong> The decision log is the source of truth for scope, trade-offs, and follow-up.</li><li><strong>Leave the system easier to run.</strong> Every release should improve a runbook, alert, test, or customer-facing explanation.</li></ul>
+<h3>Core roles</h3><table><tr><th>Role</th><th>Primary accountability</th><th>Backup</th></tr><tr><td>Delivery lead</td><td>Sequence work, manage commitments, facilitate risk review.</td><td>Operations lead</td></tr><tr><td>Operations lead</td><td>Readiness, incident coordination, service health, handoff quality.</td><td>Delivery lead</td></tr><tr><td>Customer partner</td><td>Feedback themes, expectation setting, acceptance signals.</td><td>Account owner</td></tr><tr><td>Technical owner</td><td>Implementation quality, dependencies, rollback and verification plan.</td><td>Designated reviewer</td></tr></table>
+<h3>Working agreements</h3><p>Default to async updates before meetings. Meetings end with an owner, a due date, and a written decision. If a commitment changes, update the plan and notify affected partners the same day.</p>
+</section>
+<section class='page'><h2>2. Weekly Cadence</h2>
+<p>The weekly cadence is deliberately repetitive. Predictable checkpoints reduce coordination overhead and give risks several opportunities to be corrected before Friday.</p>
+<table><tr><th>When</th><th>Checkpoint</th><th>Expected output</th></tr><tr><td>Monday AM</td><td>Commitment review</td><td>Top outcomes, owners, dependencies, and confidence for the week.</td></tr><tr><td>Tuesday PM</td><td>Delivery clinic</td><td>Blocked work receives a decision, pairing session, or explicit escalation.</td></tr><tr><td>Wednesday</td><td>Customer signal review</td><td>Support themes and feedback translated into actions or backlog items.</td></tr><tr><td>Thursday PM</td><td>Release readiness</td><td>Go/no-go decision, rollback owner, monitoring checks, and comms draft.</td></tr><tr><td>Friday</td><td>Closeout and learning</td><td>Completed outcomes, carryover rationale, metrics, and one improvement experiment.</td></tr></table>
+<h3>Monday commitment checklist</h3><ul><li>Confirm the three most important outcomes, not a long task inventory.</li><li>Mark each outcome green, amber, or red with one sentence of evidence.</li><li>Identify work that depends on another team or an unavailable decision.</li><li>Reserve capacity for support, defects, and operational interrupts.</li></ul>
+<h3>Friday closeout prompts</h3><p>What changed for customers? What did we learn? Which risk moved? What should be stopped, started, or simplified next week?</p>
+</section>
+<section class='page'><h2>3. Delivery Controls</h2>
+<p>Delivery controls keep scope and quality visible without turning the team into a reporting function. Use the lightest control that makes the risk obvious.</p>
+<h3>Readiness gate</h3><table><tr><th>Control</th><th>Evidence required</th><th>Owner</th></tr><tr><td>Scope</td><td>Acceptance criteria and exclusions are agreed.</td><td>Delivery lead</td></tr><tr><td>Quality</td><td>Test evidence, known limitations, and review completed.</td><td>Technical owner</td></tr><tr><td>Operations</td><td>Monitoring, support note, rollback path, and ownership confirmed.</td><td>Operations lead</td></tr><tr><td>Customer</td><td>Audience, timing, and message are approved.</td><td>Customer partner</td></tr></table>
+<h3>Risk register fields</h3><ul><li><strong>Risk:</strong> a specific uncertain event, not a general concern.</li><li><strong>Trigger:</strong> the observable signal that changes the response.</li><li><strong>Impact:</strong> customer, delivery, financial, or operational consequence.</li><li><strong>Response:</strong> mitigation, contingency, and decision owner.</li><li><strong>Review date:</strong> when the risk must be actively reconsidered.</li></ul>
+<div class='callout'><strong>Rule of thumb:</strong> an amber item without a next action is only a status color. Convert it into a dated decision or remove the amber label.</div>
+<h3>Change control</h3><p>Changes to a committed outcome require a short note covering the reason, impact, alternatives considered, and the new expectation. Keep the original commitment visible so the learning is not lost.</p>
+</section>
+<section class='page'><h2>4. Support and Escalation</h2>
+<p>Support signals are operational data. Classify them consistently, respond proportionally, and use recurring themes to improve the product and the runbook.</p>
+<h3>Escalation matrix</h3><table><tr><th>Severity</th><th>Example</th><th>Initial response</th><th>Update rhythm</th></tr><tr><td>S1 — Critical</td><td>Broad outage or data integrity concern.</td><td>Page operations lead immediately; establish incident channel.</td><td>Every 30 minutes</td></tr><tr><td>S2 — High</td><td>Material customer impact with workaround unavailable.</td><td>Assign incident owner and customer communicator.</td><td>Every 2 hours</td></tr><tr><td>S3 — Normal</td><td>Degraded workflow or repeatable defect.</td><td>Queue with evidence and target date.</td><td>Daily while active</td></tr><tr><td>S4 — Low</td><td>Question, idea, or cosmetic issue.</td><td>Document answer or add to backlog.</td><td>At next review</td></tr></table>
+<h3>Incident minimums</h3><ul><li>Name one incident lead and one communications owner.</li><li>Record the timeline as facts, not guesses.</li><li>State the current customer impact in every update.</li><li>Close with a follow-up list, owners, and dates.</li></ul>
+<h3>Support review</h3><p>Each Wednesday, group incoming issues by theme and frequency. Select one repeat theme for a durable fix, improved documentation, or a customer education action.</p>
+</section>
+<section class='page'><h2>5. Templates and Checklists</h2>
+<p>Use these short formats to keep recurring work consistent. Copy the structure, then add only the context needed for the decision at hand.</p>
+<h3>Weekly update</h3><div class='callout'><strong>Outcome:</strong> What changed this week?<br><strong>Confidence:</strong> Green / amber / red, with evidence.<br><strong>Risk:</strong> What might change the commitment?<br><strong>Ask:</strong> What decision or help is needed, and by when?</div>
+<h3>Decision record</h3><table><tr><th>Field</th><th>Prompt</th></tr><tr><td>Context</td><td>What problem or opportunity made this decision necessary?</td></tr><tr><td>Decision</td><td>What will we do now?</td></tr><tr><td>Alternatives</td><td>What options were considered and why were they not selected?</td></tr><tr><td>Review</td><td>What signal would cause us to revisit this decision?</td></tr></table>
+<h3>Before you close an item</h3><ul><li>Link the outcome to the original commitment.</li><li>Record known limitations and follow-up work.</li><li>Confirm the receiving owner understands the next action.</li><li>Update the customer-facing explanation if expectations changed.</li></ul>
+</section>
+<div style="page-break-before:always"></div><section><h2>5. Q4 Handoff and Q1 Readiness</h2>
+<p>A strong quarter ends with transfer of context, not just a final status report. The Q1 team should be able to understand what was delivered, what remains uncertain, and where to start.</p>
+<h3>Handoff checklist</h3><ol><li>Archive final decisions, release notes, and customer communications.</li><li>Confirm owners for open risks, recurring support themes, and scheduled work.</li><li>Review dashboards, alerts, access, and runbooks with the incoming owner.</li><li>Convert unresolved questions into explicit Q1 backlog items.</li><li>Capture the quarter’s three most useful operating lessons.</li></ol>
+<h3>Q4 review scorecard</h3><table><tr><th>Measure</th><th>Target</th><th>Review question</th></tr><tr><td>Commitment confidence</td><td>Improving week over week</td><td>Are estimates becoming more reliable?</td></tr><tr><td>Escalation lead time</td><td>Same business day</td><td>Do risks reach the right owner early?</td></tr><tr><td>Repeat issue rate</td><td>Downward trend</td><td>Are fixes removing causes, not symptoms?</td></tr><tr><td>Handoff completeness</td><td>100% of active items owned</td><td>Can Q1 start without rediscovery?</td></tr></table>
+<div class='callout'><strong>Closing note.</strong> Operational maturity is the ability to make good work repeatable. Keep the cadence, make the evidence visible, and improve one control at a time.</div>
+<p class='small'>Document owner: Dave John Deluta &nbsp;|&nbsp; Next scheduled review: 04 January 2027</p>
+</section><section><h2>Appendix: Weekly Operating Checklist</h2>
+<p>Use this checklist at the start and end of each week to keep the operating rhythm visible.</p>
+<table><tr><th>Check</th><th>Monday</th><th>Friday</th></tr><tr><td>Commitments have owners and confidence levels</td><td>Confirm</td><td>Review</td></tr><tr><td>Dependencies and risks have next actions</td><td>Confirm</td><td>Carry forward or close</td></tr><tr><td>Customer-impacting changes are communicated</td><td>Plan</td><td>Verify</td></tr><tr><td>Runbooks and decision records are current</td><td>Identify gaps</td><td>Update</td></tr></table>
+<h3>Notes</h3><p>Keep this page with the weekly planning record. A concise, current checklist is more useful than a long report that no one consults.</p>
+</section>
+</body></html>
