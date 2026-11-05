@@ -451,4 +451,29 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'animation: none', $reduced );
 		$this->assertMatchesRegularExpression( '/\.documents-book:hover, \.documents-book:active \{ transform: none; \}/', $reduced );
 	}
+
+	public function test_title_length_buckets(): void {
+		$this->assertSame( 'short', devportfolio_document_title_length( 'Monthly Expense Tracker' ) );
+		$this->assertSame( 'short', devportfolio_document_title_length( str_repeat( 'a', 40 ) ) );
+		$this->assertSame( 'long', devportfolio_document_title_length( str_repeat( 'a', 41 ) ) );
+		$this->assertSame( 'long', devportfolio_document_title_length( str_repeat( 'a', 70 ) ) );
+		$this->assertSame( 'xlong', devportfolio_document_title_length( str_repeat( 'é', 71 ) ) );
+	}
+
+	public function test_long_title_is_flagged_and_wrapped_for_the_clamp(): void {
+		$id   = $this->make_document( array( 'title' => 'Q3 Results Comparison and Before/After Dashboard Review for the Whole Leadership Team' ) );
+		$html = $this->render_book( $id );
+		$this->assertStringContainsString( 'data-title-length="xlong"', $html );
+		$this->assertStringContainsString( '<span class="documents-book__ttl"><span class="documents-book__ttl-text">Q3 Results', $html );
+	}
+
+	public function test_title_clamp_is_not_on_the_padded_box(): void {
+		$box  = $this->rule( '.documents-book__ttl' );
+		$text = $this->rule( '.documents-book__ttl-text' );
+		$this->assertStringNotContainsString( 'line-clamp', $box );
+		$this->assertStringContainsString( '-webkit-line-clamp: 4', $text );
+		$this->assertStringContainsString( 'overflow: hidden', $text );
+		$this->assertStringContainsString( 'font-size: 19px', $this->rule( '.documents-book[data-title-length="long"] .documents-book__ttl' ) );
+		$this->assertStringContainsString( 'font-size: 16px', $this->rule( '.documents-book[data-title-length="xlong"] .documents-book__ttl' ) );
+	}
 }
