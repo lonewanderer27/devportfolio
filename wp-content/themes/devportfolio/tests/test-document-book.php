@@ -26,6 +26,9 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		do_action( 'cptdp_register_post_types' );
 
 		require_once $this->theme_dir() . '/functions.php';
+		if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-book' ) ) {
+			devportfolio_register_blocks();
+		}
 	}
 
 	/**
@@ -160,5 +163,167 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		foreach ( array( 'unknown', '', '<script>', array( 'horizon' ), null, 5 ) as $bad ) {
 			$this->assertSame( 'midnight', devportfolio_sanitize_cover_style( $bad ) );
 		}
+	}
+
+	public function test_block_is_registered(): void {
+		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-book' ) );
+	}
+
+	public function test_cover_elements_are_in_order(): void {
+		$id   = $this->make_document(
+			array(
+				'meta'       => array(
+					'cptdp_filetype'    => 'pdf',
+					'cptdp_total_pages' => 24,
+				),
+				'categories' => array( 'Reports' ),
+			)
+		);
+		$html = $this->render_book( $id );
+
+		$positions = array();
+		foreach ( array( 'documents-book__cat', 'documents-book__ttl', 'documents-book__format', 'documents-book__owner' ) as $class ) {
+			$pos = strpos( $html, $class );
+			$this->assertNotFalse( $pos, $class );
+			$positions[] = $pos;
+		}
+		$sorted = $positions;
+		sort( $sorted );
+		$this->assertSame( $sorted, $positions );
+		$this->assertStringContainsString( '>Reports<', $html );
+		$this->assertStringContainsString( '>Quarterly Report<', $html );
+	}
+
+	public function test_format_and_owner_share_the_footer_line(): void {
+		$id   = $this->make_document(
+			array(
+				'meta' => array(
+					'cptdp_filetype'    => 'pdf',
+					'cptdp_total_pages' => 24,
+				),
+			)
+		);
+		$html = $this->render_book( $id );
+
+		$this->assertMatchesRegularExpression(
+			'#<span class="documents-book__ft">\s*<span class="documents-book__format">PDF · 24 pp</span>\s*<span class="documents-book__owner">DAVE</span>\s*</span>#',
+			$html
+		);
+
+		$one = $this->make_document(
+			array(
+				'meta' => array(
+					'cptdp_filetype'    => 'docx',
+					'cptdp_total_pages' => 1,
+				),
+			)
+		);
+		$this->assertStringContainsString( '>DOCX · 1 p<', $this->render_book( $one ) );
+	}
+
+	public function test_cover_has_no_status_tag_description_or_tags(): void {
+		$id   = $this->make_document(
+			array(
+				'meta' => array(
+					'cptdp_filetype'  => 'pdf',
+					'cptdp_highlight' => 1,
+				),
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => 'A long description that belongs under the cover.',
+				'post_excerpt' => 'Excerpt',
+			)
+		);
+		$html = $this->render_book( $id );
+
+		$this->assertStringNotContainsStringIgnoringCase( 'open', $html );
+		$this->assertStringNotContainsStringIgnoringCase( 'request', $html );
+		$this->assertStringNotContainsStringIgnoringCase( 'locked', $html );
+		$this->assertStringNotContainsString( 'tag', $html );
+		$this->assertStringNotContainsString( 'description', $html );
+		$this->assertStringNotContainsString( 'long description', $html );
+		$this->assertStringNotContainsString( 'Excerpt', $html );
+	}
+
+	public function test_output_is_escaped(): void {
+		$id   = $this->make_document(
+			array(
+				'title'      => 'R&D <b>x</b>',
+				'categories' => array( 'Tom <i>& Jerry</i>' ),
+			)
+		);
+		$html = $this->render_book( $id );
+
+		$this->assertStringNotContainsString( '<b>x</b>', $html );
+		$this->assertStringNotContainsString( '<i>', $html );
+		$this->assertStringContainsString( '&lt;b&gt;x&lt;/b&gt;', $html );
+	}
+
+	public function test_missing_category_and_page_data(): void {
+		$id   = $this->make_document();
+		$html = $this->render_book( $id );
+
+		$this->assertMatchesRegularExpression( '#<span class="documents-book__cat"></span>#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="documents-book__format"></span>#', $html );
+		$this->assertStringNotContainsString( '·', $html );
+	}
+
+	public function test_first_category_in_name_order_is_shown(): void {
+		$id   = $this->make_document( array( 'categories' => array( 'Reports', 'Executive Docs' ) ) );
+		$html = $this->render_book( $id );
+		$this->assertStringContainsString( '>Executive Docs<', $html );
+		$this->assertStringNotContainsString( '>Reports<', $html );
+	}
+
+	public function test_non_document_and_missing_posts_render_nothing(): void {
+		$post = self::factory()->post->create( array( 'post_title' => 'Plain post' ) );
+		$this->assertSame( '', trim( $this->render_book( $post ) ) );
+		$this->assertSame( '', trim( $this->render_book( 0 ) ) );
+		$this->assertSame( '', trim( $this->render_book( 999999 ) ) );
+	}
+
+	public function test_draft_document_still_renders(): void {
+		$id = $this->make_document( array( 'status' => 'draft' ) );
+		$this->assertStringContainsString( 'documents-book__ttl', $this->render_book( $id ) );
+	}
+
+	public function test_token_block_matches_the_design_system(): void {
+		$base = $this->rule( '.documents-book' );
+		$this->assertNotSame( '', $base );
+		$expected = array(
+			'--book-ink'         => '#000000',
+			'--book-ink-2'       => '#2c2c2e',
+			'--book-surface'     => '#ffffff',
+			'--book-surface-alt' => '#f2f2f7',
+			'--book-line'        => '#d1d1d6',
+			'--book-subtle'      => '#6a6a6f',
+			'--book-g1'          => '26 214 253',
+			'--book-g2'          => '29 98 240',
+			'--book-shadow'      => 'rgb(12 27 30 / 0.22)',
+			'--book-edge'        => 'rgb(0 0 0 / 0.1)',
+			'--book-ease'        => 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+			'--book-dur'         => '260ms',
+		);
+		foreach ( $expected as $token => $value ) {
+			$this->assertStringContainsString( $token . ': ' . $value . ';', $base, $token );
+		}
+	}
+
+	public function test_pattern_layer_is_rendered_and_hidden_from_assistive_tech(): void {
+		$html = $this->render_book( $this->make_document() );
+		$this->assertStringContainsString( '<i class="documents-book__pat" aria-hidden="true"></i>', $html );
+		$this->assertLessThan( strpos( $html, 'documents-book__cat' ), strpos( $html, 'documents-book__pat' ), 'pattern layer comes first' );
+	}
+
+	public function test_title_ornament_and_no_serif_font(): void {
+		$ornament = $this->rule( '.documents-book__ttl::after' );
+		$this->assertStringContainsString( 'height: 2px', $ornament );
+		$this->assertStringContainsString( 'width: 34px', $ornament );
+		$this->assertStringContainsString( 'background: currentColor', $ornament );
+		$this->assertStringNotContainsStringIgnoringCase( 'georgia', $this->css() );
+		$this->assertStringNotContainsStringIgnoringCase( 'serif', $this->css() );
 	}
 }
