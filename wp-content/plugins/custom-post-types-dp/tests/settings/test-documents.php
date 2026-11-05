@@ -16,7 +16,8 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'show_book_title' => false,
 				'pages_mode'      => 'auto',
 				'trim_bottom'     => true,
-				'selectable_text' => false,
+				'native_pdf'      => false,
+				'native_pptx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -38,7 +39,8 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'show_book_title' => true,
 				'pages_mode'      => 'auto',
 				'trim_bottom'     => true,
-				'selectable_text' => false,
+				'native_pdf'      => false,
+				'native_pptx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -124,33 +126,76 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $off );
 	}
 
-	public function test_selectable_text_is_off_by_default_and_is_sanitised(): void {
-		$this->assertFalse( cptdp_get_documents_settings( 'selectable_text' ) );
-		$this->assertTrue( cptdp_documents_sanitize( array( 'selectable_text' => '1' ) )['selectable_text'] );
-		$this->assertFalse( cptdp_documents_sanitize( array( 'selectable_text' => '0' ) )['selectable_text'] );
+	public function test_the_native_viewer_formats_are_off_by_default_and_sanitised(): void {
+		$this->assertSame( array( 'pdf', 'pptx' ), cptdp_documents_native_formats(), 'DOCX and XLSX are a later ticket.' );
+
+		foreach ( array( 'native_pdf', 'native_pptx' ) as $key ) {
+			$this->assertFalse( cptdp_get_documents_settings( $key ), $key );
+			$this->assertTrue( cptdp_documents_sanitize( array( $key => '1' ) )[ $key ], $key );
+			$this->assertFalse( cptdp_documents_sanitize( array( $key => '0' ) )[ $key ], $key );
+		}
+
 		$_POST['option_page'] = 'cptdp_documents';
-		$this->assertFalse( cptdp_documents_sanitize( array( 'pages_mode' => 'auto' ) )['selectable_text'], 'On the settings form an unticked checkbox is not submitted.' );
+		$clean                = cptdp_documents_sanitize( array( 'pages_mode' => 'auto' ) );
+		$this->assertFalse( $clean['native_pdf'], 'On the settings form an unticked checkbox is not submitted.' );
+		$this->assertFalse( $clean['native_pptx'] );
 		unset( $_POST['option_page'] );
 
-		update_option( 'cptdp_documents', array( 'selectable_text' => true ) );
-		$this->assertTrue( cptdp_get_documents_settings( 'selectable_text' ) );
+		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
+		$this->assertTrue( cptdp_get_documents_settings( 'native_pdf' ) );
+		$this->assertFalse( cptdp_get_documents_settings( 'native_pptx' ), 'Each format is its own switch.' );
 	}
 
-	public function test_selectable_text_checkbox_warns_that_it_can_be_laggy(): void {
-		ob_start();
-		cptdp_documents_render_selectable_text();
-		$html = ob_get_clean();
+	public function test_the_old_selectable_text_setting_is_still_the_pdf_checkbox(): void {
+		update_option( 'cptdp_documents', array( 'selectable_text' => true, 'trim_bottom' => false ) );
 
-		$this->assertStringContainsString( 'name="cptdp_documents[selectable_text]"', $html );
-		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $html );
-		$this->assertStringContainsString( 'This can make the viewer laggy.', $html );
+		$this->assertTrue( cptdp_get_documents_settings( 'native_pdf' ), 'An existing site keeps its choice.' );
+		$this->assertTrue( cptdp_get_documents_settings( 'selectable_text' ), 'The old key reads the new one.' );
+		$this->assertArrayNotHasKey( 'selectable_text', cptdp_get_documents_settings() );
+		$this->assertTrue( cptdp_documents_sanitize( array( 'pages_mode' => 'server' ) )['native_pdf'], 'A save keeps it, under the new name.' );
+
+		// A caller that still sends the old name (REST, code) changes the PDF checkbox.
+		$this->assertFalse( cptdp_documents_sanitize( array( 'selectable_text' => '0' ) )['native_pdf'] );
+		update_option( 'cptdp_documents', array() );
+		$this->assertTrue( cptdp_documents_sanitize( array( 'selectable_text' => '1' ) )['native_pdf'] );
+
+		// The new name wins when both are sent or stored.
+		update_option( 'cptdp_documents', array( 'native_pdf' => false, 'selectable_text' => true ) );
+		$this->assertFalse( cptdp_get_documents_settings( 'native_pdf' ) );
+	}
+
+	public function test_one_native_viewer_section_lists_a_checkbox_per_format_with_the_performance_warning(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		global $wp_settings_sections, $wp_settings_fields;
+		$wp_settings_sections = array();
+		$wp_settings_fields   = array();
+		cptdp_documents_register_sections();
+
+		$this->assertArrayHasKey( 'cptdp_documents_native_section', $wp_settings_sections['cptdp-documents'], 'One section for the native viewer.' );
+		$this->assertSame( 'Native viewer', $wp_settings_sections['cptdp-documents']['cptdp_documents_native_section']['title'] );
+		$this->assertCount( 1, $wp_settings_fields['cptdp-documents']['cptdp_documents_native_section'], 'One field holding the checkboxes.' );
+		$this->assertArrayNotHasKey( 'cptdp_documents_selectable_text', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'], 'The old rows are gone.' );
+		$this->assertArrayNotHasKey( 'cptdp_documents_browser_preview', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'] );
+
+		$intro = $this->capture( 'cptdp_documents_render_native_section' );
+		$this->assertStringContainsString( 'expense of performance', $intro );
+		$this->assertStringContainsString( 'text can be selected and copied', $intro );
+		$this->assertStringContainsString( 'stored page images are shown instead', $intro );
+		$this->assertStringContainsString( 'Nothing is sent to anyone', $intro );
+
+		$html = $this->capture( 'cptdp_documents_render_native_formats' );
+		$this->assertStringContainsString( 'id="cptdp-native-viewer"', $html, 'The warning links here.' );
+		$this->assertStringContainsString( 'name="cptdp_documents[native_pdf]"', $html );
+		$this->assertStringContainsString( 'name="cptdp_documents[native_pptx]"', $html );
 		$this->assertStringContainsString( 'pdf.js', $html );
-		$this->assertStringContainsString( 'fall back to the images', $html );
+		$this->assertStringContainsString( 'LibreOffice', $html );
+		$this->assertSame( 2, substr_count( $html, 'type="checkbox"' ) );
+		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $html );
 
-		update_option( 'cptdp_documents', array( 'selectable_text' => true ) );
-		ob_start();
-		cptdp_documents_render_selectable_text();
-		$this->assertMatchesRegularExpression( '/<input[^>]*checked=/', ob_get_clean() );
+		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
+		$on = $this->capture( 'cptdp_documents_render_native_formats' );
+		$this->assertSame( 1, preg_match_all( '/<input[^>]*checked=/', $on ), 'Only the PDF box is ticked.' );
+		$this->assertMatchesRegularExpression( '/native_pdf\]"[^>]*checked=/', $on );
 	}
 
 	public function tear_down(): void {
@@ -166,7 +211,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'show_book_title' => true,
 				'pages_mode'      => 'browser',
 				'trim_bottom'     => false,
-				'selectable_text' => true,
+				'native_pdf'      => true,
 			)
 		);
 
@@ -175,12 +220,13 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'show_book_title' => true,
 				'pages_mode'      => 'server',
 				'trim_bottom'     => false,
-				'selectable_text' => true,
+				'native_pdf'      => true,
+				'native_pptx'     => false,
 			),
 			cptdp_documents_sanitize( array( 'pages_mode' => 'server' ) )
 		);
-		$this->assertFalse( cptdp_documents_sanitize( array( 'selectable_text' => '0' ) )['selectable_text'] );
-		$this->assertFalse( cptdp_documents_sanitize( array( 'selectable_text' => '0' ) )['trim_bottom'], 'Still off: not mentioned, not reset.' );
+		$this->assertFalse( cptdp_documents_sanitize( array( 'native_pdf' => '0' ) )['native_pdf'] );
+		$this->assertFalse( cptdp_documents_sanitize( array( 'native_pdf' => '0' ) )['trim_bottom'], 'Still off: not mentioned, not reset.' );
 	}
 
 	public function test_an_empty_update_changes_nothing_outside_the_form(): void {
@@ -191,7 +237,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 
 	public function test_a_rest_put_with_one_key_does_not_reset_the_others(): void {
 		$this->acting_as( 'administrator' );
-		update_option( 'cptdp_documents', array( 'trim_bottom' => false, 'selectable_text' => true ) );
+		update_option( 'cptdp_documents', array( 'trim_bottom' => false, 'native_pdf' => true ) );
 		do_action( 'rest_api_init' );
 
 		$request = new WP_REST_Request( 'PUT', '/wp/v2/settings' );
@@ -203,17 +249,18 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$saved = cptdp_get_documents_settings();
 		$this->assertSame( 'server', $saved['pages_mode'] );
 		$this->assertFalse( $saved['trim_bottom'] );
-		$this->assertTrue( $saved['selectable_text'] );
+		$this->assertTrue( $saved['native_pdf'] );
 	}
 
 	public function test_the_settings_form_still_reads_unticked_boxes_as_off(): void {
-		update_option( 'cptdp_documents', array( 'trim_bottom' => true, 'selectable_text' => true, 'show_book_title' => true ) );
+		update_option( 'cptdp_documents', array( 'trim_bottom' => true, 'native_pdf' => true, 'native_pptx' => true, 'show_book_title' => true ) );
 		$_POST['option_page'] = 'cptdp_documents';
 
 		$clean = cptdp_documents_sanitize( array( 'pages_mode' => 'auto' ) );
 
 		$this->assertFalse( $clean['trim_bottom'] );
-		$this->assertFalse( $clean['selectable_text'] );
+		$this->assertFalse( $clean['native_pdf'] );
+		$this->assertFalse( $clean['native_pptx'] );
 		$this->assertFalse( $clean['show_book_title'] );
 	}
 }

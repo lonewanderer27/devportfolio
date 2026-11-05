@@ -77,9 +77,10 @@ class CPTDP_Test_Page_REST extends CPTDP_Pages_Test_Case {
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages', $routes );
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/start', $routes );
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/finish', $routes );
+		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/retry', $routes );
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/(?P<n>\d+)', $routes );
 		unset( $routes['/cptdp/v1'] );
-		$this->assertCount( 4, $routes );
+		$this->assertCount( 5, $routes );
 
 		foreach ( $routes as $handlers ) {
 			foreach ( $handlers as $handler ) {

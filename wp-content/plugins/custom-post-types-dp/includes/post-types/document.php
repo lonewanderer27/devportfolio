@@ -130,7 +130,7 @@ function cptdp_document_column_content( string $column, int $post_id ): void {
 			}
 
 			$manifest = CPTDP_Page_Store::get_manifest( $post_id );
-			$label    = cptdp_document_pages_status_label( CPTDP_Page_Store::get_status( $post_id ), null !== $manifest ? (int) $manifest['count'] : 0 );
+			$label    = cptdp_document_pages_status_label( CPTDP_Page_Store::get_status( $post_id ), null !== $manifest ? (int) $manifest['count'] : 0, CPTDP_Page_Store::source_kind( $post_id ) );
 			$error    = CPTDP_Page_Store::get_error( $post_id );
 
 			if ( in_array( CPTDP_Page_Store::get_status( $post_id ), array( CPTDP_Page_Store::STATUS_NEEDS_BROWSER, CPTDP_Page_Store::STATUS_FAILED ), true ) ) {
@@ -479,6 +479,7 @@ function cptdp_document_render_details_box( WP_Post $post ): void {
 		<span id="cptdp-document-file-name"><?php echo esc_html( $file_name ); ?></span>
 		<a href="#" id="cptdp-document-file-remove" <?php echo $file_id ? '' : 'style="display:none"'; ?>><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></a>
 	</p>
+	<?php echo cptdp_pptx_warning_container( $post->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts. ?>
 	<p>
 		<label for="cptdp_embed_url"><strong><?php esc_html_e( 'Embed URL', 'custom-post-types-dp' ); ?></strong></label><br>
 		<input type="url" id="cptdp_embed_url" name="cptdp_embed_url" class="widefat" placeholder="https://" value="<?php echo esc_attr( $embed_url ); ?>">
@@ -663,6 +664,7 @@ function cptdp_document_enqueue_admin( string $hook ): void {
 		array(
 			'selectTitle'  => esc_html__( 'Select document', 'custom-post-types-dp' ),
 			'selectButton' => esc_html__( 'Use this document', 'custom-post-types-dp' ),
+			'pptxWarnings' => cptdp_pptx_warnings(),
 		)
 	);
 }

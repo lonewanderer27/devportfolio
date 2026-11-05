@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 class CPTDP_Pages_Command {
 
 	/**
-	 * Generate page images on the server (Imagick or Ghostscript).
+	 * Generate page images on the server (Imagick or Ghostscript; LibreOffice first for PPTX, PPT and ODP).
 	 *
 	 * Backfills documents saved before page images existed, or regenerates them.
 	 * Documents whose images are already valid are skipped unless --force is given.
@@ -43,6 +43,10 @@ class CPTDP_Pages_Command {
 	public function generate( array $args, array $assoc_args ): void {
 		if ( ! CPTDP_Page_Converter::is_available() ) {
 			WP_CLI::error( CPTDP_Page_Converter::unavailable_reason() );
+		}
+
+		if ( ! CPTDP_Pptx_Converter::is_available() ) {
+			WP_CLI::warning( CPTDP_Pptx_Converter::unavailable_reason() . ' PowerPoint and OpenDocument presentations will end as failed.' );
 		}
 
 		$force = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'force', false );
@@ -157,6 +161,7 @@ class CPTDP_Pages_Command {
 			$rows[] = array(
 				'id'       => $id,
 				'title'    => get_the_title( $id ),
+				'kind'     => CPTDP_Page_Store::source_kind( $id ),
 				'status'   => CPTDP_Page_Store::get_status( $id ),
 				'valid'    => CPTDP_Page_Store::is_valid( $id ) ? 'yes' : 'no',
 				'pages'    => null !== $manifest ? (int) $manifest['count'] : 0,
@@ -166,7 +171,7 @@ class CPTDP_Pages_Command {
 			);
 		}
 
-		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'status', 'valid', 'pages', 'producer', 'crop', 'error' ) );
+		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'kind', 'status', 'valid', 'pages', 'producer', 'crop', 'error' ) );
 	}
 
 	/**

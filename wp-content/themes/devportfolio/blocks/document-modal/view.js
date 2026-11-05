@@ -19,6 +19,7 @@ import {
 } from './pager.js';
 import { mergeLimits } from './capability.js';
 import { createViewer } from './viewer.js';
+import { viewerMode, unitOf, wording, positionText } from './mode.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
@@ -52,6 +53,9 @@ if ( dialog && dataEl ) {
 	};
 	const state = { id: 0, page: 1, step: 1, pages: 0 };
 	let opener = null;
+	let units = {};
+	// What the open document's pieces are called: pages, or slides for a presentation (DPD-026).
+	let words = wording( 'page', units );
 
 	const readJson = ( name ) => {
 		try {
@@ -97,11 +101,16 @@ if ( dialog && dataEl ) {
 		const { first, last, both, percent } = indicatorParts( state.page, pages, step );
 
 		// The progress line has no visible text: the position is its accessible value.
-		els.bar.setAttribute( 'aria-valuetext', both ? `Pages ${ first }–${ last } of ${ pages }` : `Page ${ first } of ${ pages }` );
+		els.bar.setAttribute( 'aria-valuetext', positionText( words, first, both ? last : first, pages ) );
 		els.bar.firstElementChild.style.width = `${ percent }%`;
 		els.bar.setAttribute( 'aria-valuenow', String( Math.round( percent ) ) );
 		els.indicator.hidden = false;
 		els.footer.hidden = false;
+
+		// Rebuilding the pager removes the button that was just clicked; without this the focus falls to
+		// the page and the arrow keys stop reaching the dialog. Put it back on the same control.
+		const focused = els.pager.contains( document.activeElement ) ? document.activeElement : null;
+		const focusKey = focused ? [ 'data-turn', 'data-page' ].map( ( name ) => [ name, focused.getAttribute( name ) ] ).find( ( pair ) => pair[ 1 ] !== null ) : null;
 
 		els.pager.replaceChildren();
 
@@ -121,7 +130,7 @@ if ( dialog && dataEl ) {
 					return gap;
 				}
 				const on = visible.includes( item );
-				const attrs = { 'data-page': String( item ), 'aria-label': `Page ${ item }` };
+				const attrs = { 'data-page': String( item ), 'aria-label': `${ words.one } ${ item }` };
 				if ( on ) {
 					attrs[ 'aria-current' ] = 'page';
 				}
@@ -137,6 +146,13 @@ if ( dialog && dataEl ) {
 			} )
 		);
 		els.pager.hidden = false;
+
+		if ( focusKey ) {
+			const again = els.pager.querySelector( `[${ focusKey[ 0 ] }="${ focusKey[ 1 ] }"]` );
+			if ( again ) {
+				again.focus();
+			}
+		}
 	};
 
 	const drawHeader = ( doc ) => {
@@ -195,9 +211,13 @@ if ( dialog && dataEl ) {
 		return state.page;
 	};
 
+	units = readJson( 'data-units' );
+	words = wording( 'page', units );
+
 	const viewer = createViewer( {
 		stage: els.stage,
 		status: els.status,
+		units,
 		pdfjs: readJson( 'data-pdfjs' ),
 		limits: mergeLimits( readJson( 'data-limits' ) ),
 		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
@@ -231,11 +251,16 @@ if ( dialog && dataEl ) {
 		}
 		opener = trigger;
 		state.id = doc.id;
+		words = wording( unitOf( doc ), units );
+		els.prev.setAttribute( 'aria-label', words.prev );
+		els.next.setAttribute( 'aria-label', words.next );
+		els.pager.setAttribute( 'aria-label', words.nav );
 		// The stored images carry the real count and shape; otherwise guess portrait
 		// until the PDF is opened (the viewer reports the truth through setGeometry()).
 		const stored = Array.isArray( doc.images ) ? doc.images.length : 0;
 		state.pages = stored || doc.pages;
-		state.step = stepFor( state.pages, stored && doc.ratio > 1 ? 'landscape' : 'portrait' );
+		// Slides are wide: the stored ratio says so, and so does a deck the browser will draw itself.
+		state.step = stepFor( state.pages, ( stored && doc.ratio > 1 ) || viewerMode( doc ) === 'native' ? 'landscape' : 'portrait' );
 		state.page = 1;
 
 		drawHeader( doc );

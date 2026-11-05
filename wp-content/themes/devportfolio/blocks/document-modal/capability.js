@@ -23,6 +23,7 @@ export const DEFAULT_LIMITS = {
 	failureTtlDays: 7,
 	mobileMaxViewport: 1024,
 	firstPageTimeoutMs: 15000,
+	nativeTimeoutMs: 30000,
 	budgets: {
 		full: { dprCap: 2, ahead: 2, maxCanvases: 12, maxPixels: 0 },
 		light: { dprCap: 1.5, ahead: 1, maxCanvases: 6, maxPixels: 8000000 },

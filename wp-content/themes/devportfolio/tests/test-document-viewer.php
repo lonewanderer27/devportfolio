@@ -314,7 +314,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 		$this->assertFalse( devportfolio_document_selectable_text() );
 		$this->assertStringNotContainsString( 'data-selectable-text', $this->render_modal() );
 
-		update_option( 'cptdp_documents', array( 'selectable_text' => true ) );
+		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
 		$this->assertTrue( devportfolio_document_selectable_text() );
 		$this->assertSame( '1', $this->root_attribute( $this->render_modal(), 'data-selectable-text' ) );
 
