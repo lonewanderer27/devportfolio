@@ -202,6 +202,32 @@ abstract class CPTDP_Pages_Test_Case extends CPTDP_Test_Case {
 	}
 
 	/**
+	 * Write a spreadsheet into uploads and create an attachment for it (DPB-027).
+	 *
+	 * @param string $kind  `xlsx`, `xls` or `ods`.
+	 * @param string $bytes Use these bytes instead of the committed fixture.
+	 * @return int Attachment ID.
+	 */
+	protected function make_spreadsheet_attachment( string $kind = 'xlsx', string $bytes = '' ): int {
+		$mimes  = array_flip( CPTDP_Page_Store::SPREADSHEET_MIMES );
+		$upload = wp_upload_dir();
+		wp_mkdir_p( $upload['path'] );
+		$file = $upload['path'] . '/cptdp-test-' . wp_generate_uuid4() . '.' . $kind;
+
+		file_put_contents( $file, '' !== $bytes ? $bytes : (string) file_get_contents( __DIR__ . '/fixtures/sample.' . $kind ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_put_contents_file_put_contents, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$this->created_files[] = $file;
+
+		return (int) wp_insert_attachment(
+			array(
+				'post_mime_type' => $mimes[ $kind ],
+				'post_title'     => 'fixture ' . $kind,
+				'post_status'    => 'inherit',
+			),
+			$file
+		);
+	}
+
+	/**
 	 * Bytes of a zip with the given entries (name => content), in order, stored uncompressed.
 	 *
 	 * @param array<string,string> $entries Entries.

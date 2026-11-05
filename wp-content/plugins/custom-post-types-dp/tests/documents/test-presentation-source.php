@@ -28,7 +28,7 @@ class CPTDP_Test_Presentation_Source extends CPTDP_Pages_Test_Case {
 			'odp'  => array( 'application/vnd.oasis.opendocument.presentation', 'odp' ),
 			'pdf'  => array( 'application/pdf', 'pdf' ),
 			'docx' => array( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '' ),
-			'xlsx' => array( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '' ),
+			'xlsx' => array( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx' ),
 			'text' => array( 'text/plain', '' ),
 		);
 	}
@@ -79,7 +79,7 @@ class CPTDP_Test_Presentation_Source extends CPTDP_Pages_Test_Case {
 	}
 
 	public function test_other_files_are_not_a_source(): void {
-		$id = $this->make_document( $this->make_attachment( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ) );
+		$id = $this->make_document( $this->make_attachment( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ) );
 
 		$this->assertNull( CPTDP_Page_Store::get_source( $id ) );
 		$this->assertSame( '', CPTDP_Page_Store::source_kind( $id ) );
