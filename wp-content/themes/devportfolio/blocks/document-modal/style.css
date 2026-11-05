@@ -411,6 +411,65 @@
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
 }
 
+/* Shared native-viewer zoom controls: the library's zoom API keeps text, canvases and scrolling in sync. */
+.documents-modal__zoom-fab {
+	position: absolute;
+	z-index: 3;
+	right: calc(12px + env(safe-area-inset-right));
+	bottom: calc(12px + env(safe-area-inset-bottom));
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 4px;
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+	background: var(--dm-surface, #fff);
+	box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+}
+
+.documents-modal__zoom-button {
+	display: grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--dm-ink);
+	cursor: pointer;
+}
+
+.documents-modal__zoom-button:hover {
+	background: var(--dm-surface-alt, #f2f2f7);
+}
+
+.documents-modal__zoom-button:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.documents-modal__zoom-button:disabled {
+	color: var(--dm-subtle);
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+/* A .docx uses the library's continuous, selectable page flow. */
+.documents-modal__native--doc {
+	align-items: stretch;
+	justify-content: flex-start;
+	overflow: auto;
+	padding: 12px;
+	background: var(--dm-stage, #eee);
+	box-shadow: none;
+}
+
+.documents-modal__native--doc > * {
+	margin-inline: auto;
+	max-width: 100%;
+}
+
 /* Loading and "can't be previewed" messages, centred over the stage. */
 .documents-modal__state {
 	position: absolute;
