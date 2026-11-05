@@ -21,6 +21,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		do_action( 'cptdp_register_post_types' );
 
 		require_once $this->theme_dir() . '/functions.php';
+		add_action( 'template_redirect', 'devportfolio_redirect_document_single', 1 );
 		if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-modal' ) ) {
 			devportfolio_register_blocks();
 		}
@@ -113,6 +114,8 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 		$payload = devportfolio_document_modal_payload( $id );
 		$this->assertSame( $id, $payload['id'] );
+		$this->assertSame( get_post_field( 'post_name', $id ), $payload['slug'] );
+		$this->assertNotSame( '', $payload['slug'] );
 		$this->assertSame( 'Quarterly Report', $payload['title'] );
 		$this->assertSame( 'A summary', $payload['description'] );
 		$this->assertSame( array( 'InDesign' ), $payload['tools'] );
@@ -123,6 +126,37 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_payload_is_null_for_other_post_types(): void {
 		$this->assertNull( devportfolio_document_modal_payload( self::factory()->post->create() ) );
+	}
+
+	public function test_published_document_single_redirects_to_modal_deeplink(): void {
+		$id = $this->make_document( array( 'title' => 'A Document' ) );
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame(
+			add_query_arg( 'document_slug', get_post_field( 'post_name', $id ), get_post_type_archive_link( 'document' ) ),
+			devportfolio_document_single_redirect_url()
+		);
+	}
+
+	public function test_document_single_redirect_ignores_unpublished_posts(): void {
+		$id = $this->make_document( array( 'status' => 'draft' ) );
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame( '', devportfolio_document_single_redirect_url() );
+	}
+
+	public function test_document_redirect_ignores_non_document_singles(): void {
+		$id = self::factory()->post->create();
+		$this->go_to( get_permalink( $id ) );
+
+		$this->assertSame( '', devportfolio_document_single_redirect_url() );
+	}
+
+	public function test_document_redirect_hook_is_registered(): void {
+		$this->assertSame(
+			1,
+			has_action( 'template_redirect', 'devportfolio_redirect_document_single' )
+		);
 	}
 
 	// --- Block markup (DPD-009 shell, DPD-010 header, DPD-011 footer, DPD-012 download) ---
@@ -317,5 +351,15 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'showModal()', $js );
 		$this->assertStringContainsString( 'documents:modal-change', $js );
 		$this->assertStringContainsString( "import {", $js );
+	}
+
+	public function test_view_script_deeplink_wiring(): void {
+		$js = $this->read( 'blocks/document-modal/view.js' );
+		$this->assertStringContainsString( "from './deeplink.js'", $js );
+		$this->assertStringContainsString( 'history.pushState', $js );
+		$this->assertStringContainsString( 'history.back()', $js );
+		$this->assertStringContainsString( 'history.replaceState', $js );
+		$this->assertStringContainsString( "addEventListener( 'popstate'", $js );
+		$this->assertStringContainsString( 'idBySlug', $js );
 	}
 }
