@@ -16,6 +16,9 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 		'ppt'  => 'application/vnd.ms-powerpoint',
 		'odp'  => 'application/vnd.oasis.opendocument.presentation',
+		'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'doc'  => 'application/msword',
+		'odt'  => 'application/vnd.oasis.opendocument.text',
 	);
 
 	/**
@@ -132,6 +135,10 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		update_option( 'cptdp_documents', array( 'native_pptx' => true ) );
 	}
 
+	private function native_docx_on(): void {
+		update_option( 'cptdp_documents', array( 'native_docx' => true ) );
+	}
+
 	// --- File kind and wording ----------------------------------------------------------------
 
 	public function test_the_file_kind_follows_the_mime_type(): void {
@@ -141,7 +148,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 
 		$this->assertSame( 'pdf', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/pdf', 'f.pdf' ) ) ) );
 		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document( $this->attachment( 'image/png', 'f.png' ) ) ) );
-		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'f.docx' ) ) ), 'DOCX is a later ticket.' );
+		$this->assertSame( 'docx', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'f.docx' ) ) ) );
 		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document() ), 'No file.' );
 		$this->assertSame( 'other', devportfolio_document_file_kind( 0 ) );
 	}
@@ -159,7 +166,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		foreach ( array( 'pptx', 'ppt', 'odp' ) as $kind ) {
 			$this->assertSame( 'slide', devportfolio_document_unit( $kind ), $kind );
 		}
-		foreach ( array( 'pdf', 'other', '', 'xlsx' ) as $kind ) {
+		foreach ( array( 'pdf', 'other', '', 'xlsx', 'docx' ) as $kind ) {
 			$this->assertSame( 'page', devportfolio_document_unit( $kind ), $kind );
 		}
 	}
@@ -175,6 +182,8 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertSame( 'PDF · 24 pp', devportfolio_document_format_label( 'PDF', 24 ) );
 		$this->assertSame( 'PDF · 24 pp', devportfolio_document_format_label( 'PDF', 24, 'pdf' ) );
 		$this->assertSame( 'PDF · 1 p', devportfolio_document_format_label( 'PDF', 1, 'other' ) );
+		$this->assertSame( 'DOCX · 12 pp', devportfolio_document_format_label( 'DOCX', 12, 'docx' ) );
+		$this->assertSame( 'ODT · 1 p', devportfolio_document_format_label( 'ODT', 1, 'odt' ) );
 	}
 
 	public function test_the_modal_and_the_shelf_use_the_slide_wording(): void {
@@ -276,6 +285,19 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertNotSame( '', devportfolio_document_modal_payload( $id )['nativeUrl'] );
 	}
 
+	public function test_the_native_url_is_only_available_for_docx(): void {
+		$this->native_docx_on();
+		$docx = $this->real_attachment( 'docx' );
+		$id   = $this->document( $docx, array( 'cptdp_filetype' => 'DOCX', 'cptdp_total_pages' => 1 ) );
+
+		$this->assertSame( wp_get_attachment_url( $docx ), devportfolio_document_modal_payload( $id )['nativeUrl'] );
+		$this->assertSame( 'DOCX · 1 p', devportfolio_document_modal_payload( $id )['format'] );
+
+		foreach ( array( 'doc', 'odt' ) as $kind ) {
+			$this->assertSame( '', devportfolio_document_modal_payload( $this->document( $this->real_attachment( $kind ) ) )['nativeUrl'], $kind . ': the native viewer cannot read it.' );
+		}
+	}
+
 	public function test_the_payload_json_stays_safe_with_the_new_keys(): void {
 		$this->native_on();
 		$id = $this->document( $this->real_attachment( 'pptx' ), array( 'cptdp_filetype' => '</script><b>' ) );
@@ -323,7 +345,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 			$this->assertStringContainsString( $option, $js, $option );
 		}
 		$this->assertStringContainsString( 'instance.load( doc.nativeUrl )', $js );
-		$this->assertStringContainsString( "const drawn = await ( doc.kind === 'xlsx' ? showXlsx : showPptx )( doc, alive );", $js );
+		$this->assertStringContainsString( "const nativeShow = doc.kind === 'xlsx' ? showXlsx : ( doc.kind === 'docx' ? showDocx : showPptx );", $js );
 		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides or pages when there are some.', $js, 'The converted slides are the fallback.' );
 		$this->assertStringContainsString( 'limits.nativeTimeoutMs', $js );
 		$this->assertStringNotContainsString( '<iframe', $js );
@@ -370,7 +392,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		);
 		$unhashed = array_values( $unhashed );
 		sort( $unhashed );
-		$this->assertSame( array( 'pptx-source-worker.mjs', 'pptx.mjs', 'pptx_parser_bg.wasm', 'xlsx-source-worker.mjs', 'xlsx.mjs', 'xlsx_parser_bg.wasm' ), $unhashed );
+		$this->assertSame( array( 'docx-source-worker.mjs', 'docx.mjs', 'docx_parser_bg.wasm', 'pptx-source-worker.mjs', 'pptx.mjs', 'pptx_parser_bg.wasm', 'xlsx-source-worker.mjs', 'xlsx.mjs', 'xlsx_parser_bg.wasm' ), $unhashed );
 	}
 
 	public function test_the_canvas_is_drawn_at_the_size_it_is_shown(): void {
