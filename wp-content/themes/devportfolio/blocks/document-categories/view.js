@@ -43,11 +43,16 @@
 		var columns = window.getComputedStyle( shelf ).gridTemplateColumns;
 		var perRow = columns && 'none' !== columns ? columns.split( ' ' ).length : visible.length;
 
+		var row = 0;
 		visible.forEach( function ( item, index ) {
 			if ( ( index + 1 ) % perRow === 0 || index === visible.length - 1 ) {
 				var plank = document.createElement( 'div' );
+				// One transition name per row so planks animate with the books (see document-shelf/style.css).
+				plank.style.viewTransitionName = 'documents-plank-' + row;
+				row++;
 				plank.className = 'documents-shelf__plank';
 				plank.setAttribute( 'data-shelf-plank', '' );
+				plank.setAttribute( 'aria-hidden', 'true' );
 				item.after( plank );
 			}
 		} );
@@ -91,6 +96,11 @@
 	function init( group ) {
 		var shelf = document.querySelector( '[data-documents-shelf]' );
 		var resizeTimer;
+
+		// Tells the shelf CSS that the browser animates the books (it then skips the entrance animation).
+		if ( shelf && document.startViewTransition ) {
+			shelf.setAttribute( 'data-view-transitions', '' );
+		}
 
 		// Make `slug` the single active pill and filter the shelf.
 		function apply( slug ) {
