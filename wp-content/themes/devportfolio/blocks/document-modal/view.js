@@ -54,7 +54,7 @@ if ( dialog && dataEl ) {
 	};
 	const state = { id: 0, page: 1, step: 1, pages: 0 };
 	let opener = null;
-	// Deeplink (DPD-032): the open document is `?document=<slug>`. `pushed` is true when the current
+	// Deeplink (DPD-032): the open document is `?document_slug=<slug>`. `pushed` is true when the current
 	// history entry was added by this modal, so closing can step back instead of leaving a dead entry;
 	// `closingFromHistory` is true while Back/Forward is the reason the dialog closes.
 	let pushed = false;
@@ -262,7 +262,7 @@ if ( dialog && dataEl ) {
 			return;
 		}
 		if ( push && doc.slug ) {
-			window.history.pushState( { document: doc.slug }, '', urlWithSlug( window.location.href, doc.slug ) );
+			window.history.pushState( { documentSlug: doc.slug }, '', urlWithSlug( window.location.href, doc.slug ) );
 			pushed = true;
 		}
 		opener = trigger;
@@ -313,7 +313,7 @@ if ( dialog && dataEl ) {
 		}
 		opener = null;
 
-		// Take `?document` out of the URL: step back over the entry we added, else rewrite the current one.
+		// Take `?document_slug` out of the URL: step back over the entry we added, else rewrite the current one.
 		if ( closingFromHistory ) {
 			closingFromHistory = false;
 			pushed = false;

@@ -12,17 +12,17 @@ Branch suggestion `feat/DPD-032-Document-Modal-Deeplink`. Theme only; no plugin 
 - `document` is a public CPT, so `/documents/<slug>/` already renders through `templates/single.html` (a plain post page, no shelf or modal).
 
 ## Key decisions
-1. **Link format: `/documents/?document=<slug>`.** The slug is stable and readable, and an ID would leak ordering and break if content is re-seeded. A query arg on the archive needs no rewrite rule, no flush and no template: the page already contains the modal and the full payload. It sits next to `?category=` and the two are independent (a deeplinked document opens whatever category pill is active).
+1. **Link format: `/documents/?document_slug=<slug>`.** The slug is stable and readable, and an ID would leak ordering and break if content is re-seeded. `document_slug` is deliberately not `document`: WordPress reserves `document` as the CPT query var, and using it makes the archive URL resolve back to the singular request. A query arg on the archive needs no rewrite rule, no flush and no template: the page already contains the modal and the full payload. It sits next to `?category=` and the two are independent (a deeplinked document opens whatever category pill is active).
 2. **Payload gains `slug`** (`$post->post_name`), and `view.js` builds a `slug -> id` map from the payload once. No new query, no server-side change to the page.
 3. **URL is the source of truth for "which document is open".**
    - Opening (click) does `history.pushState( { document: slug }, '', urlWith( slug ) )`.
    - Closing by any route removes `document`. If the current history entry was pushed by this modal, call `history.back()`; otherwise (page loaded with the param, or entry not ours) `history.replaceState` with the param removed. This keeps Back = close and avoids a stack of dead entries.
    - `popstate` opens or closes the dialog to match the URL (Back closes, Forward reopens), without pushing again. Same shape as the category pills.
-4. **First load:** after the payload is parsed and `desktop.matches`, read `?document`. A known slug calls `open( id, null )` (no opener, so focus returns to the page on close; `els.close.focus()` already runs). An unknown, unpublished or trashed slug is dropped with `replaceState`, like a bad `?category`, and the shelf shows normally.
-5. **`/documents/<slug>/` single URL (decision for the owner, recommended: redirect).** Someone who has the pretty permalink should also land on the modal. Recommend `template_redirect` in `functions.php` (`is_singular( 'document' )` -> `301`/`302` to `archive_link?document=<slug>`, via `get_post_type_archive_link()`). Cost: the single template is no longer reachable for documents; today it is an unstyled generic page, so little is lost. Alternative: leave single URLs alone and ship only the query link. Ask before building step 4.
-6. **Small screens (700px or less):** the modal does not exist there (DPD-017 will own it). The param is left in the URL and nothing opens; no error. If the window is widened later, do **not** auto-open (only the first-load and popstate paths open). When DPD-017 lands it should reuse the same `?document` read.
+4. **First load:** after the payload is parsed and `desktop.matches`, read `?document_slug`. A known slug calls `open( id, null )` (no opener, so focus returns to the page on close; `els.close.focus()` already runs). An unknown, unpublished or trashed slug is dropped with `replaceState`, like a bad `?category`, and the shelf shows normally.
+5. **`/documents/<slug>/` single URL (decision for the owner, recommended: redirect).** Someone who has the pretty permalink should also land on the modal. Recommend `template_redirect` in `functions.php` (`is_singular( 'document' )` -> `301`/`302` to `archive_link?document_slug=<slug>`, via `get_post_type_archive_link()`). Cost: the single template is no longer reachable for documents; today it is an unstyled generic page, so little is lost. Alternative: leave single URLs alone and ship only the query link. Ask before building step 4.
+6. **Small screens (700px or less):** the modal does not exist there (DPD-017 will own it). The param is left in the URL and nothing opens; no error. If the window is widened later, do **not** auto-open (only the first-load and popstate paths open). When DPD-017 lands it should reuse the same `?document_slug` read.
 7. **Shrinking to 700px or less while open** already closes the dialog; that close path removes the param like any other.
-8. **Category interplay:** `urlForSlug()` in `document-categories/view.js` uses the current URL, so changing a pill while the modal is closed keeps nothing stale, and the modal being open blocks pill clicks anyway. No change there. A category pushState must not drop `?document`, which it does not.
+8. **Category interplay:** `urlForSlug()` in `document-categories/view.js` uses the current URL, so changing a pill while the modal is closed keeps nothing stale, and the modal being open blocks pill clicks anyway. No change there. A category pushState must not drop `?document_slug`, which it does not.
 9. **Accessibility and focus:** unchanged. Deeplink open has no trigger, so the `close` handler's `opener` guard (already `if ( opener && document.contains( opener ) )`) simply skips; consider focusing the matching shelf button when it exists, as a nicety.
 10. **Escaping and safety:** the slug is only compared against payload keys, never written into the DOM or HTML; `URL`/`searchParams` handle encoding.
 
@@ -30,7 +30,7 @@ Branch suggestion `feat/DPD-032-Document-Modal-Deeplink`. Theme only; no plugin 
 One conventional commit each, tests separate, both suites green after each.
 
 1. `feat(theme): add the document slug to the modal payload` (`functions.php`), then `test(theme): cover the payload slug` (extend `tests/test-document-modal.php`).
-2. `feat(theme): open the document modal from a ?document link`: `view.js` read of the param on load, slug map, unknown-slug cleanup. Pure URL helpers go in a new `blocks/document-modal/deeplink.js` (`slugFromUrl( href )`, `urlWithSlug( href, slug )`, `urlWithoutSlug( href )`, preserving other args and the hash) so they can be `node --test`ed, matching `pager.js` / `mode.js`. Then `test(theme): cover the deeplink helpers` (`blocks/document-modal/tests/deeplink.test.mjs`).
+2. `feat(theme): open the document modal from a ?document_slug link`: `view.js` read of the param on load, slug map, unknown-slug cleanup. Pure URL helpers go in a new `blocks/document-modal/deeplink.js` (`slugFromUrl( href )`, `urlWithSlug( href, slug )`, `urlWithoutSlug( href )`, preserving other args and the hash) so they can be `node --test`ed, matching `pager.js` / `mode.js`. Then `test(theme): cover the deeplink helpers` (`blocks/document-modal/tests/deeplink.test.mjs`).
 3. `feat(theme): keep the open document in the URL`: pushState on open, back()/replaceState on close, `popstate` handling, a `pushedByModal` flag in `view.js`.
 4. (if approved) `feat(theme): redirect a single document URL to the modal link`, then `test(theme): cover the single document redirect` (`go_to()` the single URL, assert the redirect target; unpublished/draft not redirected).
 5. `docs(agents): document the document deeplink` (theme architecture, `document-modal` paragraph; test counts).
@@ -45,10 +45,10 @@ Commit trailer on each: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.co
 
 | Case | Expect |
 |---|---|
-| Open `/documents/?document=<slug>` fresh tab, desktop | Modal open on that document, shelf behind it |
+| Open `/documents/?document_slug=<slug>` fresh tab, desktop | Modal open on that document, shelf behind it |
 | Same with `&category=<other>` | Modal open, other category pill active |
-| `?document=nope` or a draft's slug | Param removed, no modal, no history entry added |
-| Click a book | URL gains `?document=<slug>`; Back closes; Forward reopens |
+| `?document_slug=nope` or a draft's slug | Param removed, no modal, no history entry added |
+| Click a book | URL gains `?document_slug=<slug>`; Back closes; Forward reopens |
 | Close with X, Esc, backdrop | Param gone; one Back leaves the page, not an extra hop |
 | Open from deeplink, then close | Param gone, no `history.back()` leaving the site |
 | Window 700px or less with the param | No modal, no error; widening does not open it |

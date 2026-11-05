@@ -62,6 +62,51 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
 
+if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
+	/**
+	 * URL for redirecting a published document single to its modal deeplink.
+	 *
+	 * @since 0.6.0
+	 *
+	 * @return string Empty when the current request is not a published document single.
+	 */
+	function devportfolio_document_single_redirect_url() {
+		if ( ! is_singular( 'document' ) ) {
+			return '';
+		}
+
+		$devportfolio_post = get_queried_object();
+		if ( ! $devportfolio_post instanceof WP_Post || 'publish' !== $devportfolio_post->post_status ) {
+			return '';
+		}
+
+		$devportfolio_archive = get_post_type_archive_link( 'document' );
+		if ( ! $devportfolio_archive ) {
+			return '';
+		}
+
+		return add_query_arg( 'document_slug', $devportfolio_post->post_name, $devportfolio_archive );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_redirect_document_single' ) ) :
+	/**
+	 * Redirect published document singles to the document modal deeplink.
+	 *
+	 * @since 0.6.0
+	 */
+	function devportfolio_redirect_document_single() {
+		$devportfolio_url = devportfolio_document_single_redirect_url();
+		if ( '' === $devportfolio_url ) {
+			return;
+		}
+
+		wp_safe_redirect( $devportfolio_url, 302 );
+		exit;
+	}
+endif;
+add_action( 'template_redirect', 'devportfolio_redirect_document_single', 1 );
+
 if ( ! function_exists( 'devportfolio_cover_styles' ) ) :
 	/**
 	 * Cover styles of a document book (DPD-006), slug => label.
@@ -391,7 +436,7 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 
 		return array(
 			'id'           => $post_id,
-			// The slug is the deeplink key: /documents/?document=<slug> opens this document (DPD-032).
+			// The slug is the deeplink key: /documents/?document_slug=<slug> opens this document (DPD-032).
 			'slug'         => (string) get_post_field( 'post_name', $post_id ),
 			// The script writes the title with textContent, so it must be plain text: get_the_title() returns
 			// HTML entities ("&#038;" for "&").
