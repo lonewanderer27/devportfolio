@@ -243,3 +243,24 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 		);
 	}
 endif;
+
+if ( ! function_exists( 'devportfolio_document_title_length' ) ) :
+	/**
+	 * Size bucket of a document title for the book cover: "short", "long" or "xlong".
+	 *
+	 * The cover shrinks the title type for longer titles so they show in full
+	 * instead of being clipped (the modal always shows the whole title).
+	 *
+	 * @since 0.4.0
+	 *
+	 * @param string $title Plain-text title.
+	 * @return string
+	 */
+	function devportfolio_document_title_length( $title ) {
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( trim( (string) $title ) ) : strlen( trim( (string) $title ) );
+		if ( $length > 70 ) {
+			return 'xlong';
+		}
+		return $length > 40 ? 'long' : 'short';
+	}
+endif;
