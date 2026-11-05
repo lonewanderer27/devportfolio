@@ -1,9 +1,12 @@
 /**
- * Document modal (DPD-009 to DPD-012).
+ * Document modal (DPD-009 to DPD-015).
  *
  * Any element with data-document-id opens the shared <dialog> on screens wider
- * than 700px. Fills header and footer from the JSON payload; the body is left
- * to DPD-013 (listen for `documents:modal-change` on the dialog).
+ * than 700px. Fills header and footer from the JSON payload; the body shows the
+ * pages as an open book (DPD-013, viewer.js). This file owns the current page
+ * (`state`): the pager, the arrows, the keyboard and the book itself all end in
+ * setPage(), and `documents:modal-change` is dispatched on the dialog after
+ * every open and page change.
  */
 import {
 	stepFor,
@@ -14,6 +17,8 @@ import {
 	turnPage,
 	indicatorParts,
 } from './pager.js';
+import { mergeLimits } from './capability.js';
+import { createViewer } from './viewer.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
@@ -37,15 +42,25 @@ if ( dialog && dataEl ) {
 		download: $( '.documents-modal__download' ),
 		close: $( '.documents-modal__close' ),
 		pager: $( '.documents-modal__pager' ),
+		footer: $( '.documents-modal__footer' ),
 		indicator: $( '.documents-modal__indicator' ),
-		count: $( '.documents-modal__count' ),
 		bar: $( '.documents-modal__bar' ),
-		legend: $( '.documents-modal__legend' ),
 		prev: $( '.documents-modal__arrow--prev' ),
 		next: $( '.documents-modal__arrow--next' ),
+		stage: $( '.documents-modal__stage' ),
+		status: $( '.documents-modal__state' ),
 	};
 	const state = { id: 0, page: 1, step: 1, pages: 0 };
 	let opener = null;
+
+	const readJson = ( name ) => {
+		try {
+			const value = JSON.parse( root.getAttribute( name ) );
+			return value && typeof value === 'object' && ! Array.isArray( value ) ? value : {};
+		} catch ( e ) {
+			return {};
+		}
+	};
 
 	const emit = () =>
 		dialog.dispatchEvent( new CustomEvent( 'documents:modal-change', { detail: { ...state } } ) );
@@ -62,12 +77,17 @@ if ( dialog && dataEl ) {
 	const drawFooter = () => {
 		const { pages, step } = state;
 
-		// Page arrows (DPD-014): dimmed on the first and last view; both dimmed with one page.
-		const arrows = pages < 1 ? { backOff: true, nextOff: true } : pagerState( normalisePage( state.page, pages, step ), pages, step );
+		// Page arrows (DPD-014): dimmed on the first and last view; hidden with one page.
+		const arrows = pagerState( normalisePage( state.page, pages, step ), pages, step );
 		els.prev.setAttribute( 'aria-disabled', String( arrows.backOff ) );
 		els.next.setAttribute( 'aria-disabled', String( arrows.nextOff ) );
+		// One page (or none): nothing to turn, so the arrows are not shown at all.
+		els.prev.hidden = pages < 2;
+		els.next.hidden = pages < 2;
 
-		if ( pages < 1 ) {
+		// One page (or none): there is nothing to page through, so the footer is not shown at all.
+		if ( pages < 2 ) {
+			els.footer.hidden = true;
 			els.pager.hidden = true;
 			els.indicator.hidden = true;
 			return;
@@ -76,19 +96,14 @@ if ( dialog && dataEl ) {
 		state.page = normalisePage( state.page, pages, step );
 		const { first, last, both, percent } = indicatorParts( state.page, pages, step );
 
-		els.count.textContent = both
-			? `Pages ${ first }–${ last } of ${ pages }`
-			: `Page ${ first } of ${ pages }`;
-		els.legend.textContent = pages > 1 ? 'Two-page spread' : 'Single page';
+		// The progress line has no visible text: the position is its accessible value.
+		els.bar.setAttribute( 'aria-valuetext', both ? `Pages ${ first }–${ last } of ${ pages }` : `Page ${ first } of ${ pages }` );
 		els.bar.firstElementChild.style.width = `${ percent }%`;
 		els.bar.setAttribute( 'aria-valuenow', String( Math.round( percent ) ) );
 		els.indicator.hidden = false;
+		els.footer.hidden = false;
 
 		els.pager.replaceChildren();
-		if ( pages === 1 ) {
-			els.pager.hidden = true;
-			return;
-		}
 
 		const { backOff, nextOff } = pagerState( state.page, pages, step );
 		const visible = visiblePages( state.page, pages, step );
@@ -160,10 +175,53 @@ if ( dialog && dataEl ) {
 		}
 	};
 
-	const setPage = ( page ) => {
+	/** Page changes made inside the book (drag, corner click) come back here. */
+	const syncFromViewer = ( page ) => {
+		const next = normalisePage( page, state.pages, state.step );
+		if ( next !== state.page ) {
+			state.page = next;
+			drawFooter();
+			emit();
+		}
+	};
+
+	/** The viewer knows the real page count and orientation once it has the pages. */
+	const setGeometry = ( { pages, step } ) => {
+		state.pages = pages;
+		state.step = step;
+		state.page = pages > 0 ? normalisePage( state.page, pages, step ) : 1;
+		drawFooter();
+		emit();
+		return state.page;
+	};
+
+	const viewer = createViewer( {
+		stage: els.stage,
+		status: els.status,
+		pdfjs: readJson( 'data-pdfjs' ),
+		limits: mergeLimits( readJson( 'data-limits' ) ),
+		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
+		onGeometry: setGeometry,
+		onFlip: syncFromViewer,
+	} );
+
+	/** Goes to a page; `animate` flips the book one view, otherwise it jumps. */
+	const setPage = ( page, animate = false ) => {
 		state.page = normalisePage( page, state.pages, state.step );
 		drawFooter();
 		emit();
+		viewer.goTo( state.page, { animate } );
+	};
+
+	/** Back (-1) or Next (1), ignored while a page is still turning or at the ends. */
+	const turn = ( direction ) => {
+		if ( viewer.isTurning() ) {
+			return;
+		}
+		const target = turnPage( state.page, state.pages, state.step, direction );
+		if ( target !== state.page ) {
+			setPage( target, true );
+		}
 	};
 
 	const open = ( id, trigger ) => {
@@ -173,8 +231,11 @@ if ( dialog && dataEl ) {
 		}
 		opener = trigger;
 		state.id = doc.id;
-		state.pages = doc.pages;
-		state.step = stepFor( doc.pages );
+		// The stored images carry the real count and shape; otherwise guess portrait
+		// until the PDF is opened (the viewer reports the truth through setGeometry()).
+		const stored = Array.isArray( doc.images ) ? doc.images.length : 0;
+		state.pages = stored || doc.pages;
+		state.step = stepFor( state.pages, stored && doc.ratio > 1 ? 'landscape' : 'portrait' );
 		state.page = 1;
 
 		drawHeader( doc );
@@ -183,6 +244,7 @@ if ( dialog && dataEl ) {
 		dialog.showModal();
 		els.close.focus();
 		emit();
+		viewer.show( doc, state.page );
 	};
 
 	document.addEventListener( 'click', ( event ) => {
@@ -203,6 +265,7 @@ if ( dialog && dataEl ) {
 	els.close.addEventListener( 'click', () => dialog.close() );
 
 	dialog.addEventListener( 'close', () => {
+		viewer.destroy();
 		document.documentElement.style.overflow = '';
 		if ( opener && document.contains( opener ) ) {
 			opener.focus();
@@ -219,19 +282,35 @@ if ( dialog && dataEl ) {
 	[ els.prev, els.next ].forEach( ( arrow ) =>
 		arrow.addEventListener( 'click', () => {
 			if ( arrow.getAttribute( 'aria-disabled' ) !== 'true' ) {
-				setPage( turnPage( state.page, state.pages, state.step, arrow === els.next ? 1 : -1 ) );
+				turn( arrow === els.next ? 1 : -1 );
 			}
 		} )
 	);
 
+	// Left and Right turn the page, unless the key belongs to a form control.
+	dialog.addEventListener( 'keydown', ( event ) => {
+		if ( event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ) {
+			return;
+		}
+		if ( event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' ) {
+			return;
+		}
+		const target = event.target;
+		if ( target && target.closest && target.closest( 'input, textarea, select, [contenteditable]' ) ) {
+			return;
+		}
+		event.preventDefault();
+		turn( event.key === 'ArrowRight' ? 1 : -1 );
+	} );
+
 	els.pager.addEventListener( 'click', ( event ) => {
-		const turn = event.target.closest( '[data-turn]' );
+		const turnButton = event.target.closest( '[data-turn]' );
 		const num = event.target.closest( '[data-page]' );
-		if ( turn ) {
-			if ( turn.getAttribute( 'aria-disabled' ) !== 'true' ) {
-				setPage( turnPage( state.page, state.pages, state.step, Number( turn.dataset.turn ) ) );
+		if ( turnButton ) {
+			if ( turnButton.getAttribute( 'aria-disabled' ) !== 'true' ) {
+				turn( Number( turnButton.dataset.turn ) );
 			}
-		} else if ( num ) {
+		} else if ( num && ! viewer.isTurning() ) {
 			setPage( Number( num.dataset.page ) );
 		}
 	} );

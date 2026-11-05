@@ -41,10 +41,11 @@
 	animation: documents-modal-fade var(--dm-dur) var(--dm-ease);
 }
 
+/* Fade and rise only: no scale, so the modal never changes size while it opens. */
 @keyframes documents-modal-pop {
 	from {
 		opacity: 0;
-		transform: translateY(10px) scale(0.985);
+		transform: translateY(10px);
 	}
 }
 
@@ -135,6 +136,8 @@
 .documents-modal__format[hidden],
 .documents-modal__desc[hidden],
 .documents-modal__pager[hidden],
+.documents-modal__arrow[hidden],
+.documents-modal__footer[hidden],
 .documents-modal__indicator[hidden] {
 	display: none;
 }
@@ -229,22 +232,196 @@
 	outline-offset: 2px;
 }
 
-/* Body: blank until DPD-013 */
+/* Body: the grey stage the book sits on (DPD-013). */
 .documents-modal__body {
 	flex: 1 1 auto;
 	position: relative;
+	display: flex;
 	min-height: 360px;
+	overflow: hidden;
 	padding: 30px 76px;
 	background-color: var(--dm-surface-alt);
 	background-image: radial-gradient(rgb(0 0 0 / 0.1) 1px, transparent 1px);
 	background-size: 22px 22px;
 }
 
-/* DPD-013 fills the stage with the pages. */
+/* The viewer (viewer.js) puts the book in the stage, centred, and measures the stage to size it. */
 .documents-modal__stage {
-	display: flex;
-	justify-content: center;
-	min-height: 100%;
+	position: relative;
+	display: grid;
+	flex: 1 1 auto;
+	place-items: center;
+	min-width: 0;
+}
+
+/* Book and pages (DPD-013). StPageFlip positions and sizes the pages itself. */
+.documents-modal__book {
+	position: relative;
+}
+
+.documents-modal__page {
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+}
+
+/* Pages with an empty strip at the bottom (stored images only): the image is taller than its page by
+   1 / (1 - crop), pinned to the top, and the page clips what is below. --documents-crop is set by viewer.js. */
+.documents-modal__book--cropped .documents-modal__sheet {
+	display: block;
+	overflow: hidden;
+}
+
+.documents-modal__book--cropped .documents-modal__sheet img {
+	height: calc(100% / (1 - var(--documents-crop, 0)));
+	object-fit: cover;
+	object-position: top;
+}
+
+/* Selectable text (Settings > Documents): pdf.js canvas with a transparent text layer on top.
+   The text layer rules follow pdf.js's own text layer CSS; --scale-factor is set by viewer.js. */
+.documents-modal__pdf-page {
+	position: relative;
+}
+
+.documents-modal__pdf-page canvas {
+	display: block;
+}
+
+.documents-modal__text {
+	position: absolute;
+	inset: 0;
+	overflow: clip;
+	line-height: 1;
+	text-align: initial;
+	text-size-adjust: none;
+	forced-color-adjust: none;
+	transform-origin: 0 0;
+}
+
+.documents-modal__text :is(span, br) {
+	position: absolute;
+	color: transparent;
+	white-space: pre;
+	cursor: text;
+	transform-origin: 0 0;
+}
+
+.documents-modal__text ::selection {
+	background: color-mix(in srgb, AccentColor, transparent 75%);
+}
+
+.documents-modal__text br::selection {
+	background: transparent;
+}
+
+.documents-modal__book--selectable,
+.documents-modal__book--selectable .documents-modal__page {
+	user-select: text;
+}
+
+/* The page content: a stored image or a canvas, centred (a page shaped differently from page 1 is letterboxed). */
+.documents-modal__sheet {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+}
+
+.documents-modal__sheet img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	user-select: none;
+	-webkit-user-drag: none;
+}
+
+/* A stored page image that could not be loaded: a quiet hatch instead of a silent blank sheet. */
+.documents-modal__page--broken .documents-modal__sheet {
+	background-image: repeating-linear-gradient(45deg, transparent 0 9px, rgb(0 0 0 / 0.05) 9px 10px);
+}
+
+/* Page number at the bottom of every page, whatever the file prints itself. */
+.documents-modal__pn {
+	position: absolute;
+	bottom: 2.4%;
+	left: 50%;
+	padding: 0 8px;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.6;
+	color: var(--dm-subtle);
+	pointer-events: none;
+	background: rgb(255 255 255 / 0.82);
+	border-radius: 6px;
+	transform: translateX(-50%);
+}
+
+/* The fold: a soft shade on the spine edge of each page of a spread. */
+.documents-modal__page--left::after,
+.documents-modal__page--right::after {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 8%;
+	pointer-events: none;
+	content: "";
+}
+
+.documents-modal__page--left::after {
+	right: 0;
+	background: linear-gradient(to right, transparent, rgb(0 0 0 / 0.16));
+}
+
+.documents-modal__page--right::after {
+	left: 0;
+	background: linear-gradient(to left, transparent, rgb(0 0 0 / 0.16));
+}
+
+/* Loading and "can't be previewed" messages, centred over the stage. */
+.documents-modal__state {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	align-content: center;
+	justify-items: center;
+	gap: 10px;
+	padding: 24px;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--dm-subtle);
+	text-align: center;
+	pointer-events: none;
+}
+
+.documents-modal__state[hidden] {
+	display: none;
+}
+
+.documents-modal__state[data-kind="unavailable"] .documents-modal__spinner {
+	display: none;
+}
+
+.documents-modal__state[data-kind="unavailable"] .documents-modal__state-text {
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--dm-ink);
+}
+
+.documents-modal__spinner {
+	width: 26px;
+	height: 26px;
+	border: 2px solid var(--dm-line);
+	border-top-color: var(--dm-ink);
+	border-radius: 50%;
+	animation: documents-modal-spin 800ms linear infinite;
+}
+
+@keyframes documents-modal-spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* Page arrows (DPD-014): round, vertically centred on the grey area, shown on hover or focus. */
@@ -309,6 +486,7 @@
 
 /* Footer */
 .documents-modal__footer {
+	position: relative;
 	display: grid;
 	gap: 12px;
 	padding: 14px 26px 20px;
@@ -363,21 +541,20 @@
 }
 
 .documents-modal__indicator {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	font-size: 12.5px;
-	font-weight: 500;
-	font-variant-numeric: tabular-nums;
-	color: var(--dm-subtle);
+	/* A thin progress line along the top edge of the footer, over its border: no text. */
+	position: absolute;
+	top: -1px;
+	right: 0;
+	left: 0;
+	height: 3px;
 }
 
 .documents-modal__bar {
-	flex: 1;
-	height: 3px;
+	display: block;
+	width: 100%;
+	height: 100%;
 	overflow: hidden;
 	background: var(--dm-line);
-	border-radius: 2px;
 }
 
 .documents-modal__bar i {
@@ -385,12 +562,7 @@
 	width: 0;
 	height: 100%;
 	background: var(--dm-grad);
-	border-radius: 2px;
 	transition: width var(--dm-dur) var(--dm-ease);
-}
-
-.documents-modal__legend {
-	white-space: nowrap;
 }
 
 /* Smaller desktop widths (701-1200px): maximise the modal to the full viewport. */
@@ -437,6 +609,10 @@
 	.documents-modal__pg,
 	.documents-modal__bar i {
 		transition: none;
+	}
+
+	.documents-modal__spinner {
+		animation: none;
 	}
 }
 

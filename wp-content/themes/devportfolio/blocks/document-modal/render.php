@@ -4,7 +4,8 @@
  *
  * One shared <dialog> (header, body, footer) plus a JSON payload of every
  * published document. view.js fills the dialog from the payload when an element
- * with data-document-id is clicked. The body is blank until DPD-013.
+ * with data-document-id is clicked. The body holds the page arrows and the
+ * stage where viewer.js builds the open book.
  *
  * @package devportfolio
  *
@@ -32,9 +33,19 @@ foreach ( $devportfolio_ids as $devportfolio_id ) {
 }
 
 $devportfolio_title_id = wp_unique_id( 'documents-modal-title-' );
+$devportfolio_pdfjs    = devportfolio_document_pdfjs_urls();
+$devportfolio_root     = array(
+	'class'       => 'documents-modal-root',
+	'data-pdfjs'  => wp_json_encode( (object) ( '' !== $devportfolio_pdfjs['module'] ? $devportfolio_pdfjs : array() ) ),
+	'data-limits' => wp_json_encode( (object) devportfolio_document_viewer_limits() ),
+);
+if ( devportfolio_document_selectable_text() ) {
+	// Settings > Documents > Selectable text: the viewer draws pages with pdf.js and a real text layer.
+	$devportfolio_root['data-selectable-text'] = '1';
+}
 $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
 ?>
-<div <?php echo get_block_wrapper_attributes( array( 'class' => 'documents-modal-root' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
+<div <?php echo get_block_wrapper_attributes( $devportfolio_root ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
 	<dialog class="documents-modal" aria-labelledby="<?php echo esc_attr( $devportfolio_title_id ); ?>">
 		<div class="documents-modal__panel">
 			<header class="documents-modal__header">
@@ -58,17 +69,27 @@ $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24"
 				<button class="documents-modal__arrow documents-modal__arrow--prev" type="button" aria-label="<?php echo esc_attr_x( 'Previous page', 'document modal', 'devportfolio' ); ?>">
 					<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg>
 				</button>
-				<div class="documents-modal__stage" aria-live="polite"></div>
+				<div class="documents-modal__stage"></div>
 				<button class="documents-modal__arrow documents-modal__arrow--next" type="button" aria-label="<?php echo esc_attr_x( 'Next page', 'document modal', 'devportfolio' ); ?>">
 					<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg>
 				</button>
+				<div
+					class="documents-modal__state"
+					role="status"
+					hidden
+					data-loading="<?php echo esc_attr_x( 'Loading pages…', 'document modal viewer', 'devportfolio' ); ?>"
+					data-unavailable="<?php echo esc_attr_x( 'This document can’t be previewed.', 'document modal viewer', 'devportfolio' ); ?>"
+					data-hint="<?php echo esc_attr_x( 'Use Download to open it.', 'document modal viewer', 'devportfolio' ); ?>"
+				>
+					<span class="documents-modal__spinner" aria-hidden="true"></span>
+					<span class="documents-modal__state-text"></span>
+					<span class="documents-modal__state-hint"></span>
+				</div>
 			</div>
-			<footer class="documents-modal__footer">
+			<footer class="documents-modal__footer" hidden>
 				<nav class="documents-modal__pager" aria-label="<?php echo esc_attr_x( 'Pages', 'document modal pager', 'devportfolio' ); ?>" hidden></nav>
 				<div class="documents-modal__indicator" hidden>
-					<span class="documents-modal__count"></span>
 					<div class="documents-modal__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="<?php echo esc_attr_x( 'Reading progress', 'document modal', 'devportfolio' ); ?>"><i></i></div>
-					<span class="documents-modal__legend"></span>
 				</div>
 			</footer>
 		</div>

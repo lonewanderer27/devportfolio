@@ -1,0 +1,699 @@
+/**
+ * Document viewer (DPD-013): shows a document's pages as an open book with
+ * StPageFlip inside the modal stage.
+ *
+ * Page images come from one of two sources behind the same interface:
+ *  - imageSource: the stored page images the server made when the document was
+ *    saved (DPB-025). The normal case; pdf.js is never downloaded.
+ *  - pdfSource: pdf.js renders the PDF to canvases in the visitor's browser.
+ *    The heavy fallback, allowed only when the client render gate says so.
+ * If neither works the stage says the document can't be previewed.
+ *
+ * The viewer never owns the current page: view.js does. The viewer reports
+ * geometry (page count and step) once it knows them and page turns made on the
+ * book (drag, corner click), and view.js tells it where to go.
+ */
+import { stepFor, normalisePage } from './pager.js';
+import { fitPage, orientationOf, renderWindow, canvasScale } from './layout.js';
+import { clientRenderTier, budgetFor, readEnvironment, markFailure, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
+
+const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).href;
+
+/** pdf.js errors that mean "this file is bad", not "this browser can't render". */
+const DOCUMENT_ERRORS = [ 'PasswordException', 'InvalidPDFException', 'MissingPDFException', 'UnexpectedResponseException', 'FormatError' ];
+
+let flipLibrary = null;
+
+/** Loads StPageFlip once, from the theme, with a plain script tag (it is a UMD file). */
+function loadFlipLibrary() {
+	if ( window.St && window.St.PageFlip ) {
+		return Promise.resolve( window.St.PageFlip );
+	}
+	if ( ! flipLibrary ) {
+		flipLibrary = new Promise( ( resolve, reject ) => {
+			const script = document.createElement( 'script' );
+			script.src = FLIP_SRC;
+			script.async = true;
+			script.onload = () => {
+				if ( window.St && window.St.PageFlip ) {
+					resolve( window.St.PageFlip );
+				} else {
+					flipLibrary = null;
+					reject( new Error( 'StPageFlip did not load' ) );
+				}
+			};
+			script.onerror = () => {
+				flipLibrary = null;
+				reject( new Error( 'StPageFlip failed to load' ) );
+			};
+			document.head.appendChild( script );
+		} );
+	}
+	return flipLibrary;
+}
+
+function withTimeout( promise, ms, onTimeout ) {
+	return new Promise( ( resolve, reject ) => {
+		const timer = setTimeout( () => {
+			if ( onTimeout ) {
+				onTimeout();
+			}
+			reject( new Error( 'timeout' ) );
+		}, ms );
+		promise.then(
+			( value ) => {
+				clearTimeout( timer );
+				resolve( value );
+			},
+			( error ) => {
+				clearTimeout( timer );
+				reject( error );
+			}
+		);
+	} );
+}
+
+/** Loads one image; resolves with it, or rejects if it cannot be loaded. */
+function loadImage( url ) {
+	return new Promise( ( resolve, reject ) => {
+		const img = new Image();
+		img.decoding = 'async';
+		img.onload = () => resolve( img );
+		img.onerror = () => reject( new Error( 'image failed' ) );
+		img.src = url;
+	} );
+}
+
+const sheetOf = ( pageEl ) => pageEl.querySelector( '.documents-modal__sheet' );
+
+/** Stored page images: one <img> per page, drawn when the page enters the window. */
+function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
+	return {
+		kind: 'images',
+		count: urls.length,
+		ratio,
+		// Share of each image's height hidden at the bottom (empty space, see the plugin's page analysis).
+		crop: crop > 0 ? crop : 0,
+		maxPageW: imageWidth > 0 ? imageWidth : Infinity,
+		mount( index, pageEl ) {
+			const sheet = sheetOf( pageEl );
+			if ( sheet.firstChild ) {
+				return Promise.resolve();
+			}
+			const img = preloaded[ index ] || new Image();
+			img.alt = '';
+			img.decoding = 'async';
+			img.draggable = false;
+			// A page whose image cannot be loaded is marked, instead of staying a silent blank sheet.
+			img.onerror = () => pageEl.classList.add( 'documents-modal__page--broken' );
+			if ( ! img.src ) {
+				img.src = urls[ index - 1 ];
+			}
+			sheet.replaceChildren( img );
+			return Promise.resolve();
+		},
+		// Images are never released and need no redraw on resize (the same interface as the pdf source).
+		mounted: () => [],
+		release() {},
+		destroy() {},
+	};
+}
+
+/** pdf.js pages: a canvas per page, drawn at the page's display size and released when far away. */
+function pdfSource( pdf, ratio, TextLayer ) {
+	const drawn = new Map();
+
+	const release = ( index, pageEl ) => {
+		const entry = drawn.get( index );
+		if ( ! entry ) {
+			return;
+		}
+		entry.cancelled = true;
+		try {
+			if ( entry.task ) {
+				entry.task.cancel();
+			}
+			if ( entry.text ) {
+				entry.text.cancel();
+			}
+		} catch ( e ) {
+			// Already finished.
+		}
+		if ( entry.canvas ) {
+			entry.canvas.width = 0;
+			entry.canvas.height = 0;
+		}
+		if ( pageEl ) {
+			sheetOf( pageEl ).replaceChildren();
+		}
+		drawn.delete( index );
+	};
+
+	/** Draws one page into its sheet. Throws on a real failure; mount() classifies teardown errors. */
+	const draw = async ( index, pageEl, ctx, entry ) => {
+		const page = await pdf.getPage( index );
+		if ( entry.cancelled ) {
+			return;
+		}
+		const base = page.getViewport( { scale: 1 } );
+		const fit = Math.min( ctx.pageW / base.width, ctx.pageH / base.height );
+		const viewport = page.getViewport( { scale: fit * ctx.scale } );
+		const canvas = document.createElement( 'canvas' );
+		canvas.width = Math.max( 1, Math.floor( viewport.width ) );
+		canvas.height = Math.max( 1, Math.floor( viewport.height ) );
+		// Beats StPageFlip's own "canvas fills its parent" rule, so a page whose
+		// shape differs from page 1 is letterboxed instead of stretched.
+		canvas.style.cssText = `position:static;width:${ Math.floor( base.width * fit ) }px;height:${ Math.floor( base.height * fit ) }px`;
+		const context = canvas.getContext( '2d' );
+		if ( ! context ) {
+			throw new Error( 'canvas unavailable' );
+		}
+		entry.canvas = canvas;
+		entry.task = page.render( { canvasContext: context, viewport } );
+		await entry.task.promise;
+		if ( entry.cancelled ) {
+			return;
+		}
+		let content = canvas;
+		if ( TextLayer ) {
+			// Real text over the canvas, at the page's display size (pdf.js sizes it from --scale-factor).
+			content = document.createElement( 'div' );
+			content.className = 'documents-modal__pdf-page';
+			content.style.width = canvas.style.width;
+			content.style.height = canvas.style.height;
+			const layer = document.createElement( 'div' );
+			layer.className = 'documents-modal__text';
+			layer.style.setProperty( '--scale-factor', String( fit ) );
+			content.append( canvas, layer );
+			entry.text = new TextLayer( {
+				textContentSource: page.streamTextContent(),
+				container: layer,
+				viewport: page.getViewport( { scale: fit } ),
+			} );
+			await entry.text.render();
+			if ( entry.cancelled ) {
+				return;
+			}
+		}
+		sheetOf( pageEl ).replaceChildren( content );
+		page.cleanup();
+	};
+
+	return {
+		kind: 'pdf',
+		// True when pages carry a real text layer: the book then leaves the mouse to the text.
+		textLayer: Boolean( TextLayer ),
+		count: pdf.numPages,
+		ratio,
+		maxPageW: Infinity,
+		mount( index, pageEl, ctx ) {
+			if ( drawn.has( index ) ) {
+				return drawn.get( index ).done;
+			}
+			const entry = { cancelled: false, task: null, text: null, canvas: null, done: null };
+			drawn.set( index, entry );
+			entry.done = draw( index, pageEl, ctx, entry ).catch( ( error ) => {
+				// Torn down by us (page released, document closed, pdf.js destroyed mid-render): not a failure.
+				if ( entry.cancelled || isBenignRenderError( error ) ) {
+					return;
+				}
+				throw error;
+			} );
+			return entry.done;
+		},
+		release,
+		has: ( index ) => drawn.has( index ),
+		mounted: () => [ ...drawn.keys() ],
+		destroy() {
+			[ ...drawn.keys() ].forEach( ( index ) => release( index, null ) );
+			pdf.destroy();
+		},
+	};
+}
+
+/**
+ * @param {object}   options
+ * @param {Element}  options.stage       .documents-modal__stage (empty; the book is added inside it).
+ * @param {Element}  options.status      .documents-modal__state (loading / can't preview message).
+ * @param {object}   options.pdfjs       { module, worker } URLs of the plugin's pdf.js, or {}.
+ * @param {object}   options.limits      Merged gate limits.
+ * @param {boolean}  options.selectableText  Draw pages with pdf.js plus a real text layer (selectable, slower) instead of the stored images.
+ * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
+ * @param {Function} options.onFlip      ( page ) A page turn made on the book itself.
+ */
+export function createViewer( { stage, status, pdfjs, limits, selectableText = false, onGeometry, onFlip } ) {
+	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
+	// The book is not a live region: dozens of page labels would be announced at once.
+	// Loading and "can't be previewed" are announced by the status element (role="status").
+	stage.removeAttribute( 'aria-live' );
+	const textEl = status.querySelector( '.documents-modal__state-text' );
+	const hintEl = status.querySelector( '.documents-modal__state-hint' );
+
+	let session = 0;
+	let source = null;
+	let budget = null;
+	let usedPdf = false;
+	let pageEls = [];
+	let container = null;
+	let flip = null;
+	let observer = null;
+	let resizeTimer = 0;
+	let layout = null;
+	let step = 1;
+	let current = 1;
+	let builtFor = { w: 0, h: 0 };
+
+	const setStatus = ( kind ) => {
+		if ( ! kind ) {
+			// Hide first, then clear, so nothing is announced as it goes away.
+			status.hidden = true;
+		}
+		status.dataset.kind = kind || '';
+		textEl.textContent = kind === 'loading' ? status.dataset.loading : kind === 'unavailable' ? status.dataset.unavailable : '';
+		hintEl.textContent = kind === 'unavailable' ? status.dataset.hint : '';
+		stage.setAttribute( 'aria-busy', kind === 'loading' ? 'true' : 'false' );
+		if ( kind ) {
+			// The text is in place before the region appears, so a screen reader announces it.
+			status.hidden = false;
+		}
+	};
+
+	const destroyBook = () => {
+		window.clearTimeout( resizeTimer );
+		if ( flip ) {
+			try {
+				flip.destroy();
+			} catch ( e ) {
+				// Already gone.
+			}
+			flip = null;
+		}
+		if ( container && container.parentNode ) {
+			container.remove();
+		}
+		container = null;
+	};
+
+	const reset = () => {
+		destroyBook();
+		if ( observer ) {
+			observer.disconnect();
+			observer = null;
+		}
+		if ( source ) {
+			source.destroy();
+			source = null;
+		}
+		pageEls = [];
+		layout = null;
+		stage.replaceChildren();
+	};
+
+	const unavailable = () => {
+		reset();
+		setStatus( 'unavailable' );
+		onGeometry( { pages: 0, step: 1 } );
+	};
+
+	/** One white page per document page, kept across rebuilds so drawn pages are not lost. */
+	const buildPages = ( count ) => {
+		pageEls = Array.from( { length: count }, ( _, i ) => {
+			const el = document.createElement( 'div' );
+			el.className = 'documents-modal__page';
+			el.setAttribute( 'role', 'img' );
+			el.setAttribute( 'aria-label', `Page ${ i + 1 } of ${ count }` );
+			el.dataset.density = 'soft';
+			const sheet = document.createElement( 'div' );
+			sheet.className = 'documents-modal__sheet';
+			const number = document.createElement( 'span' );
+			number.className = 'documents-modal__pn';
+			number.setAttribute( 'aria-hidden', 'true' );
+			number.textContent = String( i + 1 );
+			el.append( sheet, number );
+			return el;
+		} );
+	};
+
+	const ensureWindow = ( page ) => {
+		if ( ! source || ! layout ) {
+			return Promise.resolve();
+		}
+		const { from, to } = renderWindow( page, source.count, step, budget.ahead );
+		const jobs = [];
+		for ( let index = from; index <= to; index++ ) {
+			jobs.push( source.mount( index, pageEls[ index - 1 ], layout ) );
+		}
+		source.mounted().forEach( ( index ) => {
+			if ( index < from || index > to ) {
+				source.release( index, pageEls[ index - 1 ] );
+			}
+		} );
+		return Promise.all( jobs );
+	};
+
+	/** Failure while drawing pages after the book is up. */
+	const rememberFailure = ( error ) => {
+		if ( ! DOCUMENT_ERRORS.includes( error && error.name ) && ! isBenignRenderError( error ) ) {
+			markFailure( safeStorage(), Date.now() );
+		}
+	};
+
+	/**
+	 * A failure of the book that was open when `mine` was taken. Ignored when another document was
+	 * opened or the viewer was closed since (a late rejection must never wipe the current stage or
+	 * set the failure flag), and when the error only means we tore the work down ourselves.
+	 */
+	const fail = ( error, mine = session ) => {
+		if ( mine !== session || isBenignRenderError( error ) ) {
+			return;
+		}
+		if ( usedPdf || ( error && error.fromPdf ) ) {
+			rememberFailure( error );
+		}
+		unavailable();
+	};
+
+	/** Draws the pages around `page`; a failure is reported against the session that asked. */
+	const draw = ( page ) => {
+		const mine = session;
+		return ensureWindow( page ).catch( ( error ) => fail( error, mine ) );
+	};
+
+	// Layout size, not the bounding rect: the rect follows transforms, so while the modal's
+	// opening animation was running the book was measured a few pixels too small.
+	const measure = () => ( { w: stage.clientWidth, h: stage.clientHeight } );
+
+	/** (Re)creates the StPageFlip book at the size that fits the stage, on the current page. */
+	const buildBook = ( PageFlip, hidden ) => {
+		const size = measure();
+		if ( size.w < 40 || size.h < 40 ) {
+			return false;
+		}
+		destroyBook();
+
+		const { pageW, pageH } = fitPage( { stageW: size.w, stageH: size.h, ratio: source.ratio, step, maxPageW: source.maxPageW } );
+		const dprCap = budget.dprCap;
+		layout = {
+			pageW,
+			pageH,
+			scale: canvasScale( { pageW, pageH, dpr: window.devicePixelRatio, dprCap, maxPixels: budget.maxPixels } ),
+		};
+
+		container = document.createElement( 'div' );
+		container.className = 'documents-modal__book';
+		container.classList.toggle( 'documents-modal__book--selectable', Boolean( source.textLayer ) );
+		if ( source.crop > 0 ) {
+			// Stored images only: hide the empty strip at the bottom of every page (the pdf.js path is not cropped).
+			container.classList.add( 'documents-modal__book--cropped' );
+			container.style.setProperty( '--documents-crop', String( source.crop ) );
+		}
+		container.style.width = `${ step === 2 ? pageW * 2 : pageW }px`;
+		container.style.height = `${ pageH }px`;
+		if ( hidden ) {
+			container.style.visibility = 'hidden';
+		}
+		stage.appendChild( container );
+
+		pageEls.forEach( ( el, i ) => {
+			el.classList.toggle( 'documents-modal__page--left', step === 2 && i % 2 === 0 );
+			el.classList.toggle( 'documents-modal__page--right', step === 2 && i % 2 === 1 );
+		} );
+
+		flip = new PageFlip( container, {
+			width: pageW,
+			height: pageH,
+			size: 'fixed',
+			autoSize: false,
+			// A single page uses the library's portrait mode; a spread needs the landscape mode.
+			usePortrait: step === 1,
+			showCover: false,
+			drawShadow: true,
+			maxShadowOpacity: 0.45,
+			flippingTime: reducedMotion.matches ? 1 : 600,
+			mobileScrollSupport: false,
+			// With selectable text the mouse belongs to the text: no dragging or corner hints to turn pages.
+			showPageCorners: ! reducedMotion.matches && ! source.textLayer,
+			useMouseEvents: ! source.textLayer,
+			startPage: normalisePage( current, source.count, step ) - 1,
+		} );
+		flip.loadFromHTML( pageEls );
+		flip.on( 'flip', ( event ) => {
+			if ( ! source ) {
+				return;
+			}
+			// The library reports the left page of the new view (0-based); snap it to
+			// an odd page in a spread. turnToPage() reports here too, so view.js ignores
+			// a page it already has (see syncFromViewer).
+			const page = normalisePage( Number( event.data ) + 1, source.count, step );
+			current = page;
+			draw( page );
+			onFlip( page );
+		} );
+		builtFor = size;
+		return true;
+	};
+
+	const onResize = () => {
+		window.clearTimeout( resizeTimer );
+		const mine = session;
+		resizeTimer = window.setTimeout( async () => {
+			if ( ! source || mine !== session ) {
+				return;
+			}
+			const size = measure();
+			if ( Math.abs( size.w - builtFor.w ) < 2 && Math.abs( size.h - builtFor.h ) < 2 ) {
+				return;
+			}
+			try {
+				const PageFlip = await loadFlipLibrary();
+				if ( ! source || mine !== session ) {
+					return;
+				}
+				// Canvases were drawn for the old size: draw them again at the new one.
+				source.mounted().forEach( ( index ) => source.release( index, pageEls[ index - 1 ] ) );
+				if ( buildBook( PageFlip, false ) ) {
+					await ensureWindow( current );
+				}
+			} catch ( error ) {
+				fail( error, mine );
+			}
+		}, 150 );
+	};
+
+	/** Stored page images, or null when the first one cannot be loaded (then the PDF is tried). */
+	const tryImages = async ( doc, alive ) => {
+		if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
+			return null;
+		}
+		try {
+			const first = await withTimeout( loadImage( doc.images[ 0 ] ), limits.firstPageTimeoutMs );
+			if ( ! alive() ) {
+				return null;
+			}
+			// The server already limits the crop to 0 to 0.25.
+			const crop = Number( doc.cropBottom ) || 0;
+			// The payload ratio already accounts for the crop; measured from the image it has to be done here.
+			const ratio = doc.ratio > 0 ? doc.ratio : first.naturalWidth / Math.max( 1, first.naturalHeight * ( 1 - crop ) );
+			const preloaded = { 1: first };
+			// The first view must be whole: a spread needs its second page too. A broken one sends us to the PDF fallback.
+			if ( stepFor( doc.images.length, orientationOf( ratio, 1 ) ) === 2 ) {
+				preloaded[ 2 ] = await withTimeout( loadImage( doc.images[ 1 ] ), limits.firstPageTimeoutMs );
+				if ( ! alive() ) {
+					return null;
+				}
+			}
+			return imageSource( doc.images, ratio, Number( doc.imageWidth ) || 0, preloaded, crop );
+		} catch ( e ) {
+			return null;
+		}
+	};
+
+	/** pdf.js in the browser, or null when the gate refuses this device. Throws on a real failure. */
+	const tryPdf = async ( doc, alive ) => {
+		if ( ! doc.viewerUrl || ! pdfjs || ! pdfjs.module || ! pdfjs.worker ) {
+			return null;
+		}
+		const verdict = clientRenderTier( readEnvironment( window, limits.failureTtlDays ), limits, { pdfBytes: doc.pdfBytes, pages: doc.pages } );
+		if ( verdict.tier === 'refused' ) {
+			return null;
+		}
+
+		try {
+			const lib = await import( pdfjs.module );
+			if ( ! alive() ) {
+				return null;
+			}
+			lib.GlobalWorkerOptions.workerSrc = pdfjs.worker;
+			const task = lib.getDocument( { url: doc.viewerUrl, isEvalSupported: false } );
+			let pdf;
+			try {
+				pdf = await withTimeout( task.promise, limits.firstPageTimeoutMs, () => task.destroy() );
+			} catch ( error ) {
+				task.destroy();
+				throw error;
+			}
+			if ( ! alive() ) {
+				pdf.destroy();
+				return null;
+			}
+			let viewport;
+			try {
+				const first = await pdf.getPage( 1 );
+				viewport = first.getViewport( { scale: 1 } );
+			} catch ( error ) {
+				pdf.destroy();
+				throw error;
+			}
+			return { source: pdfSource( pdf, viewport.width / viewport.height, selectableText ? lib.TextLayer : null ), budget: budgetFor( verdict.tier, limits ) };
+		} catch ( error ) {
+			// Tag it, so a failure of the PDF path (not of the stored images) is remembered.
+			throw Object.assign( new Error( String( error && error.message ) ), { name: error && error.name, fromPdf: true } );
+		}
+	};
+
+	return {
+		/** Opens a document. Resolves when the book is showing or the document was marked unavailable. */
+		async show( doc, page = 1 ) {
+			reset();
+			const mine = ++session;
+			const alive = () => mine === session;
+			current = page;
+			usedPdf = false;
+			budget = budgetFor( 'full', limits );
+			setStatus( 'loading' );
+
+			// Start fetching StPageFlip now, alongside the first image or pdf.js (a failure is handled where it is awaited).
+			loadFlipLibrary().catch( () => {} );
+
+			let next = null;
+			try {
+				let nextBudget = budget;
+				// Selectable text needs real text, which only pdf.js gives: try it first, and fall back to the
+				// stored images (not selectable) when it is refused or fails. Otherwise images first, pdf.js as the fallback.
+				const pdfFirst = selectableText && Boolean( doc.viewerUrl );
+				let pdf = null;
+
+				if ( pdfFirst ) {
+					try {
+						pdf = await tryPdf( doc, alive );
+					} catch ( error ) {
+						if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
+							throw error;
+						}
+						rememberFailure( error );
+					}
+					if ( alive() && ! pdf ) {
+						next = await tryImages( doc, alive );
+					}
+				} else {
+					next = await tryImages( doc, alive );
+					if ( alive() && ! next ) {
+						pdf = await tryPdf( doc, alive );
+					}
+				}
+
+				if ( ! alive() ) {
+					if ( pdf ) {
+						pdf.source.destroy();
+					}
+					return;
+				}
+				if ( pdf ) {
+					next = pdf.source;
+					nextBudget = pdf.budget;
+				}
+				if ( ! next ) {
+					unavailable();
+					return;
+				}
+
+				const PageFlip = await loadFlipLibrary();
+				if ( ! alive() ) {
+					next.destroy();
+					return;
+				}
+
+				// From here this call owns the viewer state.
+				source = next;
+				budget = nextBudget;
+				usedPdf = next.kind === 'pdf';
+				next = null;
+
+				step = stepFor( source.count, orientationOf( source.ratio, 1 ) );
+				current = onGeometry( { pages: source.count, step } );
+				buildPages( source.count );
+
+				// The dialog has only just opened: wait one frame for the stage to have a size.
+				if ( ! buildBook( PageFlip, true ) ) {
+					await new Promise( ( resolve ) => requestAnimationFrame( resolve ) );
+					if ( ! alive() ) {
+						return;
+					}
+					if ( ! buildBook( PageFlip, true ) ) {
+						throw new Error( 'stage has no size' );
+					}
+				}
+
+				await withTimeout( ensureWindow( current ), limits.firstPageTimeoutMs );
+				if ( ! alive() ) {
+					return;
+				}
+				if ( usedPdf ) {
+					clearFailure( safeStorage() );
+				}
+				container.style.visibility = '';
+				setStatus( null );
+
+				observer = new ResizeObserver( onResize );
+				observer.observe( stage );
+			} catch ( error ) {
+				if ( next ) {
+					next.destroy();
+				}
+				if ( alive() ) {
+					fail( error );
+				}
+			}
+		},
+
+		/** True while a page is turning, so callers can ignore a second turn. */
+		isTurning() {
+			// Only while a page is actually moving: the library also reports 'fold_corner' while the pointer rests on a corner.
+			return !! flip && [ 'flipping', 'user_fold' ].includes( flip.getState() );
+		},
+
+		/** Moves the book to a page. `animate` flips by one view; anything else jumps. */
+		goTo( page, { animate = false } = {} ) {
+			if ( ! source || ! flip ) {
+				current = page;
+				return;
+			}
+			const target = normalisePage( page, source.count, step );
+			const from = normalisePage( flip.getCurrentPageIndex() + 1, source.count, step );
+			current = target;
+			if ( target === from ) {
+				return;
+			}
+			try {
+				if ( animate && target === from + step ) {
+					flip.flipNext( 'top' );
+				} else if ( animate && target === from - step ) {
+					flip.flipPrev( 'top' );
+				} else {
+					flip.turnToPage( target - 1 );
+				}
+			} catch ( error ) {
+				fail( error );
+				return;
+			}
+			draw( target );
+		},
+
+		/** Closes the viewer and frees pages, canvases and the PDF. */
+		destroy() {
+			session++;
+			reset();
+			setStatus( null );
+		},
+	};
+}
