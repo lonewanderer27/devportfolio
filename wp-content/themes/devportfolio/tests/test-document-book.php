@@ -127,6 +127,8 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		return '';
 	}
 
+	// ----- DPD-005/006 helpers -------------------------------------------------------------
+
 	public function test_format_label_matrix(): void {
 		$this->assertSame( 'PDF · 24 pp', devportfolio_document_format_label( 'PDF', 24 ) );
 		$this->assertSame( 'PDF · 1 p', devportfolio_document_format_label( 'PDF', 1 ) );
@@ -164,6 +166,8 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 			$this->assertSame( 'midnight', devportfolio_sanitize_cover_style( $bad ) );
 		}
 	}
+
+	// ----- DPD-005 block -------------------------------------------------------------------
 
 	public function test_block_is_registered(): void {
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-book' ) );
@@ -327,6 +331,8 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringNotContainsStringIgnoringCase( 'serif', $this->css() );
 	}
 
+	// ----- DPD-006 styles ------------------------------------------------------------------
+
 	public function test_each_cover_style_renders_its_slug(): void {
 		foreach ( array_keys( devportfolio_cover_styles() ) as $slug ) {
 			$id = $this->make_document( array( 'meta' => array( 'cptdp_cover_style' => $slug ) ) );
@@ -413,5 +419,36 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-radius: 3px 6px 6px 3px', $base );
 		$this->assertStringContainsString( 'border: 1px solid var(--book-edge)', $base );
 		$this->assertStringContainsString( 'box-shadow: 8px 10px 0 var(--book-shadow)', $base );
+	}
+
+	// ----- DPD-008 motion ------------------------------------------------------------------
+
+	public function test_base_rule_transitions_transform_and_shadow(): void {
+		$base = $this->rule( '.documents-book' );
+		$this->assertStringContainsString( 'transition: transform var(--book-dur) var(--book-ease), box-shadow var(--book-dur) var(--book-ease);', $base );
+		$this->assertStringNotContainsString( 'transition: all', $base );
+	}
+
+	public function test_hover_lift_only_inside_hover_media_query(): void {
+		$hover = $this->media( '(hover: hover)' );
+		$this->assertStringContainsString( '.documents-book:hover', $hover );
+		$this->assertStringContainsString( 'transform: translateY(-6px) rotate(-1deg)', $hover );
+		$this->assertStringContainsString( 'box-shadow: 12px 16px 0 var(--book-shadow)', $hover );
+
+		// Outside the hover query only the reduced-motion reset may mention :hover.
+		$outside = str_replace( array( $hover, $this->media( '(prefers-reduced-motion: reduce)' ) ), '', $this->css() );
+		$this->assertStringNotContainsString( 'translateY(-6px)', $outside, 'lift never applies outside the hover media query' );
+		$this->assertStringNotContainsString( ':hover', $outside );
+	}
+
+	public function test_pressed_state_scales_down(): void {
+		$this->assertStringContainsString( 'transform: scale(0.985)', $this->rule( '.documents-book:active' ) );
+	}
+
+	public function test_reduced_motion_disables_movement(): void {
+		$reduced = $this->media( '(prefers-reduced-motion: reduce)' );
+		$this->assertStringContainsString( 'transition: none', $reduced );
+		$this->assertStringContainsString( 'animation: none', $reduced );
+		$this->assertMatchesRegularExpression( '/\.documents-book:hover, \.documents-book:active \{ transform: none; \}/', $reduced );
 	}
 }
