@@ -149,7 +149,7 @@ endif;
 
 if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 	/**
-	 * What kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp`, `xlsx`, `xls`, `ods` or `other` (DPD-026, DPD-027).
+	 * What kind of file a document points at: PDF, Office, Word or `other`.
 	 *
 	 * Decided by the attachment's mime type, or its extension when the host reports a generic
 	 * type. Core functions only, so it works without the plugin.
@@ -173,6 +173,9 @@ if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
 			'application/vnd.ms-excel' => 'xls',
 			'application/vnd.oasis.opendocument.spreadsheet' => 'ods',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+			'application/msword' => 'doc',
+			'application/vnd.oasis.opendocument.text' => 'odt',
 		);
 		$mime    = (string) get_post_mime_type( $file_id );
 		if ( isset( $by_mime[ $mime ] ) ) {
@@ -181,12 +184,24 @@ if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 
 		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
 			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $file_id ), PATHINFO_EXTENSION ) );
-			if ( in_array( $extension, array( 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ), true ) ) {
+			if ( in_array( $extension, array( 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt' ), true ) ) {
 				return $extension;
 			}
 		}
 
 		return 'other';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_is_word' ) ) :
+	/**
+	 * Whether a file kind is a word-processing document.
+	 *
+	 * @param string $kind File kind.
+	 * @return bool
+	 */
+	function devportfolio_document_is_word( $kind ) {
+		return in_array( $kind, array( 'docx', 'doc', 'odt' ), true );
 	}
 endif;
 
@@ -518,8 +533,9 @@ if ( ! function_exists( 'devportfolio_document_viewer_data' ) ) :
 		$native_url = array(
 			'pptx' => 'cptdp_document_native_pptx_url',
 			'xlsx' => 'cptdp_document_native_xlsx_url',
+			'docx' => 'cptdp_document_native_docx_url',
 		);
-		if ( 'slide' === devportfolio_document_unit( $data['kind'] ) || devportfolio_document_is_spreadsheet( $data['kind'] ) ) {
+		if ( 'slide' === devportfolio_document_unit( $data['kind'] ) || devportfolio_document_is_spreadsheet( $data['kind'] ) || devportfolio_document_is_word( $data['kind'] ) ) {
 			if ( function_exists( 'cptdp_get_document_pages' ) ) {
 				$data = array_merge( $data, devportfolio_document_normalise_stored_pages( cptdp_get_document_pages( $post_id ) ) );
 			}
