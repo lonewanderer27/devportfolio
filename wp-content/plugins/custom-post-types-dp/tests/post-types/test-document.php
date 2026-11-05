@@ -19,7 +19,7 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 			'slug'          => 'documents',
 			'menu_position' => 25,
 			'hierarchical'  => false,
-			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields' ),
+			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'document_category' ),
 			'columns'       => array( 'thumbnail', 'cptdp_filetype', 'cptdp_total_pages', 'cptdp_highlight', 'menu_order' ),
 			'default_order' => true,
@@ -33,6 +33,7 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 			'cptdp_filetype'        => array( 'string', '' ),
 			'cptdp_author'          => array( 'string', '' ),
 			'cptdp_total_pages'     => array( 'integer', 0 ),
+			'cptdp_software_tools'  => array( 'array', array() ),
 			'cptdp_highlight'       => array( 'boolean', false ),
 			'cptdp_post_statistics' => array( 'array', array() ),
 		);
@@ -144,5 +145,53 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 		set_current_screen( 'post' );
 		cptdp_document_enqueue_admin( 'post.php' );
 		$this->assertFalse( wp_script_is( 'cptdp-admin-document', 'enqueued' ) );
+	}
+
+	public function test_sanitize_software_tools(): void {
+		$tool  = self::factory()->post->create( array( 'post_type' => 'software_tool' ) );
+		$other = self::factory()->post->create( array( 'post_type' => 'software_tool' ) );
+		$page  = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$this->assertSame( array(), cptdp_document_sanitize_software_tools( 'nope' ) );
+		$this->assertSame(
+			array( $tool, $other ),
+			cptdp_document_sanitize_software_tools( array( $tool, (string) $tool, $page, 0, 999999, $other ) )
+		);
+	}
+
+	public function test_save_stores_software_tools(): void {
+		$this->acting_as( 'editor' );
+		$id   = $this->make_post();
+		$tool = self::factory()->post->create( array( 'post_type' => 'software_tool' ) );
+
+		$this->save( $id, array( 'cptdp_software_tools' => array( (string) $tool, 'junk' ) ) );
+		$this->assertEquals( array( $tool ), get_post_meta( $id, 'cptdp_software_tools', true ) );
+
+		$this->save( $id, array() );
+		$this->assertFalse( metadata_exists( 'post', $id, 'cptdp_software_tools' ) );
+	}
+
+	public function test_meta_box_registration_includes_software_tools(): void {
+		do_action( 'add_meta_boxes_document', get_post( $this->make_post() ) );
+
+		$this->assertArrayHasKey(
+			'cptdp_document_software_tools',
+			$GLOBALS['wp_meta_boxes']['document']['side']['default']
+		);
+	}
+
+	public function test_software_tools_box_lists_published_tools(): void {
+		$id = $this->make_post();
+
+		$this->assertStringContainsString(
+			'No software tools yet.',
+			$this->capture( fn() => cptdp_document_render_software_tools_box( get_post( $id ) ) )
+		);
+
+		$tool = self::factory()->post->create( array( 'post_type' => 'software_tool', 'post_title' => 'InDesign' ) );
+
+		$html = $this->capture( fn() => cptdp_document_render_software_tools_box( get_post( $id ) ) );
+		$this->assertStringContainsString( 'InDesign', $html );
+		$this->assertStringContainsString( 'value="' . $tool . '"', $html );
 	}
 }

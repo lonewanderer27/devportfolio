@@ -87,15 +87,30 @@
 
 .documents-book__ttl {
 	align-self: center;
+	min-width: 0;
 	padding-block: 10px;
 	font-size: 23px;
 	font-weight: 500;
 	line-height: 1.12;
 	letter-spacing: -0.015em;
+	overflow-wrap: anywhere;
+}
+
+/* The clamp lives on the inner text, not on the padded box, so no partial line shows through the padding. */
+.documents-book__ttl-text {
 	display: -webkit-box;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 4;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+}
+
+/* Longer titles get smaller type so they fit instead of being clipped. */
+.documents-book[data-title-length="long"] .documents-book__ttl {
+	font-size: 19px;
+}
+
+.documents-book[data-title-length="xlong"] .documents-book__ttl {
+	font-size: 16px;
 }
 
 /* Short ornament line under the title. */
@@ -202,6 +217,14 @@
 	.documents-book__ttl {
 		padding-block: 6px;
 		font-size: 17px;
+	}
+
+	.documents-book[data-title-length="long"] .documents-book__ttl {
+		font-size: 15px;
+	}
+
+	.documents-book[data-title-length="xlong"] .documents-book__ttl {
+		font-size: 13px;
 	}
 
 	.documents-book__ttl::after {

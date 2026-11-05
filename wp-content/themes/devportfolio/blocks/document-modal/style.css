@@ -1,0 +1,446 @@
+/* Document modal (DPD-009 to DPD-012). Tokens follow the hi-fi viewer (.vmodal / .vhead / .vfoot). */
+.documents-modal {
+	--dm-ink: #000;
+	--dm-subtle: #6a6a6f;
+	--dm-line: #d1d1d6;
+	--dm-line-strong: #1c1c1e;
+	--dm-edge: rgb(0 0 0 / 0.1);
+	--dm-surface: #fff;
+	--dm-surface-alt: #f2f2f7;
+	--dm-on-primary: #fff;
+	--dm-grad: linear-gradient(135deg, rgb(26 214 253), rgb(29 98 240));
+	--dm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--dm-dur: 260ms;
+
+	box-sizing: border-box;
+	width: min(1680px, calc(100% - 32px));
+	max-width: min(1680px, calc(100% - 32px));
+	height: calc(100dvh - 32px);
+	max-height: none;
+	margin: auto;
+	padding: 0;
+	overflow: auto;
+	color: var(--dm-ink);
+	background: var(--dm-surface);
+	border: 1px solid var(--dm-edge);
+	border-radius: 14px;
+	box-shadow: 0 12px 40px rgb(10 30 34 / 0.12);
+}
+
+.documents-modal[open] {
+	animation: documents-modal-pop var(--dm-dur) var(--dm-ease);
+}
+
+.documents-modal::backdrop {
+	background: rgb(0 0 0 / 0.45);
+	-webkit-backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
+}
+
+.documents-modal[open]::backdrop {
+	animation: documents-modal-fade var(--dm-dur) var(--dm-ease);
+}
+
+@keyframes documents-modal-pop {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.985);
+	}
+}
+
+@keyframes documents-modal-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+.documents-modal__panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.documents-modal__header,
+.documents-modal__footer {
+	flex: none;
+}
+
+/* Header */
+.documents-modal__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 20px;
+	padding: 18px 20px 18px 26px;
+	border-bottom: 1px solid var(--dm-edge);
+}
+
+.documents-modal__titlebox {
+	flex: 1 1 280px;
+	min-width: 0;
+}
+
+.documents-modal__title {
+	margin: 0;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: -0.015em;
+}
+
+.documents-modal__desc {
+	margin: 2px 0 0;
+	overflow: hidden;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--dm-subtle);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.documents-modal__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.documents-modal__tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px 0;
+	margin: 0;
+	padding: 0;
+	font-size: 13.5px;
+	line-height: 1.5;
+	color: var(--dm-subtle);
+	list-style: none;
+}
+
+.documents-modal__tags li + li::before {
+	content: "";
+	display: inline-block;
+	width: 4px;
+	height: 4px;
+	margin: 0 10px 2px;
+	vertical-align: middle;
+	background: var(--dm-grad);
+	border-radius: 50%;
+}
+
+.documents-modal__tags[hidden],
+.documents-modal__format[hidden],
+.documents-modal__desc[hidden],
+.documents-modal__pager[hidden],
+.documents-modal__indicator[hidden] {
+	display: none;
+}
+
+.documents-modal__format {
+	padding: 2px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	white-space: nowrap;
+	color: var(--dm-subtle);
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+	font-variant-numeric: tabular-nums;
+}
+
+.documents-modal__download {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 36px;
+	padding: 0 14px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--dm-on-primary);
+	text-decoration: none;
+	cursor: pointer;
+	background: var(--dm-ink);
+	border: 1px solid transparent;
+	border-radius: 999px;
+	transition: background 160ms var(--dm-ease), transform 160ms var(--dm-ease);
+}
+
+.documents-modal__download::after,
+.documents-modal__close::after {
+	position: absolute;
+	inset: -4px;
+	content: "";
+}
+
+.documents-modal__download:active {
+	transform: translateY(1px);
+}
+
+.documents-modal__download:hover {
+	background: #2c2c2e;
+}
+
+.documents-modal__download[aria-disabled="true"] {
+	cursor: not-allowed;
+	pointer-events: none;
+	opacity: 0.42;
+}
+
+.documents-modal__icon {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.documents-modal__close {
+	position: relative;
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--dm-line);
+	border-radius: 6px;
+	transition: border-color 160ms var(--dm-ease);
+}
+
+.documents-modal__close:hover {
+	border-color: var(--dm-line-strong);
+}
+
+.documents-modal__download:focus-visible,
+.documents-modal__close:focus-visible,
+.documents-modal__arrow:focus-visible,
+.documents-modal__pg:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+/* Body: blank until DPD-013 */
+.documents-modal__body {
+	flex: 1 1 auto;
+	position: relative;
+	min-height: 360px;
+	padding: 30px 76px;
+	background-color: var(--dm-surface-alt);
+	background-image: radial-gradient(rgb(0 0 0 / 0.1) 1px, transparent 1px);
+	background-size: 22px 22px;
+}
+
+/* DPD-013 fills the stage with the pages. */
+.documents-modal__stage {
+	display: flex;
+	justify-content: center;
+	min-height: 100%;
+}
+
+/* Page arrows (DPD-014): round, vertically centred on the grey area, shown on hover or focus. */
+.documents-modal__arrow {
+	position: absolute;
+	top: 50%;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: rgb(255 255 255 / 0.72);
+	border: 1px solid var(--dm-edge);
+	border-radius: 50%;
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	backdrop-filter: blur(20px) saturate(180%);
+	transform: translateY(-50%);
+	transition: opacity 160ms var(--dm-ease), background 160ms var(--dm-ease);
+}
+
+.documents-modal__arrow::after {
+	position: absolute;
+	inset: -4px;
+	content: "";
+}
+
+.documents-modal__arrow--prev {
+	left: 18px;
+}
+
+.documents-modal__arrow--next {
+	right: 18px;
+}
+
+.documents-modal__arrow:hover {
+	background: rgb(255 255 255 / 0.86);
+}
+
+.documents-modal__arrow[aria-disabled="true"] {
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+/* With a pointer, the arrows appear only while hovering the body (or when focused by keyboard). */
+@media (hover: hover) {
+	.documents-modal__arrow {
+		opacity: 0;
+	}
+
+	.documents-modal__body:hover .documents-modal__arrow,
+	.documents-modal__arrow:focus-visible {
+		opacity: 1;
+	}
+
+	.documents-modal__body:hover .documents-modal__arrow[aria-disabled="true"] {
+		opacity: 0.3;
+	}
+}
+
+/* Footer */
+.documents-modal__footer {
+	display: grid;
+	gap: 12px;
+	padding: 14px 26px 20px;
+	border-top: 1px solid var(--dm-edge);
+}
+
+.documents-modal__pager {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+}
+
+.documents-modal__pg {
+	display: inline-grid;
+	place-items: center;
+	min-width: 36px;
+	height: 36px;
+	padding: 0 10px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: var(--dm-surface);
+	border: 1px solid var(--dm-line);
+	border-radius: 6px;
+	transition: border-color 160ms var(--dm-ease), background 160ms var(--dm-ease);
+}
+
+.documents-modal__pg:hover {
+	border-color: var(--dm-line-strong);
+}
+
+.documents-modal__pg.is-on {
+	color: var(--dm-on-primary);
+	background: var(--dm-ink);
+	border-color: var(--dm-ink);
+}
+
+.documents-modal__pg[aria-disabled="true"] {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+.documents-modal__gap {
+	padding: 0 4px;
+	color: var(--dm-subtle);
+	letter-spacing: 0.1em;
+}
+
+.documents-modal__indicator {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	font-size: 12.5px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	color: var(--dm-subtle);
+}
+
+.documents-modal__bar {
+	flex: 1;
+	height: 3px;
+	overflow: hidden;
+	background: var(--dm-line);
+	border-radius: 2px;
+}
+
+.documents-modal__bar i {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: var(--dm-grad);
+	border-radius: 2px;
+	transition: width var(--dm-dur) var(--dm-ease);
+}
+
+.documents-modal__legend {
+	white-space: nowrap;
+}
+
+/* Smaller desktop widths (701-1200px): maximise the modal to the full viewport. */
+@media (max-width: 1200px) {
+	.documents-modal {
+		width: 100%;
+		max-width: none;
+		height: 100dvh;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+	}
+}
+
+/* Mobile (700px and below): no desktop modal (DPD-017) and no footer (DPD-019). */
+@media (max-width: 700px) {
+	.documents-modal,
+	.documents-modal__footer {
+		display: none;
+	}
+}
+
+@media (prefers-contrast: more) {
+	.documents-modal {
+		--dm-edge: var(--dm-line);
+	}
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+	.documents-modal::backdrop {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.documents-modal[open],
+	.documents-modal[open]::backdrop {
+		animation: none;
+	}
+
+	.documents-modal__download,
+	.documents-modal__arrow,
+	.documents-modal__pg,
+	.documents-modal__bar i {
+		transition: none;
+	}
+}
+
+/* Whole-item click target (any element carrying data-document-id). */
+[data-document-id] {
+	cursor: pointer;
+}

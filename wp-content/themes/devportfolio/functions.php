@@ -55,6 +55,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 	function devportfolio_register_blocks() {
 		register_block_type( __DIR__ . '/blocks/document-categories' );
 		register_block_type( __DIR__ . '/blocks/document-book' );
+		register_block_type( __DIR__ . '/blocks/document-modal' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -129,5 +130,137 @@ if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 		}
 
 		return implode( ' · ', $parts );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_download_target' ) ) :
+	/**
+	 * Where the modal Download button points (DPD-012).
+	 *
+	 * "file" = the uploaded attachment URL (downloaded), "embed" = the embed URL
+	 * (opened in a new tab), "none" = nothing to download (button shown disabled).
+	 *
+	 * @since 0.4.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array{mode:string,url:string}
+	 */
+	function devportfolio_document_download_target( $post_id ) {
+		$post_id = (int) $post_id;
+
+		$file_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		if ( $file_id > 0 ) {
+			$url = wp_get_attachment_url( $file_id );
+			if ( $url ) {
+				return array(
+					'mode' => 'file',
+					'url'  => $url,
+				);
+			}
+		}
+
+		$embed = (string) get_post_meta( $post_id, 'cptdp_embed_url', true );
+		if ( '' !== $embed && preg_match( '#^https?://#i', $embed ) ) {
+			return array(
+				'mode' => 'embed',
+				'url'  => $embed,
+			);
+		}
+
+		return array(
+			'mode' => 'none',
+			'url'  => '',
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_description' ) ) :
+	/**
+	 * One-line plain-text description of a document (DPD-010).
+	 *
+	 * The excerpt when set, otherwise the first 20 words of the content.
+	 *
+	 * @since 0.4.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return string
+	 */
+	function devportfolio_document_description( $post_id ) {
+		$post = get_post( (int) $post_id );
+		if ( ! $post ) {
+			return '';
+		}
+
+		$text = trim( (string) $post->post_excerpt );
+		if ( '' === $text ) {
+			$text = wp_trim_words( strip_shortcodes( (string) $post->post_content ), 20, '…' );
+		}
+
+		return trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $text ) ) );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
+	/**
+	 * Data the document modal shows for one document (DPD-009 to DPD-012).
+	 *
+	 * Plain text and URLs only; the script writes them with textContent.
+	 *
+	 * @since 0.4.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array<string,mixed>|null Null when the post is not a document.
+	 */
+	function devportfolio_document_modal_payload( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'document' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$tools    = array();
+		$tool_ids = get_post_meta( $post_id, 'cptdp_software_tools', true );
+		foreach ( is_array( $tool_ids ) ? $tool_ids : array() as $tool_id ) {
+			if ( 'software_tool' === get_post_type( (int) $tool_id ) && 'publish' === get_post_status( (int) $tool_id ) ) {
+				$tools[] = get_the_title( (int) $tool_id );
+			}
+		}
+
+		$pages    = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
+		$download = devportfolio_document_download_target( $post_id );
+
+		return array(
+			'id'           => $post_id,
+			'title'        => get_the_title( $post_id ),
+			'description'  => devportfolio_document_description( $post_id ),
+			'tools'        => $tools,
+			'format'       => devportfolio_document_format_label(
+				get_post_meta( $post_id, 'cptdp_filetype', true ),
+				get_post_meta( $post_id, 'cptdp_total_pages', true )
+			),
+			'pages'        => max( 0, $pages ),
+			'downloadMode' => $download['mode'],
+			'downloadUrl'  => $download['url'],
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_title_length' ) ) :
+	/**
+	 * Size bucket of a document title for the book cover: "short", "long" or "xlong".
+	 *
+	 * The cover shrinks the title type for longer titles so they show in full
+	 * instead of being clipped (the modal always shows the whole title).
+	 *
+	 * @since 0.4.0
+	 *
+	 * @param string $title Plain-text title.
+	 * @return string
+	 */
+	function devportfolio_document_title_length( $title ) {
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( trim( (string) $title ) ) : strlen( trim( (string) $title ) );
+		if ( $length > 70 ) {
+			return 'xlong';
+		}
+		return $length > 40 ? 'long' : 'short';
 	}
 endif;
