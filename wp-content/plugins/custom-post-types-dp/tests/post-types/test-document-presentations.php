@@ -42,7 +42,7 @@ class CPTDP_Test_Document_Presentations extends CPTDP_Pages_Test_Case {
 	public function test_there_is_no_warning_for_other_files(): void {
 		$this->assertSame( '', cptdp_pptx_warning( 'pdf' ) );
 		$this->assertSame( '', cptdp_pptx_warning( '' ) );
-		$this->assertSame( '', cptdp_pptx_warning( 'xlsx' ) );
+		$this->assertSame( '', cptdp_pptx_warning( 'xlsx' ), 'The presentation warning is for presentations only.' );
 	}
 
 	public function test_an_admin_sees_a_link_to_the_native_viewer_setting_for_a_pptx(): void {
@@ -130,10 +130,10 @@ class CPTDP_Test_Document_Presentations extends CPTDP_Pages_Test_Case {
 		$this->assertStringContainsString( 'cptdpDocument.pptxWarnings', $js );
 		$this->assertStringContainsString( 'showPresentationWarning( attachment )', $js );
 		$this->assertStringContainsString( 'showPresentationWarning( null )', $js, 'Removing the file hides it.' );
-		$this->assertMatchesRegularExpression( '/pptx\|ppt\|odp/', $js );
+		$this->assertMatchesRegularExpression( '/pptx\|ppt\|odp\|xlsx\|xls\|ods/', $js );
 
 		$php = (string) file_get_contents( CPTDP_PATH . 'includes/post-types/document.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$this->assertStringContainsString( "'pptxWarnings' => cptdp_pptx_warnings()", $php );
+		$this->assertStringContainsString( "'pptxWarnings' => cptdp_office_warnings()", $php );
 	}
 
 	public function test_the_one_time_notice_shows_once_after_a_presentation_is_chosen(): void {
