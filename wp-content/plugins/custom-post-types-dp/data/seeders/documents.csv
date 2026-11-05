@@ -1,0 +1,9 @@
+order,title,description,category,software_tools,filetype,total_pages,author
+10,Q3 Executive Summary,Headline results and decisions for the quarter in one readable brief.,executive-docs,Canva|Google Workspace|Claude,PDF,12,Dave
+20,Board Strategy Briefing,The three-year plan and the risks the board needs to weigh.,executive-docs,Google Workspace,PDF,24,Dave
+30,Company Operations Handbook,"How the team runs day to day: roles, handovers, escalation paths, tooling, weekly rhythms and the checklists that keep client work consistent from kickoff to delivery.",operations-docs,Notion|Google Workspace|Slack|Asana,PDF,48,Dave
+40,Onboarding Process Playbook,A step-by-step guide to bringing a new client or teammate up to speed.,operations-docs,Notion,PDF,16,Dave
+50,Client Pitch Deck,The story and proof points used to win new work.,presentation-decks,Canva|Adobe CC,PDF,30,Dave
+60,Product Launch Presentation,Positioning and rollout plan for a new service line.,presentation-decks,Canva|Adobe CC|ChatGPT,PDF,22,Dave
+70,Annual Performance Report and Strategic Outlook for the Year Ahead,Results against targets with a look at where the work goes next.,reports,Google Workspace|Salesforce|HubSpot,PDF,36,Dave
+80,Social Media Analytics Report,One-page snapshot of reach and engagement.,reports,,PDF,1,Dave
