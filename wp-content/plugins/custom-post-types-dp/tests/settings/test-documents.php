@@ -18,6 +18,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'trim_bottom'     => true,
 				'native_pdf'      => false,
 				'native_pptx'     => false,
+				'native_xlsx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -41,6 +42,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'trim_bottom'     => true,
 				'native_pdf'      => false,
 				'native_pptx'     => false,
+				'native_xlsx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -127,9 +129,9 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 	}
 
 	public function test_the_native_viewer_formats_are_off_by_default_and_sanitised(): void {
-		$this->assertSame( array( 'pdf', 'pptx' ), cptdp_documents_native_formats(), 'DOCX and XLSX are a later ticket.' );
+		$this->assertSame( array( 'pdf', 'pptx', 'xlsx' ), cptdp_documents_native_formats(), 'DOCX is a later ticket.' );
 
-		foreach ( array( 'native_pdf', 'native_pptx' ) as $key ) {
+		foreach ( array( 'native_pdf', 'native_pptx', 'native_xlsx' ) as $key ) {
 			$this->assertFalse( cptdp_get_documents_settings( $key ), $key );
 			$this->assertTrue( cptdp_documents_sanitize( array( $key => '1' ) )[ $key ], $key );
 			$this->assertFalse( cptdp_documents_sanitize( array( $key => '0' ) )[ $key ], $key );
@@ -189,7 +191,8 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$this->assertStringContainsString( 'name="cptdp_documents[native_pptx]"', $html );
 		$this->assertStringContainsString( 'pdf.js', $html );
 		$this->assertStringContainsString( 'LibreOffice', $html );
-		$this->assertSame( 2, substr_count( $html, 'type="checkbox"' ) );
+		$this->assertStringContainsString( 'name="cptdp_documents[native_xlsx]"', $html );
+		$this->assertSame( 3, substr_count( $html, 'type="checkbox"' ) );
 		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $html );
 
 		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
@@ -222,6 +225,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'trim_bottom'     => false,
 				'native_pdf'      => true,
 				'native_pptx'     => false,
+				'native_xlsx'     => false,
 			),
 			cptdp_documents_sanitize( array( 'pages_mode' => 'server' ) )
 		);

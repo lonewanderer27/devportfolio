@@ -18,6 +18,7 @@ corepack_enable: false
 # fonts (Liberation = Arial/Times, Carlito = Calibri, Caladea = Cambria). Needs `ddev restart`.
 webimage_extra_packages:
   - libreoffice-impress
+  - libreoffice-calc
   - fonts-liberation
   - fonts-crosextra-carlito
   - fonts-crosextra-caladea

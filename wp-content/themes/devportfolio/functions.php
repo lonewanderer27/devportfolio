@@ -104,7 +104,7 @@ endif;
 
 if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 	/**
-	 * What kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp` or `other` (DPD-026).
+	 * What kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp`, `xlsx`, `xls`, `ods` or `other` (DPD-026, DPD-027).
 	 *
 	 * Decided by the attachment's mime type, or its extension when the host reports a generic
 	 * type. Core functions only, so it works without the plugin.
@@ -125,6 +125,9 @@ if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 			'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
 			'application/vnd.ms-powerpoint' => 'ppt',
 			'application/vnd.oasis.opendocument.presentation' => 'odp',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+			'application/vnd.ms-excel' => 'xls',
+			'application/vnd.oasis.opendocument.spreadsheet' => 'ods',
 		);
 		$mime    = (string) get_post_mime_type( $file_id );
 		if ( isset( $by_mime[ $mime ] ) ) {
@@ -133,12 +136,26 @@ if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
 
 		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
 			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $file_id ), PATHINFO_EXTENSION ) );
-			if ( in_array( $extension, array( 'pptx', 'ppt', 'odp' ), true ) ) {
+			if ( in_array( $extension, array( 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ), true ) ) {
 				return $extension;
 			}
 		}
 
 		return 'other';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_is_spreadsheet' ) ) :
+	/**
+	 * Whether a file kind is a spreadsheet (`xlsx`, `xls`, `ods`), converted to pages by the plugin (DPD-027).
+	 *
+	 * @since 0.7.0
+	 *
+	 * @param string $kind File kind from devportfolio_document_file_kind().
+	 * @return bool
+	 */
+	function devportfolio_document_is_spreadsheet( $kind ) {
+		return in_array( $kind, array( 'xlsx', 'xls', 'ods' ), true );
 	}
 endif;
 
@@ -449,14 +466,18 @@ if ( ! function_exists( 'devportfolio_document_viewer_data' ) ) :
 		$data['kind'] = devportfolio_document_file_kind( $post_id );
 		$file_id      = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
 
-		if ( 'slide' === devportfolio_document_unit( $data['kind'] ) ) {
-			// Converted slides (the default view, and the native viewer's fallback), plus the native viewer's
-			// address when the plugin allows it; never a PDF for pdf.js.
+		// A presentation or a spreadsheet (DPD-026, DPD-027): its converted pages (the default view, and the native
+		// viewer's fallback), plus the native viewer's address when the plugin allows it; never a PDF for pdf.js.
+		$native_url = array(
+			'pptx' => 'cptdp_document_native_pptx_url',
+			'xlsx' => 'cptdp_document_native_xlsx_url',
+		);
+		if ( 'slide' === devportfolio_document_unit( $data['kind'] ) || devportfolio_document_is_spreadsheet( $data['kind'] ) ) {
 			if ( function_exists( 'cptdp_get_document_pages' ) ) {
 				$data = array_merge( $data, devportfolio_document_normalise_stored_pages( cptdp_get_document_pages( $post_id ) ) );
 			}
-			if ( function_exists( 'cptdp_document_native_pptx_url' ) ) {
-				$native             = cptdp_document_native_pptx_url( $post_id );
+			if ( isset( $native_url[ $data['kind'] ] ) && function_exists( $native_url[ $data['kind'] ] ) ) {
+				$native            = call_user_func( $native_url[ $data['kind'] ], $post_id );
 				$data['nativeUrl'] = is_string( $native ) ? esc_url_raw( $native ) : '';
 			}
 

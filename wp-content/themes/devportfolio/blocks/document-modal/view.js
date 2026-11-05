@@ -321,7 +321,8 @@ if ( dialog && dataEl ) {
 			return;
 		}
 		const target = event.target;
-		if ( target && target.closest && target.closest( 'input, textarea, select, [contenteditable]' ) ) {
+		if ( target && target.closest && target.closest( 'input, textarea, select, [contenteditable], .documents-modal__grid' ) ) {
+			// Form controls and the spreadsheet grid (arrow keys move cells there) keep their own arrow keys.
 			return;
 		}
 		event.preventDefault();

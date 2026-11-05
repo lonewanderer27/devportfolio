@@ -21,7 +21,7 @@
  * book (drag, corner click), and view.js tells it where to go.
  */
 import { stepFor, normalisePage } from './pager.js';
-import { viewerMode, unitOf, wording, pieceLabel, canDrawPresentations } from './mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, isSpreadsheet } from './mode.js';
 import { fitPage, orientationOf, renderWindow, canvasScale } from './layout.js';
 import { clientRenderTier, budgetFor, readEnvironment, markFailure, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 
@@ -36,9 +36,14 @@ const DOCUMENT_ERRORS = [ 'PasswordException', 'InvalidPDFException', 'MissingPD
  * library version in the query: a long browser cache can then never serve old code for a new release.
  * Keep PPTX_VERSION equal to the version in vendor/ooxml/README.md (a test compares them).
  */
-const PPTX_VERSION = '0.89.7';
+const OOXML_VERSION = '0.89.7';
+const PPTX_VERSION = OOXML_VERSION;
 const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;
 const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ PPTX_VERSION }`, import.meta.url ).href;
+// The spreadsheet viewer (DPD-027) is part of the same package and version: its entry, its worker and its
+// WebAssembly file are the files without a content hash in their name.
+const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
+const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 
 /** What the bundled viewer needs from the browser. */
 function readNativeEnvironment() {
@@ -288,6 +293,8 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	let pptx = null;
 	let pptxBusy = false;
 	let pptxCount = 0;
+	let grid = null;
+	let hintKey = 'hint';
 	let source = null;
 	let budget = null;
 	let usedPdf = false;
@@ -308,7 +315,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		}
 		status.dataset.kind = kind || '';
 		textEl.textContent = kind === 'loading' ? status.dataset.loading : kind === 'unavailable' ? status.dataset.unavailable : '';
-		hintEl.textContent = kind === 'unavailable' ? ( unit === 'slide' && status.dataset.hintSlide ? status.dataset.hintSlide : status.dataset.hint ) : '';
+		hintEl.textContent = kind === 'unavailable' ? ( status.dataset[ hintKey ] || status.dataset.hint ) : '';
 		stage.setAttribute( 'aria-busy', kind === 'loading' ? 'true' : 'false' );
 		if ( kind ) {
 			// The text is in place before the region appears, so a screen reader announces it.
@@ -332,13 +339,22 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		container = null;
 	};
 
+	/** Frees a native viewer's workers; safe to call twice. */
+	const destroyNative = ( viewer ) => {
+		try {
+			viewer.destroy();
+		} catch ( e ) {
+			// Already gone.
+		}
+	};
+
 	const reset = () => {
+		if ( grid ) {
+			destroyNative( grid );
+			grid = null;
+		}
 		if ( pptx ) {
-			try {
-				pptx.destroy();
-			} catch ( e ) {
-				// Already gone.
-			}
+			destroyNative( pptx );
 			pptx = null;
 		}
 		pptxBusy = false;
@@ -610,7 +626,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	 *                            caller then shows the stored slides, or the "can't be previewed" state).
 	 */
 	const showPptx = async ( doc, alive ) => {
-		if ( ! canDrawPresentations( readNativeEnvironment() ) ) {
+		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
 			return false;
 		}
 
@@ -702,15 +718,85 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			if ( alive() && ! isBenignRenderError( error ) ) {
 				// Leave nothing of the failed attempt behind: the caller shows the stored slides or says it can't preview.
 				if ( pptx ) {
-					try {
-						pptx.destroy();
-					} catch ( e ) {
-						// Already gone.
-					}
+					destroyNative( pptx );
 					pptx = null;
 				}
 				pptxBusy = false;
 				pptxCount = 0;
+				stage.replaceChildren();
+			}
+			return false;
+		}
+	};
+
+	/**
+	 * Draws a .xlsx in the visitor's browser with the native (bundled) viewer (DPD-027).
+	 *
+	 * The library's own grid fills the stage: scrolling, zoom, sheet tabs and cell selection with copy.
+	 * Hidden sheets are skipped, hyperlinks, comments and web fonts are off, so the viewer reads the file
+	 * from this site and requests nothing else. The modal's pager and arrows are not used (the workbook
+	 * reports one piece), and Esc still closes the modal.
+	 *
+	 * @return {Promise<boolean>} True when the workbook is showing. False when it could not be drawn (the
+	 *                            caller then shows the stored pages, or the "can't be previewed" state).
+	 */
+	const showXlsx = async ( doc, alive ) => {
+		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
+			return false;
+		}
+
+		let opened = false;
+		const mine = session;
+		const wrap = document.createElement( 'div' );
+		wrap.className = 'documents-modal__grid';
+		wrap.setAttribute( 'role', 'group' );
+		wrap.setAttribute( 'aria-label', doc.title || '' );
+		wrap.style.visibility = 'hidden';
+		stage.replaceChildren( wrap );
+
+		try {
+			const lib = await withTimeout( import( XLSX_LIB ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			const instance = new lib.XlsxViewer( wrap, {
+				wasmUrl: XLSX_WASM,
+				useGoogleFonts: false,
+				enableHyperlinks: false,
+				enableElementSelection: false,
+				comments: false,
+				hiddenSheetMode: 'skip',
+				showZoomSlider: true,
+				workerTimeoutMs: limits.nativeTimeoutMs,
+				xlsxWorksheetLimits: { maxCells: limits.nativeMaxCells, maxRows: limits.nativeMaxRows },
+				onError: ( error ) => {
+					if ( opened ) {
+						fail( error, mine );
+					}
+				},
+			} );
+			// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
+			grid = instance;
+
+			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			step = 1;
+			current = onGeometry( { pages: 1, step } );
+			wrap.style.visibility = '';
+			setStatus( null );
+			opened = true;
+			return true;
+		} catch ( error ) {
+			if ( alive() && ! isBenignRenderError( error ) ) {
+				// Leave nothing of the failed attempt behind: the caller shows the stored pages or says it can't preview.
+				if ( grid ) {
+					destroyNative( grid );
+					grid = null;
+				}
 				stage.replaceChildren();
 			}
 			return false;
@@ -724,6 +810,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			const mine = ++session;
 			const alive = () => mine === session;
 			unit = unitOf( doc );
+			hintKey = unit === 'slide' ? 'hintSlide' : ( isSpreadsheet( doc ) ? 'hintSheet' : 'hint' );
 			words = wording( unit, units );
 			current = page;
 			usedPdf = false;
@@ -731,11 +818,11 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			setStatus( 'loading' );
 
 			if ( viewerMode( doc ) === 'native' ) {
-				const drawn = await showPptx( doc, alive );
+				const drawn = await ( doc.kind === 'xlsx' ? showXlsx : showPptx )( doc, alive );
 				if ( drawn || ! alive() ) {
 					return;
 				}
-				// The native viewer could not draw it: use the stored slides when there are some.
+				// The native viewer could not draw it: use the stored slides or pages when there are some.
 				if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
 					unavailable();
 					return;
@@ -838,6 +925,9 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 		/** True while a page is turning, so callers can ignore a second turn. */
 		isTurning() {
+			if ( grid ) {
+				return false;
+			}
 			if ( pptx ) {
 				return pptxBusy;
 			}
@@ -847,6 +937,10 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 		/** Moves the book to a page. `animate` flips by one view; anything else jumps. */
 		goTo( page, { animate = false } = {} ) {
+			if ( grid ) {
+				// One piece: the workbook scrolls and switches sheets by itself.
+				return;
+			}
 			if ( pptx ) {
 				// The slide viewer has no animation; the pager, arrows and keys all end here.
 				const mine = session;

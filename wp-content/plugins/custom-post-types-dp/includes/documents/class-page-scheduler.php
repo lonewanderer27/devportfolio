@@ -186,17 +186,17 @@ class CPTDP_Page_Scheduler {
 
 		// Presentations are converted by the server only (no browser can read them): the mode does
 		// not apply, and there is no `needs_browser`. Without LibreOffice the editor is told to upload a PDF.
-		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
-			if ( ! CPTDP_Pptx_Converter::is_available() ) {
-				// A host without LibreOffice that lets the native viewer draw .pptx files is working as chosen:
+		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
+			if ( ! CPTDP_Pptx_Converter::is_available( $source['kind'] ) ) {
+				// A host without LibreOffice that lets the native viewer draw this kind (.pptx, .xlsx) is working as chosen:
 				// there are no page images and nothing failed.
-				if ( CPTDP_Page_Store::KIND_PPTX === $source['kind'] && cptdp_get_documents_settings( 'native_pptx' ) ) {
+				if ( cptdp_native_viewer_enabled( $source['kind'] ) ) {
 					CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NONE );
 
 					return CPTDP_Page_Store::STATUS_NONE;
 				}
 
-				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, CPTDP_Pptx_Converter::unavailable_reason() );
+				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, CPTDP_Pptx_Converter::unavailable_reason( $source['kind'] ) );
 
 				return CPTDP_Page_Store::STATUS_FAILED;
 			}
@@ -339,7 +339,7 @@ class CPTDP_Page_Scheduler {
 			$message = $result->get_error_message();
 
 			// A presentation can only be converted by the server, so a failure is final (never the browser).
-			if ( 'auto' === self::mode() && ! CPTDP_Page_Store::is_presentation_kind( $current['kind'] ) ) {
+			if ( 'auto' === self::mode() && ! CPTDP_Page_Store::is_office_kind( $current['kind'] ) ) {
 				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message );
 
 				return CPTDP_Page_Store::STATUS_NEEDS_BROWSER;
@@ -368,7 +368,7 @@ class CPTDP_Page_Scheduler {
 		if ( $tries >= self::MAX_LOCK_RETRIES ) {
 			delete_transient( $key );
 			$message = __( 'The server did not finish converting the file.', 'custom-post-types-dp' );
-			'auto' === self::mode() && ! CPTDP_Page_Store::is_presentation_kind( CPTDP_Page_Store::source_kind( $post_id ) )
+			'auto' === self::mode() && ! CPTDP_Page_Store::is_office_kind( CPTDP_Page_Store::source_kind( $post_id ) )
 				? CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message )
 				: CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, $message );
 

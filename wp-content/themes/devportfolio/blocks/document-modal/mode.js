@@ -3,15 +3,22 @@
  * (DPD-026). No DOM access, so they can be tested with `node --test`.
  *
  * Modes, in the order they win:
- *  - `native`      the plugin's Native viewer setting is on for a .pptx: the bundled viewer draws the
- *                  original file on a canvas in the visitor's browser, with selectable text. The stored
- *                  images stay its fallback (viewer.js shows them when it cannot draw the file).
+ *  - `native`      the plugin's Native viewer setting is on for a .pptx or .xlsx: the bundled viewer draws
+ *                  the original file in the visitor's browser (slides on a canvas with selectable text, or a
+ *                  scrollable spreadsheet grid). The stored images stay its fallback (viewer.js shows them
+ *                  when it cannot draw the file).
  *  - `images`      stored page images exist (a PDF, or converted slides): the open book.
  *  - `pdf`         no images, but the browser can render the PDF itself (pdf.js fallback).
  *  - `unavailable` nothing to show: "can't be previewed", Download still works.
  */
 
 const PRESENTATIONS = [ 'pptx', 'ppt', 'odp' ];
+const SPREADSHEETS = [ 'xlsx', 'xls', 'ods' ];
+
+/** Whether a payload entry is a spreadsheet (DPD-027). Its pieces are still called pages. */
+export function isSpreadsheet( doc ) {
+	return !! doc && SPREADSHEETS.includes( doc.kind );
+}
 
 /** The mode for a payload entry. */
 export function viewerMode( doc ) {
@@ -64,10 +71,13 @@ export function positionText( words, first, last, count ) {
 }
 
 /**
- * Whether this browser can run the bundled PPTX viewer: WebAssembly (the parser), workers
- * (it parses off the main thread) and a 2D canvas. `env` is read once by the caller so this
+ * Whether this browser can run the bundled Office viewers (PPTX and XLSX): WebAssembly (the parser),
+ * workers (it parses off the main thread) and a 2D canvas. `env` is read once by the caller so this
  * stays testable with plain objects.
  */
-export function canDrawPresentations( env ) {
+export function canDrawOffice( env ) {
 	return !! env && env.webassembly === true && env.worker === true && env.canvas2d === true;
 }
+
+/** The name the presentation viewer used before spreadsheets joined it. */
+export const canDrawPresentations = canDrawOffice;

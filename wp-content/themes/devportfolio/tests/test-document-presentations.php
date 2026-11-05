@@ -141,7 +141,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 
 		$this->assertSame( 'pdf', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/pdf', 'f.pdf' ) ) ) );
 		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document( $this->attachment( 'image/png', 'f.png' ) ) ) );
-		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'f.xlsx' ) ) ) );
+		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document( $this->attachment( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'f.docx' ) ) ), 'DOCX is a later ticket.' );
 		$this->assertSame( 'other', devportfolio_document_file_kind( $this->document() ), 'No file.' );
 		$this->assertSame( 'other', devportfolio_document_file_kind( 0 ) );
 	}
@@ -311,20 +311,20 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	public function test_the_native_viewer_loads_only_on_demand_and_is_locked_down(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 
-		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawPresentations } from './mode.js'", $js );
+		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, isSpreadsheet } from './mode.js'", $js );
 		$this->assertStringContainsString( 'const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;', $js );
 		$this->assertStringContainsString( 'wasmUrl: PPTX_WASM', $js );
 		$this->assertStringContainsString( 'import( PPTX_LIB )', $js, 'A dynamic import: nothing is downloaded for other documents.' );
 		$this->assertDoesNotMatchRegularExpression( '#^import .* from \'\./vendor/ooxml#m', $js, 'No static import of the viewer.' );
 		$this->assertStringContainsString( "if ( viewerMode( doc ) === 'native' )", $js );
-		$this->assertStringContainsString( 'canDrawPresentations( readNativeEnvironment() )', $js );
+		$this->assertStringContainsString( 'canDrawOffice( readNativeEnvironment() )', $js );
 
 		foreach ( array( 'enableTextSelection: true', 'enableHyperlinks: false', 'enableMediaPlayback: false', 'enableElementSelection: false', 'useGoogleFonts: false' ) as $option ) {
 			$this->assertStringContainsString( $option, $js, $option );
 		}
 		$this->assertStringContainsString( 'instance.load( doc.nativeUrl )', $js );
-		$this->assertStringContainsString( 'const drawn = await showPptx( doc, alive );', $js );
-		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides when there are some.', $js, 'The converted slides are the fallback.' );
+		$this->assertStringContainsString( "const drawn = await ( doc.kind === 'xlsx' ? showXlsx : showPptx )( doc, alive );", $js );
+		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides or pages when there are some.', $js, 'The converted slides are the fallback.' );
 		$this->assertStringContainsString( 'limits.nativeTimeoutMs', $js );
 		$this->assertStringNotContainsString( '<iframe', $js );
 		$this->assertStringNotContainsString( "createElement( 'iframe' )", $js );
@@ -333,7 +333,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	public function test_the_native_viewer_is_destroyed_on_close_and_driven_by_the_modal_controls(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 
-		$this->assertStringContainsString( 'pptx.destroy()', $js, 'Closing frees the workers.' );
+		$this->assertStringContainsString( 'destroyNative( pptx )', $js, 'Closing frees the workers.' );
 		$this->assertStringContainsString( 'pptx.goToSlide( target - 1 )', $js );
 		$this->assertStringContainsString( 'return pptxBusy;', $js, 'A slide still being drawn ignores another turn.' );
 		$this->assertStringContainsString( 'onGeometry( { pages: pptxCount, step } )', $js, 'Footer, pager and arrows show like for the book.' );
@@ -356,7 +356,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$js     = $this->read( 'blocks/document-modal/viewer.js' );
 		$readme = $this->read( 'blocks/document-modal/vendor/ooxml/README.md' );
 
-		$this->assertSame( 1, preg_match( "#const PPTX_VERSION = '([0-9.]+)';#", $js, $m ), 'The version constant exists.' );
+		$this->assertSame( 1, preg_match( "#const OOXML_VERSION = '([0-9.]+)';#", $js, $m ), 'The version constant exists.' );
 		$this->assertStringContainsString( '**' . $m[1] . '**', $readme, 'It matches the vendored release.' );
 		$this->assertStringContainsString( 'pptx_parser_bg.wasm?v=${ PPTX_VERSION }', $js );
 		$this->assertStringContainsString( 'pptx.mjs?v=${ PPTX_VERSION }', $js );
@@ -368,7 +368,9 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 				return 0 === preg_match( '/-[A-Za-z0-9_-]{8}\.m?js$/', $file );
 			}
 		);
-		$this->assertSame( array( 'pptx-source-worker.mjs', 'pptx.mjs', 'pptx_parser_bg.wasm' ), array_values( $unhashed ) );
+		$unhashed = array_values( $unhashed );
+		sort( $unhashed );
+		$this->assertSame( array( 'pptx-source-worker.mjs', 'pptx.mjs', 'pptx_parser_bg.wasm', 'xlsx-source-worker.mjs', 'xlsx.mjs', 'xlsx_parser_bg.wasm' ), $unhashed );
 	}
 
 	public function test_the_canvas_is_drawn_at_the_size_it_is_shown(): void {

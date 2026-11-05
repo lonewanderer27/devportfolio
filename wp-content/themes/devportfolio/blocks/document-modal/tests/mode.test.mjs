@@ -78,3 +78,31 @@ test( 'the native viewer needs WebAssembly, workers and a 2D canvas', () => {
 	assert.equal( canDrawPresentations( null ), false );
 	assert.equal( canDrawPresentations( { webassembly: 'yes', worker: 1, canvas2d: {} } ), false, 'Only real booleans count.' );
 } );
+
+// --- Spreadsheets (DPD-027) -------------------------------------------------------------------
+
+import { canDrawOffice, isSpreadsheet } from '../mode.js';
+
+test( 'spreadsheets are recognised by kind and are still counted in pages', () => {
+	[ 'xlsx', 'xls', 'ods' ].forEach( ( kind ) => {
+		assert.equal( isSpreadsheet( { kind } ), true, kind );
+		assert.equal( unitOf( { kind } ), 'page', kind );
+	} );
+	[ 'pdf', 'pptx', 'other', undefined ].forEach( ( kind ) => assert.equal( isSpreadsheet( { kind } ), false, String( kind ) ) );
+	assert.equal( isSpreadsheet( null ), false );
+	assert.equal( isSpreadsheet( 'xlsx' ), false );
+} );
+
+test( 'a workbook with a native url is drawn natively, and falls back to its pages', () => {
+	assert.equal( viewerMode( { kind: 'xlsx', nativeUrl: 'https://x.test/a.xlsx', images: [ 'a.webp' ] } ), 'native' );
+	assert.equal( viewerMode( { kind: 'xlsx', nativeUrl: '', images: [ 'a.webp' ] } ), 'images' );
+	assert.equal( viewerMode( { kind: 'xls', nativeUrl: '', images: [] } ), 'unavailable' );
+} );
+
+test( 'the office viewers need WebAssembly, workers and a canvas; the old name still works', () => {
+	const ok = { webassembly: true, worker: true, canvas2d: true };
+	assert.equal( canDrawOffice( ok ), true );
+	assert.equal( canDrawOffice( { ...ok, webassembly: false } ), false );
+	assert.equal( canDrawOffice( null ), false );
+	assert.equal( canDrawPresentations, canDrawOffice );
+} );
