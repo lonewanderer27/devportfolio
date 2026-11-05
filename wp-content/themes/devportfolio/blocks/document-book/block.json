@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/document-book",
+	"title": "Document Book",
+	"category": "widgets",
+	"description": "The book cover of a document: category, title, file type, page count and the owner mark, in one of six cover styles.",
+	"textdomain": "devportfolio",
+	"usesContext": [ "postId" ],
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}

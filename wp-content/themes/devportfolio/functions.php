@@ -54,6 +54,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 	 */
 	function devportfolio_register_blocks() {
 		register_block_type( __DIR__ . '/blocks/document-categories' );
+		register_block_type( __DIR__ . '/blocks/document-book' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );

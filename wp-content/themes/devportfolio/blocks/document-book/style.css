@@ -1,0 +1,99 @@
+/*
+ * Document book cover (DPD-005, DPD-006, DPD-008).
+ * Follows .claude/plans/documents/documents-hifi-wireframe (.book, .p0-.p5) and
+ * .claude/plans/design-system.html. Tokens hold the design system's light-mode values and are
+ * fixed (the theme has no dark mode yet). Each cover style sets --cv (cover), --ct (text) and
+ * --cat-c (category colour); the pattern lives in the .documents-book__pat layer.
+ */
+.documents-book {
+	--book-ink: #000000;
+	--book-ink-2: #2c2c2e;
+	--book-surface: #ffffff;
+	--book-surface-alt: #f2f2f7;
+	--book-line: #d1d1d6;
+	--book-subtle: #6a6a6f;
+	--book-g1: 26 214 253;
+	--book-g2: 29 98 240;
+	--book-grad: linear-gradient(135deg, rgb(var(--book-g1)), rgb(var(--book-g2)));
+	--book-shadow: rgb(12 27 30 / 0.22);
+	--book-edge: rgb(0 0 0 / 0.1);
+	--book-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--book-dur: 260ms;
+
+	--cv: var(--book-ink);
+	--ct: var(--book-surface);
+	--cat-c: var(--ct);
+
+	position: relative;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	width: 100%;
+	aspect-ratio: 2 / 3;
+	box-sizing: border-box;
+	padding: 18px 14px 14px 32px;
+	overflow: hidden;
+	border: 1px solid var(--book-edge);
+	border-radius: 3px 6px 6px 3px;
+	background: var(--cv);
+	color: var(--ct);
+	box-shadow: 8px 10px 0 var(--book-shadow);
+	font-family: inherit;
+	text-align: left;
+}
+
+.documents-book > * {
+	position: relative;
+	z-index: 1;
+}
+
+.documents-book__pat {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+}
+
+.documents-book__cat {
+	min-height: 1.4em;
+	color: var(--cat-c);
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	opacity: 0.9;
+}
+
+.documents-book__ttl {
+	align-self: center;
+	padding-block: 10px;
+	font-size: 23px;
+	font-weight: 500;
+	line-height: 1.12;
+	letter-spacing: -0.015em;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* Short ornament line under the title. */
+.documents-book__ttl::after {
+	content: "";
+	display: block;
+	width: 34px;
+	height: 2px;
+	margin-top: 12px;
+	background: currentColor;
+	opacity: 0.75;
+}
+
+.documents-book__ft {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 10px;
+	font-weight: 500;
+	letter-spacing: 0.06em;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.9;
+}
