@@ -102,6 +102,88 @@ if ( ! function_exists( 'devportfolio_sanitize_cover_style' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'devportfolio_document_file_kind' ) ) :
+	/**
+	 * What kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp` or `other` (DPD-026).
+	 *
+	 * Decided by the attachment's mime type, or its extension when the host reports a generic
+	 * type. Core functions only, so it works without the plugin.
+	 *
+	 * @since 0.6.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return string
+	 */
+	function devportfolio_document_file_kind( $post_id ) {
+		$file_id = (int) get_post_meta( (int) $post_id, 'cptdp_document_file', true );
+		if ( $file_id < 1 || 'attachment' !== get_post_type( $file_id ) ) {
+			return 'other';
+		}
+
+		$by_mime = array(
+			'application/pdf' => 'pdf',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+			'application/vnd.ms-powerpoint' => 'ppt',
+			'application/vnd.oasis.opendocument.presentation' => 'odp',
+		);
+		$mime    = (string) get_post_mime_type( $file_id );
+		if ( isset( $by_mime[ $mime ] ) ) {
+			return $by_mime[ $mime ];
+		}
+
+		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
+			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $file_id ), PATHINFO_EXTENSION ) );
+			if ( in_array( $extension, array( 'pptx', 'ppt', 'odp' ), true ) ) {
+				return $extension;
+			}
+		}
+
+		return 'other';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_unit' ) ) :
+	/**
+	 * The word a document's pieces are called: `slide` for presentations, `page` for everything else (DPD-026).
+	 *
+	 * @since 0.6.0
+	 *
+	 * @param string $kind File kind from devportfolio_document_file_kind().
+	 * @return string `slide` or `page`.
+	 */
+	function devportfolio_document_unit( $kind ) {
+		return in_array( $kind, array( 'pptx', 'ppt', 'odp' ), true ) ? 'slide' : 'page';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_unit_strings' ) ) :
+	/**
+	 * The modal's wording for pages and slides, for view.js (`data-units` on the block root) (DPD-026).
+	 *
+	 * @since 0.6.0
+	 *
+	 * @return array<string,array<string,string>>
+	 */
+	function devportfolio_document_unit_strings() {
+		return array(
+			'page'  => array(
+				'one'  => _x( 'Page', 'document modal unit, singular', 'devportfolio' ),
+				'many' => _x( 'Pages', 'document modal unit, plural', 'devportfolio' ),
+				'prev' => _x( 'Previous page', 'document modal', 'devportfolio' ),
+				'next' => _x( 'Next page', 'document modal', 'devportfolio' ),
+				'nav'  => _x( 'Pages', 'document modal pager', 'devportfolio' ),
+			),
+			'slide' => array(
+				'one'  => _x( 'Slide', 'document modal unit, singular', 'devportfolio' ),
+				'many' => _x( 'Slides', 'document modal unit, plural', 'devportfolio' ),
+				'prev' => _x( 'Previous slide', 'document modal', 'devportfolio' ),
+				'next' => _x( 'Next slide', 'document modal', 'devportfolio' ),
+				'nav'  => _x( 'Slides', 'document modal pager', 'devportfolio' ),
+			),
+		);
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 	/**
 	 * Builds the cover format line, e.g. "PDF · 24 pp" (DPD-005).
@@ -110,13 +192,17 @@ if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 	 * negative or non-numeric counts are left out. The parts are joined by a
 	 * middle dot only when both exist. Returns plain text (escape on output).
 	 *
+	 * For a presentation (`pptx`, `ppt`, `odp`, see devportfolio_document_unit()) the
+	 * count is in slides: "PPTX · 12 slides", "1 slide" (DPD-026).
+	 *
 	 * @since 0.3.0
 	 *
-	 * @param mixed $filetype File type, e.g. "pdf".
-	 * @param mixed $pages    Page count.
+	 * @param mixed  $filetype File type, e.g. "pdf".
+	 * @param mixed  $pages    Page count.
+	 * @param string $kind     Optional file kind from devportfolio_document_file_kind().
 	 * @return string
 	 */
-	function devportfolio_document_format_label( $filetype, $pages ) {
+	function devportfolio_document_format_label( $filetype, $pages, $kind = '' ) {
 		$parts = array();
 
 		$filetype = is_scalar( $filetype ) ? strtoupper( trim( (string) $filetype ) ) : '';
@@ -125,7 +211,13 @@ if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 		}
 
 		$pages = ( is_int( $pages ) || ( is_string( $pages ) && ctype_digit( trim( $pages ) ) ) ) ? (int) $pages : 0;
-		if ( 1 === $pages ) {
+		if ( 'slide' === devportfolio_document_unit( $kind ) ) {
+			if ( 1 === $pages ) {
+				$parts[] = '1 ' . _x( 'slide', 'slide count, singular', 'devportfolio' );
+			} elseif ( $pages > 1 ) {
+				$parts[] = $pages . ' ' . _x( 'slides', 'slide count, plural', 'devportfolio' );
+			}
+		} elseif ( 1 === $pages ) {
 			$parts[] = '1 ' . _x( 'p', 'page count abbreviation, singular', 'devportfolio' );
 		} elseif ( $pages > 1 ) {
 			$parts[] = $pages . ' ' . _x( 'pp', 'page count abbreviation, plural', 'devportfolio' );
@@ -249,7 +341,8 @@ if ( ! function_exists( 'devportfolio_document_shelf_item' ) ) :
 			'description' => devportfolio_document_description( $post_id ),
 			'format'      => devportfolio_document_format_label(
 				get_post_meta( $post_id, 'cptdp_filetype', true ),
-				get_post_meta( $post_id, 'cptdp_total_pages', true )
+				get_post_meta( $post_id, 'cptdp_total_pages', true ),
+				devportfolio_document_file_kind( $post_id )
 			),
 			'categories'  => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
 		);
@@ -281,13 +374,17 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 
 		return array(
 			'id'           => $post_id,
-			'title'        => get_the_title( $post_id ),
+			// The script writes the title with textContent, so it must be plain text: get_the_title() returns
+			// HTML entities ("&#038;" for "&").
+			'title'        => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
 			'description'  => devportfolio_document_description( $post_id ),
 			'tools'        => $tools,
 			'format'       => devportfolio_document_format_label(
 				get_post_meta( $post_id, 'cptdp_filetype', true ),
-				get_post_meta( $post_id, 'cptdp_total_pages', true )
+				get_post_meta( $post_id, 'cptdp_total_pages', true ),
+				$viewer['kind']
 			),
+			'kind'         => $viewer['kind'],
 			'pages'        => max( 0, $pages ),
 			'downloadMode' => $download['mode'],
 			'downloadUrl'  => $download['url'],
@@ -296,6 +393,7 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			'cropBottom'   => $viewer['cropBottom'],
 			'ratio'        => $viewer['ratio'],
 			'viewerUrl'    => $viewer['viewerUrl'],
+			'nativeUrl'   => $viewer['nativeUrl'],
 			'pdfBytes'     => $viewer['pdfBytes'],
 		);
 	}
@@ -317,11 +415,19 @@ if ( ! function_exists( 'devportfolio_document_viewer_data' ) ) :
 	 *               (0 when unknown).
 	 * - viewerUrl:  URL of the PDF the browser can render, empty for other files.
 	 * - pdfBytes:   size of the PDF file (0 when unknown), used by the render gate.
+	 * - kind:       `pdf`, `pptx`, `ppt`, `odp` or `other` (DPD-026).
+	 * - nativeUrl: URL of a `.pptx` the visitor's browser should draw itself with the bundled
+	 *               native viewer (selectable text, from the original file), only when
+	 *               Settings > Documents > Native viewer > PowerPoint is on (DPB-026), else ''.
+	 *               It takes over from the converted slides, which stay as its fallback.
+	 *
+	 * Presentations have no `viewerUrl` (pdf.js cannot read them); their stored page images
+	 * come from the plugin like a PDF's (converted slides).
 	 *
 	 * @since 0.5.0
 	 *
 	 * @param int $post_id Document ID.
-	 * @return array{images:string[],imageWidth:int,cropBottom:float,ratio:float,viewerUrl:string,pdfBytes:int}
+	 * @return array{images:string[],imageWidth:int,cropBottom:float,ratio:float,viewerUrl:string,nativeUrl:string,pdfBytes:int,kind:string}
 	 */
 	function devportfolio_document_viewer_data( $post_id ) {
 		$post_id = (int) $post_id;
@@ -331,14 +437,31 @@ if ( ! function_exists( 'devportfolio_document_viewer_data' ) ) :
 			'cropBottom' => 0.0,
 			'ratio'      => 0.0,
 			'viewerUrl'  => '',
+			'nativeUrl' => '',
 			'pdfBytes'   => 0,
+			'kind'       => 'other',
 		);
 
 		if ( 'document' !== get_post_type( $post_id ) ) {
 			return $data;
 		}
 
-		$file_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		$data['kind'] = devportfolio_document_file_kind( $post_id );
+		$file_id      = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+
+		if ( 'slide' === devportfolio_document_unit( $data['kind'] ) ) {
+			// Converted slides (the default view, and the native viewer's fallback), plus the native viewer's
+			// address when the plugin allows it; never a PDF for pdf.js.
+			if ( function_exists( 'cptdp_get_document_pages' ) ) {
+				$data = array_merge( $data, devportfolio_document_normalise_stored_pages( cptdp_get_document_pages( $post_id ) ) );
+			}
+			if ( function_exists( 'cptdp_document_native_pptx_url' ) ) {
+				$native             = cptdp_document_native_pptx_url( $post_id );
+				$data['nativeUrl'] = is_string( $native ) ? esc_url_raw( $native ) : '';
+			}
+
+			return $data;
+		}
 
 		if ( function_exists( 'cptdp_document_pdf_url' ) ) {
 			$data['viewerUrl'] = (string) cptdp_document_pdf_url( $post_id );
@@ -414,15 +537,16 @@ if ( ! function_exists( 'devportfolio_document_selectable_text' ) ) :
 	/**
 	 * Whether visitors may select and copy the text of document pages.
 	 *
-	 * Settings > Documents > "Selectable text" in the plugin (off by default). On, the
-	 * viewer draws pages with pdf.js and a real text layer instead of the stored images.
+	 * Settings > Documents > Native viewer > PDF in the plugin (`native_pdf`, off by default; it was
+	 * called "Selectable text"). On, the viewer draws pages with pdf.js and a real text layer
+	 * instead of the stored images.
 	 *
 	 * @since 0.5.0
 	 *
 	 * @return bool
 	 */
 	function devportfolio_document_selectable_text() {
-		return function_exists( 'cptdp_get_documents_settings' ) && (bool) cptdp_get_documents_settings( 'selectable_text' );
+		return function_exists( 'cptdp_get_documents_settings' ) && (bool) cptdp_get_documents_settings( 'native_pdf' );
 	}
 endif;
 

@@ -9,11 +9,19 @@
  *    The heavy fallback, allowed only when the client render gate says so.
  * If neither works the stage says the document can't be previewed.
  *
+ * A third way (DPD-026): a .pptx carries `nativeUrl` when Settings > Documents > Native viewer >
+ * PowerPoint is on; the bundled @silurus/ooxml viewer (WebAssembly parser, canvas renderer,
+ * vendor/ooxml/) then draws the original file here, in the visitor's browser, with selectable text,
+ * and the modal's pager, arrows and keys turn the slides. It is loaded with import() only for such a
+ * document and sends nothing anywhere; when it cannot draw the file the stored slides are shown.
+ * viewerMode() picks.
+ *
  * The viewer never owns the current page: view.js does. The viewer reports
  * geometry (page count and step) once it knows them and page turns made on the
  * book (drag, corner click), and view.js tells it where to go.
  */
 import { stepFor, normalisePage } from './pager.js';
+import { viewerMode, unitOf, wording, pieceLabel, canDrawPresentations } from './mode.js';
 import { fitPage, orientationOf, renderWindow, canvasScale } from './layout.js';
 import { clientRenderTier, budgetFor, readEnvironment, markFailure, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 
@@ -21,6 +29,31 @@ const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).hre
 
 /** pdf.js errors that mean "this file is bad", not "this browser can't render". */
 const DOCUMENT_ERRORS = [ 'PasswordException', 'InvalidPDFException', 'MissingPDFException', 'UnexpectedResponseException', 'FormatError' ];
+
+/**
+ * The bundled PPTX viewer (vendor/ooxml/, @silurus/ooxml); imported lazily, only for a document the native
+ * viewer draws. Its entry file and WebAssembly file keep the same name in every release, so both carry the
+ * library version in the query: a long browser cache can then never serve old code for a new release.
+ * Keep PPTX_VERSION equal to the version in vendor/ooxml/README.md (a test compares them).
+ */
+const PPTX_VERSION = '0.89.7';
+const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;
+const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ PPTX_VERSION }`, import.meta.url ).href;
+
+/** What the bundled viewer needs from the browser. */
+function readNativeEnvironment() {
+	let canvas2d = false;
+	try {
+		canvas2d = !! document.createElement( 'canvas' ).getContext( '2d' );
+	} catch ( e ) {
+		canvas2d = false;
+	}
+	return {
+		webassembly: typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function',
+		worker: typeof Worker === 'function',
+		canvas2d,
+	};
+}
 
 let flipLibrary = null;
 
@@ -241,7 +274,7 @@ function pdfSource( pdf, ratio, TextLayer ) {
  * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
  * @param {Function} options.onFlip      ( page ) A page turn made on the book itself.
  */
-export function createViewer( { stage, status, pdfjs, limits, selectableText = false, onGeometry, onFlip } ) {
+export function createViewer( { stage, status, pdfjs, limits, units = null, selectableText = false, onGeometry, onFlip } ) {
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 	// The book is not a live region: dozens of page labels would be announced at once.
 	// Loading and "can't be previewed" are announced by the status element (role="status").
@@ -250,6 +283,11 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 	const hintEl = status.querySelector( '.documents-modal__state-hint' );
 
 	let session = 0;
+	let unit = 'page';
+	let words = wording( 'page', units );
+	let pptx = null;
+	let pptxBusy = false;
+	let pptxCount = 0;
 	let source = null;
 	let budget = null;
 	let usedPdf = false;
@@ -270,7 +308,7 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 		}
 		status.dataset.kind = kind || '';
 		textEl.textContent = kind === 'loading' ? status.dataset.loading : kind === 'unavailable' ? status.dataset.unavailable : '';
-		hintEl.textContent = kind === 'unavailable' ? status.dataset.hint : '';
+		hintEl.textContent = kind === 'unavailable' ? ( unit === 'slide' && status.dataset.hintSlide ? status.dataset.hintSlide : status.dataset.hint ) : '';
 		stage.setAttribute( 'aria-busy', kind === 'loading' ? 'true' : 'false' );
 		if ( kind ) {
 			// The text is in place before the region appears, so a screen reader announces it.
@@ -295,6 +333,16 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 	};
 
 	const reset = () => {
+		if ( pptx ) {
+			try {
+				pptx.destroy();
+			} catch ( e ) {
+				// Already gone.
+			}
+			pptx = null;
+		}
+		pptxBusy = false;
+		pptxCount = 0;
 		destroyBook();
 		if ( observer ) {
 			observer.disconnect();
@@ -321,7 +369,7 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 			const el = document.createElement( 'div' );
 			el.className = 'documents-modal__page';
 			el.setAttribute( 'role', 'img' );
-			el.setAttribute( 'aria-label', `Page ${ i + 1 } of ${ count }` );
+			el.setAttribute( 'aria-label', pieceLabel( words, i + 1, count ) );
 			el.dataset.density = 'soft';
 			const sheet = document.createElement( 'div' );
 			sheet.className = 'documents-modal__sheet';
@@ -551,16 +599,148 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 		}
 	};
 
+	/**
+	 * Draws a .pptx in the visitor's browser with the native (bundled) viewer (DPD-026).
+	 *
+	 * One canvas shows one slide; the modal's own pager, arrows and keys turn them (goTo() below), so
+	 * this behaves like the book. Text can be selected and copied; hyperlinks, media, element selection
+	 * and web fonts are switched off: the viewer reads the file from this site and requests nothing else.
+	 *
+	 * @return {Promise<boolean>} True when the deck is showing. False when it could not be drawn (the
+	 *                            caller then shows the stored slides, or the "can't be previewed" state).
+	 */
+	const showPptx = async ( doc, alive ) => {
+		if ( ! canDrawPresentations( readNativeEnvironment() ) ) {
+			return false;
+		}
+
+		const mine = session;
+		let opened = false;
+		const wrap = document.createElement( 'div' );
+		wrap.className = 'documents-modal__native';
+		wrap.style.visibility = 'hidden';
+		const canvas = document.createElement( 'canvas' );
+		canvas.className = 'documents-modal__native-canvas';
+		canvas.setAttribute( 'role', 'img' );
+		canvas.setAttribute( 'aria-label', doc.title || '' );
+		wrap.append( canvas );
+		stage.replaceChildren( wrap );
+
+		/** The canvas is scaled with CSS to fit the stage. */
+		const fit = () => {
+			const ratio = canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9;
+			const room = fitPage( { stageW: stage.clientWidth, stageH: Math.max( 40, stage.clientHeight ), ratio } );
+			canvas.style.width = `${ room.pageW }px`;
+			canvas.style.height = `${ room.pageH }px`;
+		};
+
+		try {
+			const lib = await withTimeout( import( PPTX_LIB ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			// Draw at the size it will be shown (times the device ratio below), not larger: a 4K canvas costs
+			// about four times the memory of a full-HD one. Slides are mostly 16:9, which this assumes.
+			const size = measure();
+			const room = fitPage( { stageW: size.w, stageH: Math.max( 40, size.h ), ratio: 16 / 9 } );
+			const instance = new lib.PptxViewer( canvas, {
+				wasmUrl: PPTX_WASM,
+				width: Math.max( 640, Math.min( 1920, room.pageW ) ),
+				dpr: Math.min( 2, window.devicePixelRatio || 1 ),
+				enableTextSelection: true,
+				enableHyperlinks: false,
+				enableMediaPlayback: false,
+				enableElementSelection: false,
+				useGoogleFonts: false,
+				workerTimeoutMs: limits.nativeTimeoutMs,
+				onSlideChange: ( index, total ) => {
+					if ( mine !== session ) {
+						return;
+					}
+					canvas.setAttribute( 'aria-label', pieceLabel( words, index + 1, total || pptxCount || index + 1 ) );
+					if ( index + 1 !== current ) {
+						current = index + 1;
+						onFlip( current );
+					}
+				},
+				// Before the deck is showing a failure is handled by the awaits below; after it, a slide that
+				// cannot be drawn ends the viewer.
+				onError: ( error ) => {
+					if ( opened ) {
+						fail( error, mine );
+					}
+				},
+			} );
+			// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
+			pptx = instance;
+
+			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			pptxCount = instance.slideCount;
+			step = 1;
+			current = onGeometry( { pages: pptxCount, step } );
+			if ( current > 1 ) {
+				await instance.goToSlide( current - 1 );
+			}
+			if ( ! alive() ) {
+				return false;
+			}
+
+			fit();
+			wrap.style.visibility = '';
+			setStatus( null );
+			opened = true;
+
+			observer = new ResizeObserver( fit );
+			observer.observe( stage );
+			return true;
+		} catch ( error ) {
+			if ( alive() && ! isBenignRenderError( error ) ) {
+				// Leave nothing of the failed attempt behind: the caller shows the stored slides or says it can't preview.
+				if ( pptx ) {
+					try {
+						pptx.destroy();
+					} catch ( e ) {
+						// Already gone.
+					}
+					pptx = null;
+				}
+				pptxBusy = false;
+				pptxCount = 0;
+				stage.replaceChildren();
+			}
+			return false;
+		}
+	};
+
 	return {
 		/** Opens a document. Resolves when the book is showing or the document was marked unavailable. */
 		async show( doc, page = 1 ) {
 			reset();
 			const mine = ++session;
 			const alive = () => mine === session;
+			unit = unitOf( doc );
+			words = wording( unit, units );
 			current = page;
 			usedPdf = false;
 			budget = budgetFor( 'full', limits );
 			setStatus( 'loading' );
+
+			if ( viewerMode( doc ) === 'native' ) {
+				const drawn = await showPptx( doc, alive );
+				if ( drawn || ! alive() ) {
+					return;
+				}
+				// The native viewer could not draw it: use the stored slides when there are some.
+				if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
+					unavailable();
+					return;
+				}
+			}
 
 			// Start fetching StPageFlip now, alongside the first image or pdf.js (a failure is handled where it is awaited).
 			loadFlipLibrary().catch( () => {} );
@@ -658,12 +838,32 @@ export function createViewer( { stage, status, pdfjs, limits, selectableText = f
 
 		/** True while a page is turning, so callers can ignore a second turn. */
 		isTurning() {
+			if ( pptx ) {
+				return pptxBusy;
+			}
 			// Only while a page is actually moving: the library also reports 'fold_corner' while the pointer rests on a corner.
 			return !! flip && [ 'flipping', 'user_fold' ].includes( flip.getState() );
 		},
 
 		/** Moves the book to a page. `animate` flips by one view; anything else jumps. */
 		goTo( page, { animate = false } = {} ) {
+			if ( pptx ) {
+				// The slide viewer has no animation; the pager, arrows and keys all end here.
+				const mine = session;
+				const target = normalisePage( page, pptxCount || 1, 1 );
+				if ( pptxCount && target !== current ) {
+					current = target;
+					pptxBusy = true;
+					pptx.goToSlide( target - 1 )
+						.catch( ( error ) => fail( error, mine ) )
+						.finally( () => {
+							if ( mine === session ) {
+								pptxBusy = false;
+							}
+						} );
+				}
+				return;
+			}
 			if ( ! source || ! flip ) {
 				current = page;
 				return;

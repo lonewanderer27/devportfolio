@@ -38,6 +38,7 @@ $devportfolio_root     = array(
 	'class'       => 'documents-modal-root',
 	'data-pdfjs'  => wp_json_encode( (object) ( '' !== $devportfolio_pdfjs['module'] ? $devportfolio_pdfjs : array() ) ),
 	'data-limits' => wp_json_encode( (object) devportfolio_document_viewer_limits() ),
+	'data-units'  => wp_json_encode( devportfolio_document_unit_strings() ),
 );
 if ( devportfolio_document_selectable_text() ) {
 	// Settings > Documents > Selectable text: the viewer draws pages with pdf.js and a real text layer.
@@ -80,6 +81,7 @@ $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24"
 					data-loading="<?php echo esc_attr_x( 'Loading pages…', 'document modal viewer', 'devportfolio' ); ?>"
 					data-unavailable="<?php echo esc_attr_x( 'This document can’t be previewed.', 'document modal viewer', 'devportfolio' ); ?>"
 					data-hint="<?php echo esc_attr_x( 'Use Download to open it.', 'document modal viewer', 'devportfolio' ); ?>"
+					data-hint-slide="<?php echo esc_attr_x( 'Presentations can’t always be previewed here. Download the file to open it in PowerPoint.', 'document modal viewer', 'devportfolio' ); ?>"
 				>
 					<span class="documents-modal__spinner" aria-hidden="true"></span>
 					<span class="documents-modal__state-text"></span>

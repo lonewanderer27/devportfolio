@@ -32,7 +32,8 @@ if ( is_array( $devportfolio_terms ) && ! empty( $devportfolio_terms ) ) {
 
 $devportfolio_format = devportfolio_document_format_label(
 	get_post_meta( $devportfolio_post_id, 'cptdp_filetype', true ),
-	get_post_meta( $devportfolio_post_id, 'cptdp_total_pages', true )
+	get_post_meta( $devportfolio_post_id, 'cptdp_total_pages', true ),
+	devportfolio_document_file_kind( $devportfolio_post_id )
 );
 $devportfolio_style  = devportfolio_sanitize_cover_style( get_post_meta( $devportfolio_post_id, 'cptdp_cover_style', true ) );
 
