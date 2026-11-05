@@ -37,12 +37,13 @@ function cptdp_documents_defaults(): array {
 
 /**
  * The native viewer formats (Settings > Documents > Native viewer), in the order they are listed.
- * DOCX will join them in a later ticket.
+ * Word (.docx) joins the native viewer formats; legacy Word and OpenDocument
+ * files use the converted pages.
  *
  * @return string[]
  */
 function cptdp_documents_native_formats(): array {
-	return array( 'pdf', 'pptx', 'xlsx' );
+	return array( 'pdf', 'pptx', 'xlsx', 'docx' );
 }
 
 /**
@@ -60,7 +61,7 @@ function cptdp_documents_checkbox_keys(): array {
  * `selectable_text` (the setting before the native viewer section existed) is still understood: it is
  * the PDF checkbox, `native_pdf`, so an existing site keeps its choice.
  *
- * @param string|null $key Optional single key: show_book_title, pages_mode, trim_bottom, native_pdf, native_pptx or native_xlsx.
+ * @param string|null $key Optional single setting key.
  * @return array<string,bool|string>|bool|string
  */
 function cptdp_get_documents_settings( ?string $key = null ) {
@@ -311,6 +312,12 @@ function cptdp_documents_conversion_formats(): array {
 			'product' => 'LibreOffice Calc',
 			'detail'  => __( 'One page per sheet. Very wide sheets are shrunk, the saved values are shown (formulas are not recalculated), hidden sheets are left out, and workbooks with macros or external links are refused.', 'custom-post-types-dp' ),
 		),
+		'word'         => array(
+			'label'   => __( 'Word (.docx, .doc) and OpenDocument (.odt)', 'custom-post-types-dp' ),
+			'kind'    => CPTDP_Page_Store::KIND_DOCX,
+			'product' => 'LibreOffice Writer',
+			'detail'  => __( 'One page per printed page. Missing fonts, page breaks and field results can differ; comments, tracked changes and files with macros or external links are refused.', 'custom-post-types-dp' ),
+		),
 	);
 }
 
@@ -373,6 +380,10 @@ function cptdp_documents_render_native_formats(): void {
 		'xlsx' => array(
 			'label' => __( 'Excel (.xlsx)', 'custom-post-types-dp' ),
 			'help'  => __( 'Draws the workbook from the original file with a bundled viewer (a few MB the first time): visitors can scroll, zoom, switch sheets and copy cells. It does not need LibreOffice on the server. No macros; charts and some formatting differ. Note that the visitor downloads the whole file, including hidden sheets and comments. Older .xls and OpenDocument .ods files are not supported (they use the converted pages).', 'custom-post-types-dp' ),
+		),
+		'docx' => array(
+			'label' => __( 'Word (.docx)', 'custom-post-types-dp' ),
+			'help'  => __( 'Draws the original .docx in the visitor’s browser with selectable and copyable text. It is slower, pages may differ from Word, and nothing is sent to anyone. No macros; .doc and .odt use converted pages. The visitor downloads the whole file, including comments, tracked changes and hidden text.', 'custom-post-types-dp' ),
 		),
 	);
 
