@@ -277,6 +277,7 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 
 		$pages    = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 		$download = devportfolio_document_download_target( $post_id );
+		$viewer   = devportfolio_document_viewer_data( $post_id );
 
 		return array(
 			'id'           => $post_id,
@@ -290,7 +291,184 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			'pages'        => max( 0, $pages ),
 			'downloadMode' => $download['mode'],
 			'downloadUrl'  => $download['url'],
+			'images'       => $viewer['images'],
+			'imageWidth'   => $viewer['imageWidth'],
+			'cropBottom'   => $viewer['cropBottom'],
+			'ratio'        => $viewer['ratio'],
+			'viewerUrl'    => $viewer['viewerUrl'],
+			'pdfBytes'     => $viewer['pdfBytes'],
 		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_viewer_data' ) ) :
+	/**
+	 * What the modal viewer needs to show a document's pages (DPD-013).
+	 *
+	 * Reads the plugin's page image store (DPB-025) through function_exists
+	 * guards, so the theme works, and the viewer falls back to rendering the
+	 * PDF in the browser, when the plugin API is missing. Never converts.
+	 *
+	 * - images:     URLs of the stored page images, empty unless they are valid.
+	 * - imageWidth: pixel width of one stored image (0 when unknown).
+	 * - cropBottom: share of each page's height (0 to 0.25) that is empty at the
+	 *               bottom and that the viewer hides; 0 when nothing is trimmed.
+	 * - ratio:      page width / visible height, already accounting for cropBottom
+	 *               (0 when unknown).
+	 * - viewerUrl:  URL of the PDF the browser can render, empty for other files.
+	 * - pdfBytes:   size of the PDF file (0 when unknown), used by the render gate.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array{images:string[],imageWidth:int,cropBottom:float,ratio:float,viewerUrl:string,pdfBytes:int}
+	 */
+	function devportfolio_document_viewer_data( $post_id ) {
+		$post_id = (int) $post_id;
+		$data    = array(
+			'images'     => array(),
+			'imageWidth' => 0,
+			'cropBottom' => 0.0,
+			'ratio'      => 0.0,
+			'viewerUrl'  => '',
+			'pdfBytes'   => 0,
+		);
+
+		if ( 'document' !== get_post_type( $post_id ) ) {
+			return $data;
+		}
+
+		$file_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+
+		if ( function_exists( 'cptdp_document_pdf_url' ) ) {
+			$data['viewerUrl'] = (string) cptdp_document_pdf_url( $post_id );
+		} elseif ( $file_id > 0 && 'application/pdf' === get_post_mime_type( $file_id ) ) {
+			$data['viewerUrl'] = (string) wp_get_attachment_url( $file_id );
+		}
+
+		if ( '' === $data['viewerUrl'] ) {
+			// Not a PDF: nothing to show in the viewer, whatever else is stored.
+			return $data;
+		}
+
+		$path = $file_id > 0 ? get_attached_file( $file_id ) : false;
+		if ( $path && is_readable( $path ) ) {
+			$data['pdfBytes'] = (int) filesize( $path );
+		}
+
+		if ( function_exists( 'cptdp_get_document_pages' ) ) {
+			$data = array_merge( $data, devportfolio_document_normalise_stored_pages( cptdp_get_document_pages( $post_id ) ) );
+		}
+
+		return $data;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_normalise_stored_pages' ) ) :
+	/**
+	 * Turns the plugin's stored-pages answer into the viewer's payload keys (DPD-013).
+	 *
+	 * Anything that is not a non-empty list of page URLs gives no images, so a
+	 * missing, invalid or malformed answer sends the viewer to its fallback.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param mixed $stored What cptdp_get_document_pages() returned: array or null.
+	 * @return array{images:string[],imageWidth:int,cropBottom:float,ratio:float}
+	 */
+	function devportfolio_document_normalise_stored_pages( $stored ) {
+		$none = array(
+			'images'     => array(),
+			'imageWidth' => 0,
+			'cropBottom' => 0.0,
+			'ratio'      => 0.0,
+		);
+		if ( ! is_array( $stored ) || empty( $stored['pages'] ) || ! is_array( $stored['pages'] ) ) {
+			return $none;
+		}
+
+		$images = array();
+		foreach ( $stored['pages'] as $url ) {
+			$url = is_string( $url ) ? esc_url_raw( $url ) : '';
+			if ( '' === $url ) {
+				// One bad URL would leave a hole in the book: use none of them.
+				return $none;
+			}
+			$images[] = $url;
+		}
+
+		// A crop outside 0 to 0.25 is not trusted: show the whole page.
+		$crop = (float) ( $stored['crop_bottom'] ?? 0 );
+		$crop = ( $crop > 0 && $crop <= 0.25 ) ? round( $crop, 4 ) : 0.0;
+
+		return array(
+			'images'     => $images,
+			'imageWidth' => max( 0, (int) ( $stored['width'] ?? 0 ) ),
+			'cropBottom' => $crop,
+			'ratio'      => max( 0.0, round( (float) ( $stored['ratio'] ?? 0 ), 4 ) ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_selectable_text' ) ) :
+	/**
+	 * Whether visitors may select and copy the text of document pages.
+	 *
+	 * Settings > Documents > "Selectable text" in the plugin (off by default). On, the
+	 * viewer draws pages with pdf.js and a real text layer instead of the stored images.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @return bool
+	 */
+	function devportfolio_document_selectable_text() {
+		return function_exists( 'cptdp_get_documents_settings' ) && (bool) cptdp_get_documents_settings( 'selectable_text' );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_viewer_limits' ) ) :
+	/**
+	 * Overrides for the viewer's client render gate (DPD-013).
+	 *
+	 * The defaults live in blocks/document-modal/capability.js (DEFAULT_LIMITS);
+	 * this returns only what a site wants to change, e.g. a lower page cap:
+	 *
+	 *     add_filter( 'devportfolio_document_viewer_limits', function ( $limits ) {
+	 *         $limits['maxPages'] = array( 'mobile' => 30, 'desktop' => 200 );
+	 *         return $limits;
+	 *     } );
+	 *
+	 * @since 0.5.0
+	 *
+	 * @return array<string,mixed>
+	 */
+	function devportfolio_document_viewer_limits() {
+		$limits = apply_filters( 'devportfolio_document_viewer_limits', array() );
+		return is_array( $limits ) ? $limits : array();
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_pdfjs_urls' ) ) :
+	/**
+	 * URLs of the pdf.js build the plugin ships (DPB-025), for the viewer's fallback.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @return array{module:string,worker:string} Empty strings when the plugin does not provide them.
+	 */
+	function devportfolio_document_pdfjs_urls() {
+		$urls = array(
+			'module' => '',
+			'worker' => '',
+		);
+		if ( function_exists( 'cptdp_document_pdfjs_urls' ) ) {
+			$found = cptdp_document_pdfjs_urls();
+			if ( is_array( $found ) ) {
+				$urls['module'] = isset( $found['module'] ) ? esc_url_raw( (string) $found['module'] ) : '';
+				$urls['worker'] = isset( $found['worker'] ) ? esc_url_raw( (string) $found['worker'] ) : '';
+			}
+		}
+		return $urls;
 	}
 endif;
 
