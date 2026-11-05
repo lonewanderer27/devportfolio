@@ -165,21 +165,23 @@ function cptdp_documents_register_sections(): void {
 		array( 'label_for' => 'cptdp_documents_trim_bottom' )
 	);
 
-	add_settings_field(
-		'cptdp_documents_pptx_status',
-		esc_html__( 'PowerPoint conversion', 'custom-post-types-dp' ),
-		'cptdp_documents_render_pptx_status',
-		'cptdp-documents',
-		'cptdp_documents_section'
+	add_settings_section(
+		'cptdp_documents_conversion_section',
+		esc_html__( 'Document conversion', 'custom-post-types-dp' ),
+		'cptdp_documents_render_conversion_section',
+		'cptdp-documents'
 	);
 
-	add_settings_field(
-		'cptdp_documents_xlsx_status',
-		esc_html__( 'Excel conversion', 'custom-post-types-dp' ),
-		'cptdp_documents_render_xlsx_status',
-		'cptdp-documents',
-		'cptdp_documents_section'
-	);
+	foreach ( cptdp_documents_conversion_formats() as $family => $format ) {
+		add_settings_field(
+			'cptdp_documents_conversion_' . $family,
+			esc_html( $format['label'] ),
+			'cptdp_documents_render_conversion_status',
+			'cptdp-documents',
+			'cptdp_documents_conversion_section',
+			array( 'family' => $family )
+		);
+	}
 
 	add_settings_section(
 		'cptdp_documents_native_section',
@@ -289,37 +291,61 @@ function cptdp_documents_render_trim_bottom(): void {
 }
 
 /**
- * Render the read-only PowerPoint conversion status line.
+ * The document families the server converts to page images with LibreOffice (Settings > Documents > Document
+ * conversion), in the order they are listed. A new format is a new entry: its label, the file kind used to ask
+ * whether the server can convert it, the converter's name, and the one line that is specific to it.
+ *
+ * @return array<string,array{label:string,kind:string,product:string,detail:string}>
  */
-function cptdp_documents_render_pptx_status(): void {
-	if ( CPTDP_Pptx_Converter::is_available() ) {
-		$version = CPTDP_Pptx_Converter::version();
-
-		echo '<p><strong>' . esc_html__( 'Available', 'custom-post-types-dp' ) . '</strong>' . ( '' !== $version ? ' (LibreOffice ' . esc_html( $version ) . ')' : '' ) . '</p>';
-		echo '<p class="description">' . esc_html__( 'PowerPoint (.pptx, .ppt) and OpenDocument (.odp) files are converted to page images when a document is saved. The result may differ from the original, so a PDF export is still the best option.', 'custom-post-types-dp' ) . '</p>';
-
-		return;
-	}
-
-	echo '<p><strong>' . esc_html__( 'Unavailable', 'custom-post-types-dp' ) . '</strong></p>';
-	echo '<p class="description">' . esc_html( CPTDP_Pptx_Converter::unavailable_reason() ) . '</p>';
+function cptdp_documents_conversion_formats(): array {
+	return array(
+		'presentations' => array(
+			'label'   => __( 'PowerPoint (.pptx, .ppt) and OpenDocument (.odp)', 'custom-post-types-dp' ),
+			'kind'    => CPTDP_Page_Store::KIND_PPTX,
+			'product' => 'LibreOffice',
+			'detail'  => __( 'One page per slide. Missing fonts are replaced, animations and transitions are not exported, and speaker notes and hidden slides are left out.', 'custom-post-types-dp' ),
+		),
+		'spreadsheets'  => array(
+			'label'   => __( 'Excel (.xlsx, .xls) and OpenDocument (.ods)', 'custom-post-types-dp' ),
+			'kind'    => CPTDP_Page_Store::KIND_XLSX,
+			'product' => 'LibreOffice Calc',
+			'detail'  => __( 'One page per sheet. Very wide sheets are shrunk, the saved values are shown (formulas are not recalculated), hidden sheets are left out, and workbooks with macros or external links are refused.', 'custom-post-types-dp' ),
+		),
+	);
 }
 
 /**
- * Render the read-only spreadsheet conversion status line.
+ * Render the Document conversion section intro: what is true of every format, said once.
  */
-function cptdp_documents_render_xlsx_status(): void {
-	if ( CPTDP_Pptx_Converter::is_available( CPTDP_Page_Store::KIND_XLSX ) ) {
-		$version = CPTDP_Pptx_Converter::version();
+function cptdp_documents_render_conversion_section(): void {
+	echo '<p>' . esc_html__( 'PDF files are drawn into page images in this server or in the editor\'s browser. Other files are converted on the server when a document is saved (visitors never trigger it), so their pages are made from a copy of the original. The result may differ from the original, so a PDF export is still the best option. When a format cannot be converted here, editors are asked to upload a PDF instead.', 'custom-post-types-dp' ) . '</p>';
+}
 
-		echo '<p><strong>' . esc_html__( 'Available', 'custom-post-types-dp' ) . '</strong>' . ( '' !== $version ? ' (LibreOffice Calc ' . esc_html( $version ) . ')' : '' ) . '</p>';
-		echo '<p class="description">' . esc_html__( 'Excel (.xlsx, .xls) and OpenDocument (.ods) files are converted to page images when a document is saved, one page per sheet. The result may differ from the original, so a PDF export is still the best option.', 'custom-post-types-dp' ) . '</p>';
+/**
+ * Render the read-only conversion status of one document family, with only what is specific to it.
+ *
+ * @param array{family?:string} $args Field arguments.
+ */
+function cptdp_documents_render_conversion_status( array $args = array() ): void {
+	$formats = cptdp_documents_conversion_formats();
+	$family  = (string) ( $args['family'] ?? '' );
 
+	if ( ! isset( $formats[ $family ] ) ) {
 		return;
 	}
 
-	echo '<p><strong>' . esc_html__( 'Unavailable', 'custom-post-types-dp' ) . '</strong></p>';
-	echo '<p class="description">' . esc_html( CPTDP_Xlsx_Converter::unavailable_reason() ) . '</p>';
+	$format = $formats[ $family ];
+
+	if ( CPTDP_Pptx_Converter::is_available( $format['kind'] ) ) {
+		$version = CPTDP_Pptx_Converter::version();
+
+		echo '<p><strong>' . esc_html__( 'Available', 'custom-post-types-dp' ) . '</strong>' . ( '' !== $version ? ' (' . esc_html( $format['product'] . ' ' . $version ) . ')' : '' ) . '</p>';
+	} else {
+		echo '<p><strong>' . esc_html__( 'Unavailable', 'custom-post-types-dp' ) . '</strong></p>';
+		echo '<p class="description">' . esc_html( CPTDP_Pptx_Converter::unavailable_reason( $format['kind'] ) ) . '</p>';
+	}
+
+	echo '<p class="description">' . esc_html( $format['detail'] ) . '</p>';
 }
 
 /**
