@@ -17,6 +17,43 @@ test( 'step is 2 for multi-page documents, 1 for a single page', () => {
 	assert.equal( stepFor( 3 ), 2 );
 } );
 
+test( 'landscape documents are always one page at a time (DPD-013)', () => {
+	assert.equal( stepFor( 1, 'landscape' ), 1 );
+	assert.equal( stepFor( 3, 'landscape' ), 1 );
+	assert.equal( stepFor( 24, 'landscape' ), 1 );
+} );
+
+test( 'portrait is the default orientation, so existing callers keep the two-page view', () => {
+	assert.equal( stepFor( 4, 'portrait' ), 2 );
+	assert.equal( stepFor( 4, undefined ), 2 );
+	assert.equal( stepFor( 1, 'portrait' ), 1 );
+	assert.equal( stepFor( 0 ), 1 );
+} );
+
+test( 'a 4-page portrait document turns 1-2, 3-4 and back', () => {
+	const step = stepFor( 4 );
+	assert.equal( turnPage( 1, 4, step, 1 ), 3 );
+	assert.equal( turnPage( 3, 4, step, 1 ), 3, 'Next is dimmed on the last view' );
+	assert.equal( turnPage( 3, 4, step, -1 ), 1 );
+	assert.deepEqual( visiblePages( 3, 4, step ), [ 3, 4 ] );
+} );
+
+test( 'a 3-page portrait document ends on page 3 alone, with an empty right side', () => {
+	const step = stepFor( 3 );
+	assert.equal( turnPage( 1, 3, step, 1 ), 3 );
+	assert.deepEqual( visiblePages( 3, 3, step ), [ 3 ] );
+	assert.deepEqual( pagerState( 3, 3, step ), { backOff: false, nextOff: true } );
+	assert.equal( indicatorParts( 3, 3, step ).both, false );
+} );
+
+test( 'a landscape document of 3 pages turns one page at a time', () => {
+	const step = stepFor( 3, 'landscape' );
+	assert.equal( turnPage( 1, 3, step, 1 ), 2 );
+	assert.equal( turnPage( 2, 3, step, 1 ), 3 );
+	assert.equal( turnPage( 3, 3, step, 1 ), 3 );
+	assert.deepEqual( visiblePages( 2, 3, step ), [ 2 ] );
+} );
+
 test( 'normalisePage clamps and starts two-page views on an odd page', () => {
 	assert.equal( normalisePage( 12, 24, 2 ), 11 );
 	assert.equal( normalisePage( 11, 24, 2 ), 11 );
