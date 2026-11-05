@@ -44,6 +44,8 @@ const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ PPTX_VERSION
 // WebAssembly file are the files without a content hash in their name.
 const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
+const DOCX_LIB = new URL( `./vendor/ooxml/docx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
+const DOCX_WASM = new URL( `./vendor/ooxml/docx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 
 /** What the bundled viewer needs from the browser. */
 function readNativeEnvironment() {
@@ -291,6 +293,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	let unit = 'page';
 	let words = wording( 'page', units );
 	let pptx = null;
+	let docx = null;
 	let pptxBusy = false;
 	let pptxCount = 0;
 	let grid = null;
@@ -307,6 +310,74 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	let step = 1;
 	let current = 1;
 	let builtFor = { w: 0, h: 0 };
+	let zoomFab = null;
+	const ZOOM_MIN = 0.1;
+	const ZOOM_MAX = 4;
+
+	const updateZoomButtons = ( viewer ) => {
+		if ( ! zoomFab || ! viewer || typeof viewer.getScale !== 'function' ) {
+			return;
+		}
+		const scale = viewer.getScale();
+		zoomFab.querySelector( '[data-zoom="out"]' ).disabled = scale <= ZOOM_MIN;
+		zoomFab.querySelector( '[data-zoom="in"]' ).disabled = scale >= ZOOM_MAX;
+	};
+
+	const showZoomFab = ( viewer ) => {
+		const makeZoomIcon = ( pathData ) => {
+			const svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' );
+			svg.setAttribute( 'class', 'documents-modal__icon' );
+			svg.setAttribute( 'viewBox', '0 0 24 24' );
+			svg.setAttribute( 'aria-hidden', 'true' );
+			svg.setAttribute( 'focusable', 'false' );
+			const path = document.createElementNS( 'http://www.w3.org/2000/svg', 'path' );
+			path.setAttribute( 'd', pathData );
+			svg.appendChild( path );
+			return svg;
+		};
+		const zoomIn = document.createElement( 'button' );
+		zoomIn.type = 'button';
+		zoomIn.className = 'documents-modal__zoom-button';
+		zoomIn.dataset.zoom = 'in';
+		zoomIn.setAttribute( 'aria-label', 'Zoom in' );
+		zoomIn.title = 'Zoom in';
+		zoomIn.appendChild( makeZoomIcon( 'M12 5v14M5 12h14' ) );
+
+		const zoomOut = document.createElement( 'button' );
+		zoomOut.type = 'button';
+		zoomOut.className = 'documents-modal__zoom-button';
+		zoomOut.dataset.zoom = 'out';
+		zoomOut.setAttribute( 'aria-label', 'Zoom out' );
+		zoomOut.title = 'Zoom out';
+		zoomOut.appendChild( makeZoomIcon( 'M5 12h14' ) );
+
+		zoomFab = document.createElement( 'div' );
+		zoomFab.className = 'documents-modal__zoom-fab';
+		zoomFab.setAttribute( 'aria-label', 'Zoom controls' );
+		zoomFab.append( zoomOut, zoomIn );
+		stage.appendChild( zoomFab );
+
+		zoomOut.addEventListener( 'click', () => {
+			if ( typeof viewer.zoomOut === 'function' ) {
+				viewer.zoomOut();
+				updateZoomButtons( viewer );
+			}
+		} );
+		zoomIn.addEventListener( 'click', () => {
+			if ( typeof viewer.zoomIn === 'function' ) {
+				viewer.zoomIn();
+				updateZoomButtons( viewer );
+			}
+		} );
+		updateZoomButtons( viewer );
+	};
+
+	const hideZoomFab = () => {
+		if ( zoomFab ) {
+			zoomFab.remove();
+			zoomFab = null;
+		}
+	};
 
 	const setStatus = ( kind ) => {
 		if ( ! kind ) {
@@ -349,6 +420,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	};
 
 	const reset = () => {
+		hideZoomFab();
 		if ( grid ) {
 			destroyNative( grid );
 			grid = null;
@@ -356,6 +428,10 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		if ( pptx ) {
 			destroyNative( pptx );
 			pptx = null;
+		}
+		if ( docx ) {
+			destroyNative( docx );
+			docx = null;
 		}
 		pptxBusy = false;
 		pptxCount = 0;
@@ -710,6 +786,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			wrap.style.visibility = '';
 			setStatus( null );
 			opened = true;
+			showZoomFab( instance );
 
 			observer = new ResizeObserver( fit );
 			observer.observe( stage );
@@ -789,6 +866,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			wrap.style.visibility = '';
 			setStatus( null );
 			opened = true;
+			showZoomFab( instance );
 			return true;
 		} catch ( error ) {
 			if ( alive() && ! isBenignRenderError( error ) ) {
@@ -803,6 +881,79 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		}
 	};
 
+	/**
+	 * Draws a .docx in the visitor's browser with the native scrolling viewer.
+	 * The continuous viewer owns scrolling and text selection, so the modal
+	 * pager and arrows are intentionally reduced to one hidden piece.
+	 */
+	const showDocx = async ( doc, alive ) => {
+		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
+			return false;
+		}
+
+		const mine = session;
+		let opened = false;
+		const wrap = document.createElement( 'div' );
+		wrap.className = 'documents-modal__native documents-modal__native--doc';
+		wrap.setAttribute( 'role', 'region' );
+		wrap.setAttribute( 'aria-label', doc.title || '' );
+		wrap.style.visibility = 'hidden';
+		stage.replaceChildren( wrap );
+
+		try {
+			const lib = await withTimeout( import( DOCX_LIB ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			const instance = new lib.DocxScrollViewer( wrap, {
+				wasmUrl: DOCX_WASM,
+				useGoogleFonts: false,
+				enableTextSelection: true,
+				enableElementSelection: false,
+				comments: false,
+				enableHyperlinks: false,
+				showTrackedChanges: false,
+				pageShadow: false,
+				refitOnResize: true,
+				workerTimeoutMs: limits.nativeTimeoutMs,
+				resourceLimits: {
+					maxArchiveEntries: 5000,
+					maxTotalInflatedBytes: 1024 * 1024 * 1024,
+					maxArchiveEntryBytes: 100 * 1024 * 1024,
+				},
+				onError: ( error ) => {
+					if ( opened ) {
+						fail( error, mine );
+					}
+				},
+			} );
+			docx = instance;
+
+			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
+			if ( ! alive() ) {
+				return false;
+			}
+
+			step = 1;
+			current = onGeometry( { pages: 1, step } );
+			wrap.style.visibility = '';
+			setStatus( null );
+			opened = true;
+			showZoomFab( instance );
+			return true;
+		} catch ( error ) {
+			if ( alive() && ! isBenignRenderError( error ) ) {
+				if ( docx ) {
+					destroyNative( docx );
+					docx = null;
+				}
+				stage.replaceChildren();
+			}
+			return false;
+		}
+	};
+
 	return {
 		/** Opens a document. Resolves when the book is showing or the document was marked unavailable. */
 		async show( doc, page = 1 ) {
@@ -810,7 +961,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			const mine = ++session;
 			const alive = () => mine === session;
 			unit = unitOf( doc );
-			hintKey = unit === 'slide' ? 'hintSlide' : ( isSpreadsheet( doc ) ? 'hintSheet' : 'hint' );
+			hintKey = unit === 'slide' ? 'hintSlide' : ( isSpreadsheet( doc ) ? 'hintSheet' : ( doc.kind === 'docx' ? 'hintDoc' : 'hint' ) );
 			words = wording( unit, units );
 			current = page;
 			usedPdf = false;
@@ -818,7 +969,8 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			setStatus( 'loading' );
 
 			if ( viewerMode( doc ) === 'native' ) {
-				const drawn = await ( doc.kind === 'xlsx' ? showXlsx : showPptx )( doc, alive );
+				const nativeShow = doc.kind === 'xlsx' ? showXlsx : ( doc.kind === 'docx' ? showDocx : showPptx );
+				const drawn = await nativeShow( doc, alive );
 				if ( drawn || ! alive() ) {
 					return;
 				}

@@ -21,3 +21,22 @@ ddev exec "cd /tmp && rm -rf fxs && mkdir fxs && cd fxs && cp /var/www/html/wp-c
 ```
 
 Tests expect **three sheets** (three pages). The validation cases (macros, external links, bombs) are built in memory.
+
+Word fixtures: regenerate sample.docx, sample.doc and sample.odt from sample.fodt with LibreOffice Writer.
+
+# Operations playbook sample
+
+`sample-operations-playbook.html` is the readable source for the believable
+six-page `sample-operations-playbook.docx` used by the Documents page demo. It
+is a Q4 2026 operations playbook with delivery controls, weekly cadence,
+support escalation, handoff guidance, templates, and an appendix. Regenerate
+the DOCX with LibreOffice Writer:
+
+```bash
+ddev exec "rm -rf /tmp/q4-docx && mkdir -p /tmp/q4-docx && libreoffice --headless --convert-to odt --outdir /tmp/q4-docx /var/www/html/wp-content/plugins/custom-post-types-dp/tests/fixtures/sample-operations-playbook.html && libreoffice --headless --convert-to docx --outdir /tmp/q4-docx /tmp/q4-docx/sample-operations-playbook.odt && cp /tmp/q4-docx/sample-operations-playbook.docx /var/www/html/wp-content/plugins/custom-post-types-dp/tests/fixtures/"
+```
+
+The demo entry is Document post `129`, titled `Q4 2026 Operations Playbook`,
+with attachment `128`. Its local upload path is
+`wp-content/uploads/2026/11/dave-operations-playbook.docx` (uploads are
+runtime data and are not committed); use the committed fixture to recreate it.

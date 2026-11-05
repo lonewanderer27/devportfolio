@@ -14,10 +14,16 @@
 
 const PRESENTATIONS = [ 'pptx', 'ppt', 'odp' ];
 const SPREADSHEETS = [ 'xlsx', 'xls', 'ods' ];
+const WORD = [ 'docx', 'doc', 'odt' ];
 
 /** Whether a payload entry is a spreadsheet (DPD-027). Its pieces are still called pages. */
 export function isSpreadsheet( doc ) {
 	return !! doc && SPREADSHEETS.includes( doc.kind );
+}
+
+/** Whether a payload entry is a word-processing document. */
+export function isWord( doc ) {
+	return !! doc && WORD.includes( doc.kind );
 }
 
 /** The mode for a payload entry. */

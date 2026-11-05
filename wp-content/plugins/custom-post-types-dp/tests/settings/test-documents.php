@@ -19,6 +19,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'native_pdf'      => false,
 				'native_pptx'     => false,
 				'native_xlsx'     => false,
+				'native_docx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -43,6 +44,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'native_pdf'      => false,
 				'native_pptx'     => false,
 				'native_xlsx'     => false,
+				'native_docx'     => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -129,9 +131,9 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 	}
 
 	public function test_the_native_viewer_formats_are_off_by_default_and_sanitised(): void {
-		$this->assertSame( array( 'pdf', 'pptx', 'xlsx' ), cptdp_documents_native_formats(), 'DOCX is a later ticket.' );
+		$this->assertSame( array( 'pdf', 'pptx', 'xlsx', 'docx' ), cptdp_documents_native_formats() );
 
-		foreach ( array( 'native_pdf', 'native_pptx', 'native_xlsx' ) as $key ) {
+		foreach ( array( 'native_pdf', 'native_pptx', 'native_xlsx', 'native_docx' ) as $key ) {
 			$this->assertFalse( cptdp_get_documents_settings( $key ), $key );
 			$this->assertTrue( cptdp_documents_sanitize( array( $key => '1' ) )[ $key ], $key );
 			$this->assertFalse( cptdp_documents_sanitize( array( $key => '0' ) )[ $key ], $key );
@@ -141,6 +143,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$clean                = cptdp_documents_sanitize( array( 'pages_mode' => 'auto' ) );
 		$this->assertFalse( $clean['native_pdf'], 'On the settings form an unticked checkbox is not submitted.' );
 		$this->assertFalse( $clean['native_pptx'] );
+		$this->assertFalse( $clean['native_docx'] );
 		unset( $_POST['option_page'] );
 
 		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
@@ -192,7 +195,8 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$this->assertStringContainsString( 'pdf.js', $html );
 		$this->assertStringContainsString( 'LibreOffice', $html );
 		$this->assertStringContainsString( 'name="cptdp_documents[native_xlsx]"', $html );
-		$this->assertSame( 3, substr_count( $html, 'type="checkbox"' ) );
+		$this->assertStringContainsString( 'name="cptdp_documents[native_docx]"', $html );
+		$this->assertSame( 4, substr_count( $html, 'type="checkbox"' ) );
 		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $html );
 
 		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
@@ -222,13 +226,13 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		);
 		$this->assertSame( 'Document conversion', $wp_settings_sections['cptdp-documents']['cptdp_documents_conversion_section']['title'] );
 		$this->assertSame(
-			array( 'cptdp_documents_conversion_presentations', 'cptdp_documents_conversion_spreadsheets' ),
+			array( 'cptdp_documents_conversion_presentations', 'cptdp_documents_conversion_spreadsheets', 'cptdp_documents_conversion_word' ),
 			array_keys( $wp_settings_fields['cptdp-documents']['cptdp_documents_conversion_section'] ),
 			'One field per document family.'
 		);
 		$this->assertArrayNotHasKey( 'cptdp_documents_pptx_status', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'], 'The status rows moved.' );
 		$this->assertArrayNotHasKey( 'cptdp_documents_xlsx_status', $wp_settings_fields['cptdp-documents']['cptdp_documents_section'] );
-		$this->assertSame( array( 'presentations', 'spreadsheets' ), array_keys( cptdp_documents_conversion_formats() ) );
+		$this->assertSame( array( 'presentations', 'spreadsheets', 'word' ), array_keys( cptdp_documents_conversion_formats() ) );
 	}
 
 	public function test_what_is_true_of_every_format_is_said_once_and_each_row_has_only_its_own_detail(): void {
@@ -252,6 +256,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$this->assertStringContainsString( 'animations and transitions are not exported', $rows );
 		$this->assertStringContainsString( 'One page per sheet', $rows );
 		$this->assertStringContainsString( 'formulas are not recalculated', $rows );
+		$this->assertStringContainsString( 'tracked changes', $rows );
 	}
 
 	public function test_a_row_shows_available_with_the_version_or_unavailable_with_the_reason(): void {
@@ -297,6 +302,7 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 				'native_pdf'      => true,
 				'native_pptx'     => false,
 				'native_xlsx'     => false,
+				'native_docx'     => false,
 			),
 			cptdp_documents_sanitize( array( 'pages_mode' => 'server' ) )
 		);

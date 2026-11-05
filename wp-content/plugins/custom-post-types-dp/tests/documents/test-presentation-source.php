@@ -27,7 +27,7 @@ class CPTDP_Test_Presentation_Source extends CPTDP_Pages_Test_Case {
 			'ppt'  => array( 'application/vnd.ms-powerpoint', 'ppt' ),
 			'odp'  => array( 'application/vnd.oasis.opendocument.presentation', 'odp' ),
 			'pdf'  => array( 'application/pdf', 'pdf' ),
-			'docx' => array( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '' ),
+			'docx' => array( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx' ),
 			'xlsx' => array( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx' ),
 			'text' => array( 'text/plain', '' ),
 		);
@@ -78,11 +78,11 @@ class CPTDP_Test_Presentation_Source extends CPTDP_Pages_Test_Case {
 		$this->assertNotSame( '', cptdp_document_pdf_url( $pdf ) );
 	}
 
-	public function test_other_files_are_not_a_source(): void {
+	public function test_word_files_are_sources(): void {
 		$id = $this->make_document( $this->make_attachment( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ) );
 
-		$this->assertNull( CPTDP_Page_Store::get_source( $id ) );
-		$this->assertSame( '', CPTDP_Page_Store::source_kind( $id ) );
+		$this->assertNull( CPTDP_Page_Store::get_source( $id ), 'The test attachment has no readable file.' );
+		$this->assertSame( 'docx', CPTDP_Page_Store::source_kind( $id ) );
 	}
 
 	public function test_the_token_changes_when_the_presentation_is_replaced(): void {

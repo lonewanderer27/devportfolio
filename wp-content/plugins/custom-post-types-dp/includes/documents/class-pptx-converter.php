@@ -98,6 +98,15 @@ class CPTDP_Pptx_Converter {
 			$available = (bool) apply_filters( 'cptdp_xlsx_available', CPTDP_Xlsx_Converter::calc_installed() );
 		}
 
+		if ( $available && CPTDP_Page_Store::is_word_kind( $kind ) ) {
+			/**
+			 * Filters whether Word conversion is available.
+			 *
+			 * @param bool $available LibreOffice Writer found.
+			 */
+			$available = (bool) apply_filters( 'cptdp_docx_available', CPTDP_Docx_Converter::writer_installed() );
+		}
+
 		return $available;
 	}
 
@@ -107,6 +116,10 @@ class CPTDP_Pptx_Converter {
 	public static function unavailable_reason( string $kind = '' ): string {
 		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
 			return CPTDP_Xlsx_Converter::unavailable_reason();
+		}
+
+		if ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
+			return CPTDP_Docx_Converter::unavailable_reason( $kind );
 		}
 
 		if ( null === self::binary() ) {
@@ -180,6 +193,10 @@ class CPTDP_Pptx_Converter {
 	public static function inspect( string $path, string $kind ) {
 		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
 			return CPTDP_Xlsx_Converter::inspect( $path, $kind );
+		}
+
+		if ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
+			return CPTDP_Docx_Converter::inspect( $path, $kind );
 		}
 
 		if ( ! CPTDP_Page_Store::is_presentation_kind( $kind ) ) {
@@ -481,11 +498,11 @@ class CPTDP_Pptx_Converter {
 		$binary = self::binary();
 
 		if ( null === $binary ) {
-			return new WP_Error( 'cptdp_unavailable', self::unavailable_reason() );
+			return new WP_Error( 'cptdp_unavailable', self::unavailable_reason( $kind ) );
 		}
 
 		if ( false !== get_transient( self::LOCK ) ) {
-			return new WP_Error( 'cptdp_pptx_busy', __( 'Another presentation is being converted.', 'custom-post-types-dp' ) );
+			return new WP_Error( 'cptdp_pptx_busy', __( 'Another Office document is being converted.', 'custom-post-types-dp' ) );
 		}
 
 		$dir = trailingslashit( get_temp_dir() ) . 'cptdp-pptx-' . wp_generate_password( 12, false );
@@ -530,11 +547,13 @@ class CPTDP_Pptx_Converter {
 		$out   = $dir . '/out';
 
 		if ( ! copy( $path, $input ) || ! mkdir( $out, 0700 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not prepare the presentation for conversion.', 'custom-post-types-dp' ) );
+			return new WP_Error( 'cptdp_conversion_failed', 			__( 'Could not prepare the file for conversion.', 'custom-post-types-dp' ) );
 		}
 
 		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
 			CPTDP_Xlsx_Converter::write_profile( $dir . '/profile' );
+		} elseif ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
+			CPTDP_Docx_Converter::write_profile( $dir . '/profile' );
 		}
 
 		$command = array(
@@ -546,7 +565,7 @@ class CPTDP_Pptx_Converter {
 			'--nolockcheck',
 			'-env:UserInstallation=file://' . $dir . '/profile',
 			'--convert-to',
-			CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ? CPTDP_Xlsx_Converter::export_filter() : 'pdf:impress_pdf_Export',
+			CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ? CPTDP_Xlsx_Converter::export_filter() : ( CPTDP_Page_Store::is_word_kind( $kind ) ? CPTDP_Docx_Converter::export_filter() : 'pdf:impress_pdf_Export' ),
 			'--outdir',
 			$out,
 			$input,
@@ -703,4 +722,9 @@ class CPTDP_Pptx_Converter {
 	private static function external(): WP_Error {
 		return new WP_Error( 'cptdp_pptx_external', __( 'This presentation links to external content and cannot be converted safely. Export it to PDF and upload the PDF instead.', 'custom-post-types-dp' ) );
 	}
+}
+
+// Keep the historical name for one release while callers migrate to the neutral name.
+if ( ! class_exists( 'CPTDP_Office_Converter', false ) ) {
+	class_alias( 'CPTDP_Pptx_Converter', 'CPTDP_Office_Converter' );
 }

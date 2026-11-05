@@ -37,6 +37,9 @@ class CPTDP_Page_Store {
 	const KIND_XLSX = 'xlsx';
 	const KIND_XLS  = 'xls';
 	const KIND_ODS  = 'ods';
+	const KIND_DOCX = 'docx';
+	const KIND_DOC  = 'doc';
+	const KIND_ODT  = 'odt';
 
 	/**
 	 * Mime types of the presentation files that are converted to page images (DPB-026).
@@ -54,6 +57,15 @@ class CPTDP_Page_Store {
 		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => self::KIND_XLSX,
 		'application/vnd.ms-excel'                                           => self::KIND_XLS,
 		'application/vnd.oasis.opendocument.spreadsheet'                     => self::KIND_ODS,
+	);
+
+	/**
+	 * Mime types of the word-processing files that are converted to page images.
+	 */
+	const WORD_MIMES = array(
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => self::KIND_DOCX,
+		'application/msword'                                                         => self::KIND_DOC,
+		'application/vnd.oasis.opendocument.text'                                   => self::KIND_ODT,
 	);
 
 	/**
@@ -128,10 +140,14 @@ class CPTDP_Page_Store {
 			return self::SPREADSHEET_MIMES[ $mime ];
 		}
 
+		if ( isset( self::WORD_MIMES[ $mime ] ) ) {
+			return self::WORD_MIMES[ $mime ];
+		}
+
 		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
 			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $attachment_id ), PATHINFO_EXTENSION ) );
 
-			if ( in_array( $extension, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP, self::KIND_XLSX, self::KIND_XLS, self::KIND_ODS ), true ) ) {
+			if ( in_array( $extension, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP, self::KIND_XLSX, self::KIND_XLS, self::KIND_ODS, self::KIND_DOCX, self::KIND_DOC, self::KIND_ODT ), true ) ) {
 				return $extension;
 			}
 		}
@@ -178,12 +194,21 @@ class CPTDP_Page_Store {
 	}
 
 	/**
+	 * Whether a kind is a word-processing file (converted with LibreOffice Writer).
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_word_kind( string $kind ): bool {
+		return in_array( $kind, array( self::KIND_DOCX, self::KIND_DOC, self::KIND_ODT ), true );
+	}
+
+	/**
 	 * Whether a kind is an Office file converted with LibreOffice (presentation or spreadsheet), server only.
 	 *
 	 * @param string $kind Kind from kind_of_attachment().
 	 */
 	public static function is_office_kind( string $kind ): bool {
-		return self::is_presentation_kind( $kind ) || self::is_spreadsheet_kind( $kind );
+		return self::is_presentation_kind( $kind ) || self::is_spreadsheet_kind( $kind ) || self::is_word_kind( $kind );
 	}
 
 	/**
@@ -332,6 +357,9 @@ class CPTDP_Page_Store {
 
 		update_post_meta( $post_id, self::META_MANIFEST, $manifest );
 		update_post_meta( $post_id, self::META_SOURCE, $source['token'] );
+		if ( self::is_word_kind( $source['kind'] ) && ! empty( $manifest['count'] ) ) {
+			update_post_meta( $post_id, 'cptdp_total_pages', (int) $manifest['count'] );
+		}
 		self::reconcile( $post_id );
 
 		return true;
@@ -358,6 +386,13 @@ class CPTDP_Page_Store {
 
 		if ( $total > 0 && $total !== $count ) {
 			$kind = (string) ( $manifest['source_kind'] ?? '' );
+
+			if ( self::is_word_kind( $kind ) ) {
+				update_post_meta( $post_id, 'cptdp_total_pages', $count );
+				self::set_status( $post_id, self::STATUS_READY );
+
+				return self::STATUS_READY;
+			}
 
 			if ( self::is_spreadsheet_kind( $kind ) ) {
 				/* translators: 1: pages found in the spreadsheet, 2: the Total Pages field. */

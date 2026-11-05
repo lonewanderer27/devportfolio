@@ -14,11 +14,12 @@ composer_version: "2"
 web_environment: []
 nodejs_version: "24"
 corepack_enable: false
-# PowerPoint (.pptx/.ppt/.odp) to page images (DPB-026): LibreOffice Impress plus metric-compatible
+# Office files to page images (DPB-026 to DPB-028): LibreOffice plus metric-compatible
 # fonts (Liberation = Arial/Times, Carlito = Calibri, Caladea = Cambria). Needs `ddev restart`.
 webimage_extra_packages:
   - libreoffice-impress
   - libreoffice-calc
+  - libreoffice-writer
   - fonts-liberation
   - fonts-crosextra-carlito
   - fonts-crosextra-caladea
