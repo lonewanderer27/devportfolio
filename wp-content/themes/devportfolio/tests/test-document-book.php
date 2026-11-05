@@ -326,4 +326,92 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringNotContainsStringIgnoringCase( 'georgia', $this->css() );
 		$this->assertStringNotContainsStringIgnoringCase( 'serif', $this->css() );
 	}
+
+	public function test_each_cover_style_renders_its_slug(): void {
+		foreach ( array_keys( devportfolio_cover_styles() ) as $slug ) {
+			$id = $this->make_document( array( 'meta' => array( 'cptdp_cover_style' => $slug ) ) );
+			$this->assertStringContainsString( 'data-cover-style="' . $slug . '"', $this->render_book( $id ), $slug );
+		}
+	}
+
+	public function test_unknown_or_missing_cover_style_falls_back_to_midnight(): void {
+		$none = $this->make_document();
+		$this->assertStringContainsString( 'data-cover-style="midnight"', $this->render_book( $none ) );
+
+		$bad  = $this->make_document( array( 'meta' => array( 'cptdp_cover_style' => '"><script>alert(1)</script>' ) ) );
+		$html = $this->render_book( $bad );
+		$this->assertStringContainsString( 'data-cover-style="midnight"', $html );
+		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
+	public function test_css_has_a_rule_per_cover_style_setting_cover_and_text(): void {
+		foreach ( array_keys( devportfolio_cover_styles() ) as $slug ) {
+			$rule = $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' );
+			$this->assertStringContainsString( '--cv:', $rule, $slug );
+			$this->assertStringContainsString( '--ct:', $rule, $slug );
+		}
+	}
+
+	public function test_light_covers_use_dark_text_and_dark_covers_light_text(): void {
+		foreach ( array( 'pinstripe', 'dot-grid' ) as $slug ) {
+			$this->assertStringContainsString( '--ct: var(--book-ink)', $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' ), $slug );
+		}
+		foreach ( array( 'midnight', 'horizon', 'split-sky', 'two-tone' ) as $slug ) {
+			$this->assertStringContainsString( '--ct: var(--book-surface)', $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' ), $slug );
+		}
+		// Split Sky: the category sits on the light top, so it takes the dark colour.
+		$this->assertStringContainsString( '--cat-c: var(--book-ink)', $this->rule( '.documents-book[data-cover-style="split-sky"]' ) );
+		$this->assertStringContainsString( 'color: var(--ct)', $this->rule( '.documents-book' ) );
+	}
+
+	public function test_only_horizon_carries_the_gradient(): void {
+		$sun = $this->rule( '.documents-book[data-cover-style="horizon"] .documents-book__pat::after' );
+		$this->assertStringContainsString( 'background: var(--book-grad)', $sun );
+		foreach ( array_diff( array_keys( devportfolio_cover_styles() ), array( 'horizon' ) ) as $slug ) {
+			$this->assertStringNotContainsString( '--book-grad', $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' ), $slug );
+			$this->assertStringNotContainsString( '--book-g1', $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' ), $slug );
+		}
+	}
+
+	public function test_style_rules_use_tokens_only(): void {
+		$css = $this->css();
+		$css = preg_replace( '/\.documents-book \{[^{}]*\}/', '', $css, 1 ); // the token block defines the literals.
+		$this->assertDoesNotMatchRegularExpression( '/#[0-9a-fA-F]{3,8}\b/', $css );
+	}
+
+	public function test_spine_and_stitch_and_text_clearance(): void {
+		$spine  = $this->rule( '.documents-book::before' );
+		$stitch = $this->rule( '.documents-book::after' );
+		$this->assertStringContainsString( 'inset: 0 auto 0 0', $spine );
+		$this->assertStringContainsString( 'width: 16px', $spine );
+		$this->assertStringContainsString( 'rgb(0 0 0 / 0.2)', $spine );
+		$this->assertStringContainsString( 'dashed', $stitch );
+		$this->assertStringContainsString( 'left: 21px', $stitch );
+		$this->assertStringContainsString( 'top: 8px', $stitch );
+		$this->assertStringContainsString( 'bottom: 8px', $stitch );
+
+		// Text (padding-left 32px) starts right of the spine (16px) and the stitch (21px).
+		$this->assertStringContainsString( 'padding: 18px 14px 14px 32px', $this->rule( '.documents-book' ) );
+
+		$small = $this->media( '(max-width: 820px)' );
+		$this->assertStringContainsString( 'padding: 12px 10px 10px 22px', $small );
+		$this->assertStringContainsString( 'width: 11px', $small );
+		$this->assertStringContainsString( 'left: 15px', $small );
+	}
+
+	public function test_midnight_has_an_inner_frame_and_pinstripe_dot_grid_have_patterns(): void {
+		$this->assertStringContainsString( 'inset: 10px 10px 10px 26px', $this->rule( '.documents-book[data-cover-style="midnight"] .documents-book__pat' ) );
+		$this->assertStringContainsString( 'repeating-linear-gradient(135deg', $this->rule( '.documents-book[data-cover-style="pinstripe"] .documents-book__pat' ) );
+		$this->assertStringContainsString( 'radial-gradient(', $this->rule( '.documents-book[data-cover-style="dot-grid"] .documents-book__pat' ) );
+		$this->assertStringContainsString( '50%', $this->rule( '.documents-book[data-cover-style="two-tone"]' ) );
+		$this->assertStringContainsString( '30%', $this->rule( '.documents-book[data-cover-style="split-sky"]' ) );
+	}
+
+	public function test_cover_box_ratio_radius_and_flat_shadow(): void {
+		$base = $this->rule( '.documents-book' );
+		$this->assertStringContainsString( 'aspect-ratio: 2 / 3', $base );
+		$this->assertStringContainsString( 'border-radius: 3px 6px 6px 3px', $base );
+		$this->assertStringContainsString( 'border: 1px solid var(--book-edge)', $base );
+		$this->assertStringContainsString( 'box-shadow: 8px 10px 0 var(--book-shadow)', $base );
+	}
 }
