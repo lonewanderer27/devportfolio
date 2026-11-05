@@ -49,7 +49,7 @@ function cptdp_register_document(): void {
 			'menu_icon'     => 'dashicons-media-document',
 			'hierarchical'  => false,
 			// custom-fields exposes registered meta in REST; its meta box is removed below.
-			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields' ),
+			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'document_category' ),
 			'show_in_rest'  => true,
 			'has_archive'   => true,
@@ -212,6 +212,29 @@ function cptdp_document_sanitize_file( $id ): int {
 }
 
 /**
+ * Sanitize Software Tools: unique IDs of existing `software_tool` posts.
+ *
+ * @param mixed $ids Raw value.
+ * @return int[]
+ */
+function cptdp_document_sanitize_software_tools( $ids ): array {
+	if ( ! is_array( $ids ) ) {
+		return array();
+	}
+
+	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+
+	return array_values(
+		array_filter(
+			$ids,
+			static function ( int $id ): bool {
+				return 'software_tool' === get_post_type( $id );
+			}
+		)
+	);
+}
+
+/**
  * Sanitize Post Statistics: rows of `label` and `value` text.
  *
  * Drops non-array rows and rows with both fields empty, then reindexes.
@@ -311,6 +334,24 @@ function cptdp_register_document_meta(): void {
 
 	register_post_meta(
 		'document',
+		'cptdp_software_tools',
+		array(
+			'type'              => 'array',
+			'single'            => true,
+			'default'           => array(),
+			'show_in_rest'      => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'integer' ),
+				),
+			),
+			'sanitize_callback' => 'cptdp_document_sanitize_software_tools',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'document',
 		'cptdp_highlight',
 		array(
 			'type'              => 'boolean',
@@ -374,6 +415,15 @@ function cptdp_document_add_meta_boxes(): void {
 	);
 
 	add_meta_box(
+		'cptdp_document_software_tools',
+		esc_html__( 'Software Tools', 'custom-post-types-dp' ),
+		'cptdp_document_render_software_tools_box',
+		'document',
+		'side',
+		'default'
+	);
+
+	add_meta_box(
 		'cptdp_document_highlight',
 		esc_html__( 'Highlight', 'custom-post-types-dp' ),
 		'cptdp_document_render_highlight_box',
@@ -423,6 +473,43 @@ function cptdp_document_render_details_box( WP_Post $post ): void {
 		<input type="number" id="cptdp_total_pages" name="cptdp_total_pages" min="0" step="1" value="<?php echo $pages > 0 ? esc_attr( (string) $pages ) : ''; ?>">
 	</p>
 	<?php
+}
+
+/**
+ * Render the Software Tools meta box.
+ *
+ * @param WP_Post $post Post being edited.
+ */
+function cptdp_document_render_software_tools_box( WP_Post $post ): void {
+	$selected = array_map( 'absint', (array) get_post_meta( $post->ID, 'cptdp_software_tools', true ) );
+	$tools    = get_posts(
+		array(
+			'post_type'      => 'software_tool',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'menu_order title',
+			'order'          => 'ASC',
+		)
+	);
+
+	if ( ! $tools ) {
+		printf(
+			'<p>%s <a href="%s">%s</a></p>',
+			esc_html__( 'No software tools yet.', 'custom-post-types-dp' ),
+			esc_url( admin_url( 'post-new.php?post_type=software_tool' ) ),
+			esc_html__( 'Add a Software Tool', 'custom-post-types-dp' )
+		);
+		return;
+	}
+
+	foreach ( $tools as $tool ) {
+		printf(
+			'<label style="display:block;margin-bottom:4px"><input type="checkbox" name="cptdp_software_tools[]" value="%1$d" %2$s> %3$s</label>',
+			(int) $tool->ID,
+			checked( in_array( $tool->ID, $selected, true ), true, false ),
+			esc_html( get_the_title( $tool ) )
+		);
+	}
 }
 
 /**
@@ -510,6 +597,10 @@ function cptdp_document_save_meta( int $post_id ): void {
 
 	$pages = isset( $_POST['cptdp_total_pages'] ) ? absint( wp_unslash( $_POST['cptdp_total_pages'] ) ) : 0;
 	$pages > 0 ? update_post_meta( $post_id, 'cptdp_total_pages', $pages ) : delete_post_meta( $post_id, 'cptdp_total_pages' );
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
+	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_document_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
+	$tools ? update_post_meta( $post_id, 'cptdp_software_tools', $tools ) : delete_post_meta( $post_id, 'cptdp_software_tools' );
 
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
 	$stats = isset( $_POST['cptdp_post_statistics'] ) ? cptdp_document_sanitize_statistics( wp_unslash( $_POST['cptdp_post_statistics'] ) ) : array();
