@@ -391,6 +391,8 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 
 		return array(
 			'id'           => $post_id,
+			// The slug is the deeplink key: /documents/?document=<slug> opens this document (DPD-032).
+			'slug'         => (string) get_post_field( 'post_name', $post_id ),
 			// The script writes the title with textContent, so it must be plain text: get_the_title() returns
 			// HTML entities ("&#038;" for "&").
 			'title'        => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),

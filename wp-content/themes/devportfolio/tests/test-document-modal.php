@@ -113,6 +113,8 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 		$payload = devportfolio_document_modal_payload( $id );
 		$this->assertSame( $id, $payload['id'] );
+		$this->assertSame( get_post_field( 'post_name', $id ), $payload['slug'] );
+		$this->assertNotSame( '', $payload['slug'] );
 		$this->assertSame( 'Quarterly Report', $payload['title'] );
 		$this->assertSame( 'A summary', $payload['description'] );
 		$this->assertSame( array( 'InDesign' ), $payload['tools'] );
@@ -317,5 +319,15 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'showModal()', $js );
 		$this->assertStringContainsString( 'documents:modal-change', $js );
 		$this->assertStringContainsString( "import {", $js );
+	}
+
+	public function test_view_script_deeplink_wiring(): void {
+		$js = $this->read( 'blocks/document-modal/view.js' );
+		$this->assertStringContainsString( "from './deeplink.js'", $js );
+		$this->assertStringContainsString( 'history.pushState', $js );
+		$this->assertStringContainsString( 'history.back()', $js );
+		$this->assertStringContainsString( 'history.replaceState', $js );
+		$this->assertStringContainsString( "addEventListener( 'popstate'", $js );
+		$this->assertStringContainsString( 'idBySlug', $js );
 	}
 }
