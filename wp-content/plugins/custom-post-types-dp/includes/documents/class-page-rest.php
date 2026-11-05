@@ -164,7 +164,7 @@ class CPTDP_Page_REST {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
 		}
 
-		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
 			return self::server_only();
 		}
 
@@ -249,7 +249,7 @@ class CPTDP_Page_REST {
 		$page    = (int) $request['n'];
 		$folder  = CPTDP_Page_Store::folder_for( $post_id );
 
-		if ( CPTDP_Page_Store::is_presentation_kind( CPTDP_Page_Store::source_kind( $post_id ) ) ) {
+		if ( CPTDP_Page_Store::is_office_kind( CPTDP_Page_Store::source_kind( $post_id ) ) ) {
 			return self::server_only();
 		}
 
@@ -320,7 +320,7 @@ class CPTDP_Page_REST {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
 		}
 
-		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
+		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
 			return self::server_only();
 		}
 
@@ -463,7 +463,7 @@ class CPTDP_Page_REST {
 	private static function server_only(): WP_Error {
 		return new WP_Error(
 			'cptdp_pptx_server_only',
-			__( 'Presentations are converted by the server only. Use Regenerate, or upload a PDF.', 'custom-post-types-dp' ),
+			__( 'Presentations and spreadsheets are converted by the server only. Use Regenerate, or upload a PDF.', 'custom-post-types-dp' ),
 			array( 'status' => 400 )
 		);
 	}

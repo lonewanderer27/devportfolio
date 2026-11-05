@@ -22,23 +22,36 @@ function cptdp_documents_pages_modes(): array {
  * @return array<string,bool|string>
  */
 function cptdp_documents_defaults(): array {
-	return array(
+	$defaults = array(
 		'show_book_title' => false,
 		'pages_mode'      => 'auto',
 		'trim_bottom'     => true,
-		'native_pdf'      => false,
-		'native_pptx'     => false,
 	);
+
+	foreach ( cptdp_documents_native_formats() as $format ) {
+		$defaults[ 'native_' . $format ] = false;
+	}
+
+	return $defaults;
 }
 
 /**
  * The native viewer formats (Settings > Documents > Native viewer), in the order they are listed.
- * DOCX and XLSX will join them in a later ticket.
+ * DOCX will join them in a later ticket.
  *
  * @return string[]
  */
 function cptdp_documents_native_formats(): array {
-	return array( 'pdf', 'pptx' );
+	return array( 'pdf', 'pptx', 'xlsx' );
+}
+
+/**
+ * The settings that are checkboxes: the two page options and one `native_<format>` per native viewer format.
+ *
+ * @return string[]
+ */
+function cptdp_documents_checkbox_keys(): array {
+	return array_merge( array( 'show_book_title', 'trim_bottom' ), array_map( static fn( string $format ): string => 'native_' . $format, cptdp_documents_native_formats() ) );
 }
 
 /**
@@ -47,7 +60,7 @@ function cptdp_documents_native_formats(): array {
  * `selectable_text` (the setting before the native viewer section existed) is still understood: it is
  * the PDF checkbox, `native_pdf`, so an existing site keeps its choice.
  *
- * @param string|null $key Optional single key: show_book_title, pages_mode, trim_bottom, native_pdf or native_pptx.
+ * @param string|null $key Optional single key: show_book_title, pages_mode, trim_bottom, native_pdf, native_pptx or native_xlsx.
  * @return array<string,bool|string>|bool|string
  */
 function cptdp_get_documents_settings( ?string $key = null ) {
@@ -64,11 +77,11 @@ function cptdp_get_documents_settings( ?string $key = null ) {
 
 	$value = array_merge( cptdp_documents_defaults(), array_intersect_key( $saved, cptdp_documents_defaults() ) );
 
-	$value['show_book_title'] = rest_sanitize_boolean( $value['show_book_title'] );
-	$value['pages_mode']      = in_array( $value['pages_mode'], cptdp_documents_pages_modes(), true ) ? $value['pages_mode'] : 'auto';
-	$value['trim_bottom']     = rest_sanitize_boolean( $value['trim_bottom'] );
-	$value['native_pdf']      = rest_sanitize_boolean( $value['native_pdf'] );
-	$value['native_pptx']     = rest_sanitize_boolean( $value['native_pptx'] );
+	$value['pages_mode'] = in_array( $value['pages_mode'], cptdp_documents_pages_modes(), true ) ? $value['pages_mode'] : 'auto';
+
+	foreach ( cptdp_documents_checkbox_keys() as $checkbox ) {
+		$value[ $checkbox ] = rest_sanitize_boolean( $value[ $checkbox ] );
+	}
 
 	if ( null === $key ) {
 		return $value;
@@ -91,17 +104,16 @@ function cptdp_documents_register_settings(): void {
 			'show_in_rest'      => array(
 				'schema' => array(
 					'type'                 => 'object',
-					'properties'           => array(
-						'show_book_title' => array( 'type' => 'boolean' ),
-						'pages_mode'      => array(
-							'type' => 'string',
-							'enum' => cptdp_documents_pages_modes(),
-						),
-						'trim_bottom'     => array( 'type' => 'boolean' ),
-						'native_pdf'      => array( 'type' => 'boolean' ),
-						'native_pptx'     => array( 'type' => 'boolean' ),
-						// Deprecated name of native_pdf, still accepted.
-						'selectable_text' => array( 'type' => 'boolean' ),
+					'properties'           => array_merge(
+						array_fill_keys( cptdp_documents_checkbox_keys(), array( 'type' => 'boolean' ) ),
+						array(
+							'pages_mode'      => array(
+								'type' => 'string',
+								'enum' => cptdp_documents_pages_modes(),
+							),
+							// Deprecated name of native_pdf, still accepted.
+							'selectable_text' => array( 'type' => 'boolean' ),
+						)
 					),
 					'additionalProperties' => false,
 				),
@@ -157,6 +169,14 @@ function cptdp_documents_register_sections(): void {
 		'cptdp_documents_pptx_status',
 		esc_html__( 'PowerPoint conversion', 'custom-post-types-dp' ),
 		'cptdp_documents_render_pptx_status',
+		'cptdp-documents',
+		'cptdp_documents_section'
+	);
+
+	add_settings_field(
+		'cptdp_documents_xlsx_status',
+		esc_html__( 'Excel conversion', 'custom-post-types-dp' ),
+		'cptdp_documents_render_xlsx_status',
 		'cptdp-documents',
 		'cptdp_documents_section'
 	);
@@ -286,6 +306,23 @@ function cptdp_documents_render_pptx_status(): void {
 }
 
 /**
+ * Render the read-only spreadsheet conversion status line.
+ */
+function cptdp_documents_render_xlsx_status(): void {
+	if ( CPTDP_Pptx_Converter::is_available( CPTDP_Page_Store::KIND_XLSX ) ) {
+		$version = CPTDP_Pptx_Converter::version();
+
+		echo '<p><strong>' . esc_html__( 'Available', 'custom-post-types-dp' ) . '</strong>' . ( '' !== $version ? ' (LibreOffice Calc ' . esc_html( $version ) . ')' : '' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Excel (.xlsx, .xls) and OpenDocument (.ods) files are converted to page images when a document is saved, one page per sheet. The result may differ from the original, so a PDF export is still the best option.', 'custom-post-types-dp' ) . '</p>';
+
+		return;
+	}
+
+	echo '<p><strong>' . esc_html__( 'Unavailable', 'custom-post-types-dp' ) . '</strong></p>';
+	echo '<p class="description">' . esc_html( CPTDP_Xlsx_Converter::unavailable_reason() ) . '</p>';
+}
+
+/**
  * Render the native viewer section intro.
  */
 function cptdp_documents_render_native_section(): void {
@@ -306,6 +343,10 @@ function cptdp_documents_render_native_formats(): void {
 		'pptx' => array(
 			'label' => __( 'PowerPoint (.pptx)', 'custom-post-types-dp' ),
 			'help'  => __( 'Draws the slides from the original file with a bundled viewer (about 2 MB the first time), with selectable text. It does not need LibreOffice on the server, so it also works on hosts that cannot convert presentations. No animations or equations; some charts and effects differ. Older .ppt and OpenDocument .odp files are not supported.', 'custom-post-types-dp' ),
+		),
+		'xlsx' => array(
+			'label' => __( 'Excel (.xlsx)', 'custom-post-types-dp' ),
+			'help'  => __( 'Draws the workbook from the original file with a bundled viewer (a few MB the first time): visitors can scroll, zoom, switch sheets and copy cells. It does not need LibreOffice on the server. No macros; charts and some formatting differ. Note that the visitor downloads the whole file, including hidden sheets and comments. Older .xls and OpenDocument .ods files are not supported (they use the converted pages).', 'custom-post-types-dp' ),
 		),
 	);
 
@@ -360,7 +401,7 @@ function cptdp_documents_sanitize( $input ): array {
 		$input['native_pdf'] = $input['selectable_text'];
 	}
 
-	foreach ( array( 'show_book_title', 'trim_bottom', 'native_pdf', 'native_pptx' ) as $key ) {
+	foreach ( cptdp_documents_checkbox_keys() as $key ) {
 		if ( $form ) {
 			// Unticked checkboxes are not submitted, so a submitted form without them means "off".
 			$clean[ $key ] = isset( $input[ $key ] ) && rest_sanitize_boolean( $input[ $key ] );

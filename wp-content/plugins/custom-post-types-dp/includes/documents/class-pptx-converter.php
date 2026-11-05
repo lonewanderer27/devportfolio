@@ -80,21 +80,35 @@ class CPTDP_Pptx_Converter {
 	 *
 	 * Filterable (`cptdp_pptx_available`) so tests and hosts can force it.
 	 */
-	public static function is_available(): bool {
-		$available = null !== self::binary() && CPTDP_Page_Converter::is_available();
-
+	public static function is_available( string $kind = '' ): bool {
 		/**
-		 * Filters whether presentation conversion is available.
+		 * Filters whether LibreOffice conversion is available (presentations and spreadsheets).
 		 *
 		 * @param bool $available LibreOffice found and the PDF to image step available.
 		 */
-		return (bool) apply_filters( 'cptdp_pptx_available', $available );
+		$available = (bool) apply_filters( 'cptdp_pptx_available', null !== self::binary() && CPTDP_Page_Converter::is_available() );
+
+		// A spreadsheet also needs LibreOffice Calc (a separate package from Impress), DPB-027.
+		if ( $available && CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
+			/**
+			 * Filters whether spreadsheet conversion is available.
+			 *
+			 * @param bool $available LibreOffice Calc found.
+			 */
+			$available = (bool) apply_filters( 'cptdp_xlsx_available', CPTDP_Xlsx_Converter::calc_installed() );
+		}
+
+		return $available;
 	}
 
 	/**
 	 * Why conversion is unavailable, for the admin (ends with the PDF recommendation).
 	 */
-	public static function unavailable_reason(): string {
+	public static function unavailable_reason( string $kind = '' ): string {
+		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
+			return CPTDP_Xlsx_Converter::unavailable_reason();
+		}
+
 		if ( null === self::binary() ) {
 			return __( 'This server cannot convert PowerPoint files (LibreOffice is not installed). Export the presentation to PDF in PowerPoint and upload the PDF instead.', 'custom-post-types-dp' );
 		}
@@ -164,6 +178,10 @@ class CPTDP_Pptx_Converter {
 	 * @return true|WP_Error
 	 */
 	public static function inspect( string $path, string $kind ) {
+		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
+			return CPTDP_Xlsx_Converter::inspect( $path, $kind );
+		}
+
 		if ( ! CPTDP_Page_Store::is_presentation_kind( $kind ) ) {
 			return self::invalid();
 		}
@@ -185,7 +203,9 @@ class CPTDP_Pptx_Converter {
 		$head = (string) file_get_contents( $path, false, null, 0, 8 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 		if ( CPTDP_Page_Store::KIND_PPT === $kind ) {
-			return self::inspect_ppt( $path, $head );
+			$status = self::ole_status( $path, $head );
+
+			return 'ok' === $status ? true : ( 'macros' === $status ? self::macros() : self::invalid() );
 		}
 
 		if ( 0 !== strpos( $head, "PK\x03\x04" ) ) {
@@ -196,29 +216,30 @@ class CPTDP_Pptx_Converter {
 	}
 
 	/**
-	 * Legacy binary PowerPoint: an OLE2 file, refused when it carries a VBA project.
+	 * Legacy binary Office file (PPT, XLS): an OLE2 file, refused when it carries a VBA project.
 	 *
 	 * The OLE directory names its storages in UTF-16, so the check is a bounded scan of the
-	 * file for the name `_VBA_PROJECT` (no OLE parser needed). A slide that merely contains
+	 * file for the name `_VBA_PROJECT` (no OLE parser needed). A document that merely contains
 	 * that exact text would be refused too, which is acceptable for an old format.
 	 *
 	 * @param string $path File path.
 	 * @param string $head First bytes of the file.
-	 * @return true|WP_Error
+	 * @return string `ok`, `invalid` (not OLE2) or `macros`.
 	 */
-	private static function inspect_ppt( string $path, string $head ) {
+	public static function ole_status( string $path, string $head ): string {
 		if ( "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" !== $head ) {
-			return self::invalid();
+			return 'invalid';
 		}
 
 		$needle = "_\0V\0B\0A\0_\0P\0R\0O\0J\0E\0C\0T\0";
 		$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
 		if ( false === $handle ) {
-			return self::invalid();
+			return 'invalid';
 		}
 
-		$tail = '';
+		$tail   = '';
+		$status = 'ok';
 
 		while ( ! feof( $handle ) ) {
 			$chunk = fread( $handle, 1048576 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
@@ -228,9 +249,8 @@ class CPTDP_Pptx_Converter {
 			}
 
 			if ( false !== strpos( $tail . $chunk, $needle ) ) {
-				fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
-				return self::macros();
+				$status = 'macros';
+				break;
 			}
 
 			$tail = substr( $chunk, -strlen( $needle ) );
@@ -238,7 +258,7 @@ class CPTDP_Pptx_Converter {
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
-		return true;
+		return $status;
 	}
 
 	/**
@@ -332,7 +352,7 @@ class CPTDP_Pptx_Converter {
 	 * @param string $path File path.
 	 * @return ZipArchive|WP_Error
 	 */
-	private static function open_zip( string $path ) {
+	public static function open_zip( string $path ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			return new WP_Error( 'cptdp_pptx_no_zip', __( 'This server cannot read presentation files (the PHP zip extension is missing). Export the presentation to PDF and upload the PDF instead.', 'custom-post-types-dp' ) );
 		}
@@ -379,7 +399,7 @@ class CPTDP_Pptx_Converter {
 	 * @param ZipArchive $zip Open archive.
 	 * @return string[]
 	 */
-	private static function zip_names( ZipArchive $zip ): array {
+	public static function zip_names( ZipArchive $zip ): array {
 		$names = array();
 
 		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
@@ -396,9 +416,10 @@ class CPTDP_Pptx_Converter {
 	/**
 	 * Whether a `.rels` part has an external relationship of an object type (OLE, package, frame, link).
 	 *
-	 * @param string $xml Relationships XML.
+	 * @param string   $xml   Relationships XML.
+	 * @param string[] $extra More relationship types to refuse (a spreadsheet's data connections).
 	 */
-	public static function rels_have_external_object( string $xml ): bool {
+	public static function rels_have_external_object( string $xml, array $extra = array() ): bool {
 		if ( 0 === preg_match_all( '/<Relationship\b[^>]*>/i', $xml, $tags ) ) {
 			return false;
 		}
@@ -410,7 +431,7 @@ class CPTDP_Pptx_Converter {
 
 			$type = strtolower( $type[1] );
 
-			foreach ( self::EXTERNAL_REL_TYPES as $needle ) {
+			foreach ( array_merge( self::EXTERNAL_REL_TYPES, $extra ) as $needle ) {
 				if ( false !== strpos( $type, $needle ) ) {
 					return true;
 				}
@@ -423,10 +444,11 @@ class CPTDP_Pptx_Converter {
 	/**
 	 * Whether ODF content has an embedded-object element that points outside the package.
 	 *
-	 * @param string $xml content.xml.
+	 * @param string $xml      content.xml.
+	 * @param string $elements Regex alternation of the elements to check (a spreadsheet adds its tables).
 	 */
-	public static function odf_has_external_object( string $xml ): bool {
-		if ( 0 === preg_match_all( '/<draw:(?:object|object-ole|plugin)\b[^>]*>/i', $xml, $tags ) ) {
+	public static function odf_has_external_object( string $xml, string $elements = 'draw:(?:object|object-ole|plugin)' ): bool {
+		if ( 0 === preg_match_all( '/<(?:' . $elements . ')\b[^>]*>/i', $xml, $tags ) ) {
 			return false;
 		}
 
@@ -511,6 +533,10 @@ class CPTDP_Pptx_Converter {
 			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not prepare the presentation for conversion.', 'custom-post-types-dp' ) );
 		}
 
+		if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
+			CPTDP_Xlsx_Converter::write_profile( $dir . '/profile' );
+		}
+
 		$command = array(
 			$binary,
 			'--headless',
@@ -520,7 +546,7 @@ class CPTDP_Pptx_Converter {
 			'--nolockcheck',
 			'-env:UserInstallation=file://' . $dir . '/profile',
 			'--convert-to',
-			'pdf:impress_pdf_Export',
+			CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ? CPTDP_Xlsx_Converter::export_filter() : 'pdf:impress_pdf_Export',
 			'--outdir',
 			$out,
 			$input,
@@ -562,7 +588,7 @@ class CPTDP_Pptx_Converter {
 				fclose( $pipes[2] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 				proc_close( $process );
 
-				return new WP_Error( 'cptdp_conversion_failed', __( 'Converting the presentation took too long. Export it to PDF and upload the PDF instead.', 'custom-post-types-dp' ) );
+				return new WP_Error( 'cptdp_conversion_failed', __( 'Converting the file took too long. Export it to PDF and upload the PDF instead.', 'custom-post-types-dp' ) );
 			}
 
 			usleep( 100000 );
@@ -580,7 +606,7 @@ class CPTDP_Pptx_Converter {
 		if ( 0 !== $exit || ! is_file( $pdf ) || (int) filesize( $pdf ) < 100 || '%PDF-' !== (string) file_get_contents( $pdf, false, null, 0, 5 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 			return new WP_Error(
 				'cptdp_conversion_failed',
-				__( 'The presentation could not be converted. Export it to PDF in PowerPoint and upload the PDF instead.', 'custom-post-types-dp' ) . ( '' !== $error ? ' ' . mb_substr( $error, 0, 120 ) : '' )
+				__( 'The file could not be converted. Export it to PDF and upload the PDF instead.', 'custom-post-types-dp' ) . ( '' !== $error ? ' ' . mb_substr( $error, 0, 120 ) : '' )
 			);
 		}
 

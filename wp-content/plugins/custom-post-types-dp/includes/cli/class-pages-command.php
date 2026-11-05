@@ -49,6 +49,10 @@ class CPTDP_Pages_Command {
 			WP_CLI::warning( CPTDP_Pptx_Converter::unavailable_reason() . ' PowerPoint and OpenDocument presentations will end as failed.' );
 		}
 
+		if ( CPTDP_Pptx_Converter::is_available() && ! CPTDP_Pptx_Converter::is_available( CPTDP_Page_Store::KIND_XLSX ) ) {
+			WP_CLI::warning( CPTDP_Xlsx_Converter::unavailable_reason() . ' Excel and OpenDocument spreadsheets will end as failed.' );
+		}
+
 		$force = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'force', false );
 		$sync  = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'sync', false );
 		$ids   = $this->target_ids( $args, $assoc_args );

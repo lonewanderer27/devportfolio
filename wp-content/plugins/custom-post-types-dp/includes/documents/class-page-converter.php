@@ -19,6 +19,9 @@ class CPTDP_Page_Converter {
 	const WIDTH_LANDSCAPE  = 1800;
 	const QUALITY          = 82;
 	const GS_DPI           = 170;
+	const SHEET_WIDTH      = 1800; // Uniform page for spreadsheets (A4 landscape ratio), DPB-027.
+	const SHEET_HEIGHT     = 1273;
+	const SHEET_MAX_ZOOM   = 2.0;
 
 	/**
 	 * The page limit of a server conversion (filterable so tests can use a small PDF).
@@ -119,9 +122,9 @@ class CPTDP_Page_Converter {
 
 		// A presentation is turned into a temporary PDF first (LibreOffice); everything after
 		// that is the same code as for an uploaded PDF. The temporary files are always removed.
-		if ( CPTDP_Page_Store::is_presentation_kind( $source['kind'] ) ) {
-			if ( ! CPTDP_Pptx_Converter::is_available() ) {
-				return new WP_Error( 'cptdp_unavailable', CPTDP_Pptx_Converter::unavailable_reason() );
+		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
+			if ( ! CPTDP_Pptx_Converter::is_available( $source['kind'] ) ) {
+				return new WP_Error( 'cptdp_unavailable', CPTDP_Pptx_Converter::unavailable_reason( $source['kind'] ) );
 			}
 
 			$valid = CPTDP_Pptx_Converter::inspect( $source['path'], $source['kind'] );
@@ -182,7 +185,9 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not create the page images folder.', 'custom-post-types-dp' ) );
 		}
 
-		$result = 'imagick' === $engine ? self::convert_with_imagick( $pdf_path, $folder ) : self::convert_with_ghostscript( $pdf_path, $folder );
+		$uniform = CPTDP_Page_Store::is_spreadsheet_kind( $source['kind'] );
+
+		$result = 'imagick' === $engine ? self::convert_with_imagick( $pdf_path, $folder, $uniform ) : self::convert_with_ghostscript( $pdf_path, $folder );
 
 		// ImageMagick may list PDF yet refuse to read it (a policy.xml rule): retry with Ghostscript.
 		if ( is_wp_error( $result ) && 'imagick' === $engine && $result->get_error_data( 'cptdp_conversion_failed' ) === 'engine' && null !== self::ghostscript_binary() ) {
@@ -203,7 +208,7 @@ class CPTDP_Page_Converter {
 		$result['producer']     = 'server';
 
 		// A slide has a fixed shape, so presentations are never trimmed (decision 9 of DPB-026).
-		$result['crop_bottom'] = CPTDP_Page_Store::is_presentation_kind( $source['kind'] )
+		$result['crop_bottom'] = CPTDP_Page_Store::is_office_kind( $source['kind'] )
 			? 0.0
 			: CPTDP_Page_Analyzer::analyze_folder( $folder, (string) $result['ext'], (int) $result['count'] );
 
@@ -214,10 +219,11 @@ class CPTDP_Page_Converter {
 	 * Convert with Imagick, one page at a time.
 	 *
 	 * @param string $pdf    PDF path.
-	 * @param string $folder Output folder.
+	 * @param string $folder  Output folder.
+	 * @param bool   $uniform Place every page on one fixed landscape canvas (spreadsheet sheets differ in size).
 	 * @return array{count:int,width:int,height:int,ext:string}|WP_Error
 	 */
-	private static function convert_with_imagick( string $pdf, string $folder ) {
+	private static function convert_with_imagick( string $pdf, string $folder, bool $uniform = false ) {
 		try {
 			Imagick::setResourceLimit( Imagick::RESOURCETYPE_MEMORY, 256 * 1024 * 1024 );
 			Imagick::setResourceLimit( Imagick::RESOURCETYPE_MAP, 512 * 1024 * 1024 );
@@ -258,19 +264,17 @@ class CPTDP_Page_Converter {
 				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				@set_time_limit( self::SECONDS_PER_PAGE + 10 );
 
-				$page = new Imagick();
-				$page->setResolution( 150, 150 );
-				$page->readImage( 'PDF:' . $pdf . '[' . $i . ']' );
-				$page->setImageBackgroundColor( 'white' );
-				$page->setImageAlphaChannel( Imagick::ALPHACHANNEL_REMOVE );
-				$page = $page->mergeImageLayers( Imagick::LAYERMETHOD_FLATTEN );
-				$page->transformImageColorspace( Imagick::COLORSPACE_SRGB );
+				if ( $uniform ) {
+					$page = self::read_sheet_page( $pdf, $i );
+				} else {
+					$page = self::read_page( $pdf, $i, 150 );
 
-				if ( 0 === $i ) {
-					$target = $page->getImageWidth() > $page->getImageHeight() ? self::WIDTH_LANDSCAPE : self::WIDTH_PORTRAIT;
+					if ( 0 === $i ) {
+						$target = $page->getImageWidth() > $page->getImageHeight() ? self::WIDTH_LANDSCAPE : self::WIDTH_PORTRAIT;
+					}
 				}
 
-				if ( $page->getImageWidth() > $target ) {
+				if ( ! $uniform && $page->getImageWidth() > $target ) {
 					$page->thumbnailImage( $target, 0 );
 				}
 
@@ -297,6 +301,59 @@ class CPTDP_Page_Converter {
 			'height' => $height,
 			'ext'    => $ext,
 		);
+	}
+
+	/**
+	 * Draw one PDF page, flattened onto white, in sRGB.
+	 *
+	 * @param string $pdf   PDF path.
+	 * @param int    $index Page index.
+	 * @param float  $dpi   Resolution.
+	 */
+	private static function read_page( string $pdf, int $index, float $dpi ): Imagick {
+		$page = new Imagick();
+		$page->setResolution( $dpi, $dpi );
+		$page->readImage( 'PDF:' . $pdf . '[' . $index . ']' );
+		$page->setImageBackgroundColor( 'white' );
+		$page->setImageAlphaChannel( Imagick::ALPHACHANNEL_REMOVE );
+		$flat = $page->mergeImageLayers( Imagick::LAYERMETHOD_FLATTEN );
+		$page->clear();
+		$flat->transformImageColorspace( Imagick::COLORSPACE_SRGB );
+
+		return $flat;
+	}
+
+	/**
+	 * Draw one spreadsheet page on the shared white canvas, top left like a sheet.
+	 *
+	 * Sheets come out of Calc at the size they need (one page per sheet), so they differ wildly. The page
+	 * size is read without drawing it, then the page is drawn once at the resolution that makes it fit the
+	 * canvas (sharper for a small sheet, up to twice its size; smaller for a big one). Every page then has
+	 * the same shape, which the book needs.
+	 *
+	 * @param string $pdf   PDF path.
+	 * @param int    $index Page index.
+	 */
+	private static function read_sheet_page( string $pdf, int $index ): Imagick {
+		$probe = new Imagick();
+		$probe->setResolution( 72, 72 );
+		$probe->pingImage( 'PDF:' . $pdf . '[' . $index . ']' );
+		$points_w = max( 1, $probe->getImageWidth() );
+		$points_h = max( 1, $probe->getImageHeight() );
+		$probe->clear();
+
+		// Points to pixels: 72 dpi is one pixel per point, so the dpi that fits the canvas is 72 times the scale.
+		$dpi  = min( self::SHEET_MAX_ZOOM * 150, 72 * min( self::SHEET_WIDTH / $points_w, self::SHEET_HEIGHT / $points_h ) );
+		$page = self::read_page( $pdf, $index, $dpi );
+
+		if ( $page->getImageWidth() > self::SHEET_WIDTH || $page->getImageHeight() > self::SHEET_HEIGHT ) {
+			$page->thumbnailImage( self::SHEET_WIDTH, self::SHEET_HEIGHT, true );
+		}
+
+		$page->setImageBackgroundColor( 'white' );
+		$page->extentImage( self::SHEET_WIDTH, self::SHEET_HEIGHT, 0, 0 );
+
+		return $page;
 	}
 
 	/**

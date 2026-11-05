@@ -34,6 +34,9 @@ class CPTDP_Page_Store {
 	const KIND_PPTX = 'pptx';
 	const KIND_PPT  = 'ppt';
 	const KIND_ODP  = 'odp';
+	const KIND_XLSX = 'xlsx';
+	const KIND_XLS  = 'xls';
+	const KIND_ODS  = 'ods';
 
 	/**
 	 * Mime types of the presentation files that are converted to page images (DPB-026).
@@ -42,6 +45,15 @@ class CPTDP_Page_Store {
 		'application/vnd.openxmlformats-officedocument.presentationml.presentation' => self::KIND_PPTX,
 		'application/vnd.ms-powerpoint'                                              => self::KIND_PPT,
 		'application/vnd.oasis.opendocument.presentation'                            => self::KIND_ODP,
+	);
+
+	/**
+	 * Mime types of the spreadsheet files that are converted to page images (DPB-027).
+	 */
+	const SPREADSHEET_MIMES = array(
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => self::KIND_XLSX,
+		'application/vnd.ms-excel'                                           => self::KIND_XLS,
+		'application/vnd.oasis.opendocument.spreadsheet'                     => self::KIND_ODS,
 	);
 
 	/**
@@ -112,10 +124,14 @@ class CPTDP_Page_Store {
 			return self::PRESENTATION_MIMES[ $mime ];
 		}
 
+		if ( isset( self::SPREADSHEET_MIMES[ $mime ] ) ) {
+			return self::SPREADSHEET_MIMES[ $mime ];
+		}
+
 		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
 			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $attachment_id ), PATHINFO_EXTENSION ) );
 
-			if ( in_array( $extension, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP ), true ) ) {
+			if ( in_array( $extension, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP, self::KIND_XLSX, self::KIND_XLS, self::KIND_ODS ), true ) ) {
 				return $extension;
 			}
 		}
@@ -150,6 +166,24 @@ class CPTDP_Page_Store {
 	 */
 	public static function is_presentation_kind( string $kind ): bool {
 		return in_array( $kind, array( self::KIND_PPTX, self::KIND_PPT, self::KIND_ODP ), true );
+	}
+
+	/**
+	 * Whether a kind is a spreadsheet (converted with LibreOffice Calc, server only; DPB-027).
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_spreadsheet_kind( string $kind ): bool {
+		return in_array( $kind, array( self::KIND_XLSX, self::KIND_XLS, self::KIND_ODS ), true );
+	}
+
+	/**
+	 * Whether a kind is an Office file converted with LibreOffice (presentation or spreadsheet), server only.
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_office_kind( string $kind ): bool {
+		return self::is_presentation_kind( $kind ) || self::is_spreadsheet_kind( $kind );
 	}
 
 	/**
@@ -279,8 +313,8 @@ class CPTDP_Page_Store {
 
 		unset( $manifest['source_token'] );
 
-		// Only presentations are marked (a missing `source_kind` means a PDF, as before DPB-026).
-		if ( self::is_presentation_kind( $source['kind'] ) ) {
+		// Only Office files are marked (a missing `source_kind` means a PDF, as before DPB-026).
+		if ( self::is_office_kind( $source['kind'] ) ) {
 			$manifest['source_kind']  = $source['kind'];
 			$manifest['converted_via'] = 'libreoffice';
 		}
@@ -323,23 +357,20 @@ class CPTDP_Page_Store {
 		$count = (int) $manifest['count'];
 
 		if ( $total > 0 && $total !== $count ) {
-			self::set_status(
-				$post_id,
-				self::STATUS_FAILED,
-				self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) )
-					? sprintf(
-						/* translators: 1: slides found in the presentation, 2: the Total Pages field. */
-						__( 'The presentation has %1$d slides, Total pages says %2$d.', 'custom-post-types-dp' ),
-						$count,
-						$total
-					)
-					: sprintf(
-						/* translators: 1: pages found in the PDF, 2: the Total Pages field. */
-						__( 'PDF has %1$d pages, Total pages says %2$d.', 'custom-post-types-dp' ),
-						$count,
-						$total
-					)
-			);
+			$kind = (string) ( $manifest['source_kind'] ?? '' );
+
+			if ( self::is_spreadsheet_kind( $kind ) ) {
+				/* translators: 1: pages found in the spreadsheet, 2: the Total Pages field. */
+				$format = __( 'The spreadsheet has %1$d pages, Total pages says %2$d.', 'custom-post-types-dp' );
+			} elseif ( self::is_presentation_kind( $kind ) ) {
+				/* translators: 1: slides found in the presentation, 2: the Total Pages field. */
+				$format = __( 'The presentation has %1$d slides, Total pages says %2$d.', 'custom-post-types-dp' );
+			} else {
+				/* translators: 1: pages found in the PDF, 2: the Total Pages field. */
+				$format = __( 'PDF has %1$d pages, Total pages says %2$d.', 'custom-post-types-dp' );
+			}
+
+			self::set_status( $post_id, self::STATUS_FAILED, sprintf( $format, $count, $total ) );
 
 			return self::STATUS_FAILED;
 		}
@@ -489,8 +520,8 @@ class CPTDP_Page_Store {
 	 * @param array<string,mixed> $manifest Manifest.
 	 */
 	public static function effective_crop( array $manifest ): float {
-		// A slide has a fixed shape: presentations are never trimmed.
-		if ( self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) ) ) {
+		// A slide or sheet has a fixed shape: Office files are never trimmed.
+		if ( self::is_office_kind( (string) ( $manifest['source_kind'] ?? '' ) ) ) {
 			return 0.0;
 		}
 
@@ -534,7 +565,7 @@ class CPTDP_Page_Store {
 			return null;
 		}
 
-		$crop = self::is_presentation_kind( (string) ( $manifest['source_kind'] ?? '' ) )
+		$crop = self::is_office_kind( (string) ( $manifest['source_kind'] ?? '' ) )
 			? 0.0
 			: CPTDP_Page_Analyzer::analyze_folder(
 				self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' ),

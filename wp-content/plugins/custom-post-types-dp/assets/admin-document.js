@@ -14,7 +14,7 @@
 		   HTML comes from the server (escaped, and without the settings link for users who cannot use it). */
 		function presentationKind( attachment ) {
 			var name = String( ( attachment && ( attachment.filename || attachment.url ) ) || '' ).toLowerCase().split( '?' )[ 0 ];
-			var match = /\.(pptx|ppt|odp)$/.exec( name );
+			var match = /\.(pptx|ppt|odp|xlsx|xls|ods)$/.exec( name );
 
 			return match ? match[ 1 ] : '';
 		}

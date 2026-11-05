@@ -664,7 +664,7 @@ function cptdp_document_enqueue_admin( string $hook ): void {
 		array(
 			'selectTitle'  => esc_html__( 'Select document', 'custom-post-types-dp' ),
 			'selectButton' => esc_html__( 'Use this document', 'custom-post-types-dp' ),
-			'pptxWarnings' => cptdp_pptx_warnings(),
+			'pptxWarnings' => cptdp_office_warnings(),
 		)
 	);
 }
