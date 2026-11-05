@@ -1,6 +1,6 @@
 # devportfolio
 
-Personal developer portfolio for Dave John Deluta, built on WordPress and developed locally with [DDEV](https://ddev.readthedocs.io/).
+Personal developer portfolio built on WordPress and developed locally with [DDEV](https://ddev.readthedocs.io/).
 
 ## Stack
 
