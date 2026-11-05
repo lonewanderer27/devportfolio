@@ -24,6 +24,9 @@ export const DEFAULT_LIMITS = {
 	mobileMaxViewport: 1024,
 	firstPageTimeoutMs: 15000,
 	nativeTimeoutMs: 30000,
+	// Spreadsheet native viewer (DPD-027): a workbook with more cells or rows than this is not drawn (the converted pages show instead).
+	nativeMaxCells: 2000000,
+	nativeMaxRows: 200000,
 	budgets: {
 		full: { dprCap: 2, ahead: 2, maxCanvases: 12, maxPixels: 0 },
 		light: { dprCap: 1.5, ahead: 1, maxCanvases: 6, maxPixels: 8000000 },
