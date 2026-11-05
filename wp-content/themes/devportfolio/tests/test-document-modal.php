@@ -143,7 +143,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_body_has_empty_stage_and_two_arrows(): void {
 		$html = $this->render_modal();
-		$this->assertMatchesRegularExpression( '#<div class="documents-modal__stage" aria-live="polite"></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<div class="documents-modal__stage"></div>#', $html );
 		$prev  = strpos( $html, 'documents-modal__arrow--prev' );
 		$stage = strpos( $html, 'documents-modal__stage' );
 		$next  = strpos( $html, 'documents-modal__arrow--next' );
@@ -223,8 +223,34 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$html   = $this->render_modal();
 		$footer = substr( $html, strpos( $html, '<footer' ) );
 		$this->assertStringContainsString( 'documents-modal__pager', $footer );
-		$this->assertStringContainsString( 'documents-modal__count', $footer );
 		$this->assertStringContainsString( 'role="progressbar"', $footer );
+	}
+
+	public function test_the_footer_has_no_visible_page_count_or_spread_label(): void {
+		$html = $this->render_modal();
+		$this->assertStringNotContainsString( 'documents-modal__count', $html );
+		$this->assertStringNotContainsString( 'documents-modal__legend', $html );
+		$this->assertStringContainsString( '<footer class="documents-modal__footer" hidden>', $html, 'Hidden until a document with 2+ pages is open.' );
+	}
+
+	public function test_css_progress_is_a_thin_line_on_the_top_edge_of_the_footer(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__footer\s*\{[^}]*position: relative#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__indicator\s*\{[^}]*position: absolute[^}]*top: -1px[^}]*height: 3px#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__footer\[hidden\]#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow\[hidden\]#', $css, 'Arrows are hidden for one-page documents.' );
+		$this->assertStringNotContainsString( '.documents-modal__legend', $css );
+	}
+
+	public function test_view_script_gives_the_progress_line_its_position_as_text_and_hides_the_footer_for_one_page(): void {
+		$js = $this->read( 'blocks/document-modal/view.js' );
+		$this->assertStringContainsString( "els.bar.setAttribute( 'aria-valuetext'", $js );
+		$this->assertStringContainsString( 'if ( pages < 2 )', $js );
+		$this->assertStringContainsString( 'els.footer.hidden = true', $js );
+		$this->assertStringContainsString( 'els.prev.hidden = pages < 2', $js );
+		$this->assertStringContainsString( 'els.next.hidden = pages < 2', $js );
+		$this->assertStringNotContainsString( 'els.legend', $js );
+		$this->assertStringNotContainsString( 'els.count', $js );
 	}
 
 	public function test_payload_json_contains_published_documents_only_and_is_script_safe(): void {

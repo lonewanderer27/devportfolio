@@ -3,9 +3,14 @@
  * can be tested with `node --test`.
  */
 
-/** Pages shown at once: two-page view for multi-page documents, else one. */
-export function stepFor( pages ) {
-	return pages > 1 ? 2 : 1;
+/**
+ * Pages shown at once: a two-page view for multi-page portrait documents,
+ * else one (a landscape page is wide enough alone; so is a single page).
+ * The orientation defaults to portrait, so callers that do not know it yet
+ * (the PDF has not been opened) get the two-page view.
+ */
+export function stepFor( pages, orientation = 'portrait' ) {
+	return pages > 1 && orientation !== 'landscape' ? 2 : 1;
 }
 
 /** Clamps a page into range; a two-page view always starts on an odd page. */
@@ -18,7 +23,7 @@ export function normalisePage( page, pages, step ) {
 }
 
 /** First and last visible page. */
-export function visibleRange( page, pages, step ) {
+function visibleRange( page, pages, step ) {
 	const first = normalisePage( page, pages, step );
 	return { first, last: Math.min( first + step - 1, pages ) };
 }
@@ -76,7 +81,7 @@ export function turnPage( page, pages, step, direction ) {
 	return normalisePage( first + direction * step, pages, step );
 }
 
-/** Indicator text: "Pages 11–12 of 24" or "Page 5 of 24". */
+/** First and last visible page, whether both show, and the progress percent. */
 export function indicatorParts( page, pages, step ) {
 	const { first, last } = visibleRange( page, pages, step );
 	return {
