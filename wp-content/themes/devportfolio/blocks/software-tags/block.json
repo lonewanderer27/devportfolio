@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/software-tags",
+	"title": "Software Tags",
+	"category": "widgets",
+	"description": "The software used by a post (documents, videos, collaterals), as small text separated by a gradient dot. On mobile only the first tags show, followed by a +N tag.",
+	"textdomain": "devportfolio",
+	"usesContext": [ "postId" ],
+	"attributes": {
+		"limit": {
+			"type": "integer",
+			"default": 2
+		}
+	},
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}

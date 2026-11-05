@@ -56,6 +56,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/document-categories' );
 		register_block_type( __DIR__ . '/blocks/document-book' );
 		register_block_type( __DIR__ . '/blocks/document-modal' );
+		register_block_type( __DIR__ . '/blocks/software-tags' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -200,6 +201,31 @@ if ( ! function_exists( 'devportfolio_document_description' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'devportfolio_software_tool_names' ) ) :
+	/**
+	 * Names of the published software tools of a post, in stored order.
+	 *
+	 * Works for any post type that stores `cptdp_software_tools` (document,
+	 * video, collateral); used by the software tags block and the document modal.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string[]
+	 */
+	function devportfolio_software_tool_names( $post_id ) {
+		$tools    = array();
+		$tool_ids = get_post_meta( (int) $post_id, 'cptdp_software_tools', true );
+		foreach ( is_array( $tool_ids ) ? $tool_ids : array() as $tool_id ) {
+			if ( 'software_tool' === get_post_type( (int) $tool_id ) && 'publish' === get_post_status( (int) $tool_id ) ) {
+				$tools[] = get_the_title( (int) $tool_id );
+			}
+		}
+
+		return $tools;
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 	/**
 	 * Data the document modal shows for one document (DPD-009 to DPD-012).
@@ -217,13 +243,7 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			return null;
 		}
 
-		$tools    = array();
-		$tool_ids = get_post_meta( $post_id, 'cptdp_software_tools', true );
-		foreach ( is_array( $tool_ids ) ? $tool_ids : array() as $tool_id ) {
-			if ( 'software_tool' === get_post_type( (int) $tool_id ) && 'publish' === get_post_status( (int) $tool_id ) ) {
-				$tools[] = get_the_title( (int) $tool_id );
-			}
-		}
+		$tools = devportfolio_software_tool_names( $post_id );
 
 		$pages    = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 		$download = devportfolio_document_download_target( $post_id );
