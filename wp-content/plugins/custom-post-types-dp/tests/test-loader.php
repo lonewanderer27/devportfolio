@@ -19,7 +19,7 @@ class CPTDP_Test_Loader extends CPTDP_Test_Case {
 	public function test_loader_requires_every_module_except_index(): void {
 		$included = array_map( 'realpath', get_included_files() );
 
-		foreach ( array_merge( glob( CPTDP_PATH . 'includes/post-types/*.php' ), glob( CPTDP_PATH . 'includes/settings/*.php' ), glob( CPTDP_PATH . 'includes/seeders/*.php' ) ) as $file ) {
+		foreach ( array_merge( glob( CPTDP_PATH . 'includes/documents/*.php' ), glob( CPTDP_PATH . 'includes/post-types/*.php' ), glob( CPTDP_PATH . 'includes/settings/*.php' ), glob( CPTDP_PATH . 'includes/seeders/*.php' ) ) as $file ) {
 			if ( 'index.php' === basename( $file ) ) {
 				continue;
 			}
