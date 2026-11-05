@@ -7,6 +7,24 @@
 		var $input = $( '#cptdp_document_file' );
 		var $name = $( '#cptdp-document-file-name' );
 		var $remove = $( '#cptdp-document-file-remove' );
+		var $warning = $( '#cptdp-pptx-warning' );
+
+		/* Picking or uploading a presentation shows the "may be imperfect, export to PDF" warning at
+		   once (before saving); picking anything else, or removing the file, hides it again. The
+		   HTML comes from the server (escaped, and without the settings link for users who cannot use it). */
+		function presentationKind( attachment ) {
+			var name = String( ( attachment && ( attachment.filename || attachment.url ) ) || '' ).toLowerCase().split( '?' )[ 0 ];
+			var match = /\.(pptx|ppt|odp)$/.exec( name );
+
+			return match ? match[ 1 ] : '';
+		}
+
+		function showPresentationWarning( attachment ) {
+			var kind = presentationKind( attachment );
+			var html = kind && cptdpDocument.pptxWarnings ? cptdpDocument.pptxWarnings[ kind ] : '';
+
+			$warning.html( html || '' ).prop( 'hidden', ! html );
+		}
 
 		$( '#cptdp-document-file-select' ).on( 'click', function ( event ) {
 			event.preventDefault();
@@ -24,6 +42,7 @@
 					$input.val( attachment.id );
 					$name.text( attachment.filename || attachment.title );
 					$remove.show();
+					showPresentationWarning( attachment );
 				} );
 			}
 
@@ -36,6 +55,7 @@
 			$input.val( '' );
 			$name.text( '' );
 			$remove.hide();
+			showPresentationWarning( null );
 		} );
 
 		// Post Statistics repeater.

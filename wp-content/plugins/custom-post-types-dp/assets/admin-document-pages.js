@@ -23,6 +23,9 @@
 	};
 	var running = false;
 	var runToken = '';
+	// A presentation (PPTX, PPT, ODP) is converted by the server only: nothing here renders it,
+	// the button asks the server to convert again and the box polls until it is done.
+	var serverOnly = 'pdf' !== cfg.kind && !! cfg.kind;
 
 	// Empty-bottom analysis. Keep these values identical to the constants of
 	// CPTDP_Page_Analyzer (includes/documents/class-page-analyzer.php): a PHP test compares them.
@@ -61,7 +64,9 @@
 	function showState( state ) {
 		var text = cfg.i18n.needs;
 
-		if ( 'ready' === state.status ) {
+		if ( 'ready' === state.status && serverOnly && state.count ) {
+			text = cfg.i18n.readySlides.replace( '%d', state.count );
+		} else if ( 'ready' === state.status ) {
 			text = cfg.i18n.ready + ( state.count ? ', ' + state.count : '' );
 		} else if ( 'pending' === state.status ) {
 			text = cfg.i18n.pending;
@@ -295,7 +300,7 @@
 					showState( state );
 					if ( 'pending' === state.status ) {
 						poll( tries - 1 );
-					} else if ( 'needs_browser' === state.status ) {
+					} else if ( 'needs_browser' === state.status && ! serverOnly ) {
 						run();
 					}
 				} )
@@ -305,11 +310,36 @@
 		}, 4000 );
 	}
 
+	function retryOnServer() {
+		els.button.disabled = true;
+		els.error.hidden = true;
+
+		request( cfg.retryUrl, { method: 'POST', headers: headers( { 'Content-Type': 'application/json' } ), body: '{}' } )
+			.then( function ( state ) {
+				els.button.disabled = false;
+				showState( state );
+
+				if ( 'pending' === state.status ) {
+					poll( 30 );
+				}
+			} )
+			.catch( function ( error ) {
+				els.button.disabled = false;
+				els.error.textContent = error.message;
+				els.error.hidden = false;
+			} );
+	}
+
 	els.button.addEventListener( 'click', function () {
+		if ( serverOnly ) {
+			retryOnServer();
+			return;
+		}
+
 		run( true );
 	} );
 
-	if ( 'needs_browser' === cfg.status ) {
+	if ( 'needs_browser' === cfg.status && ! serverOnly ) {
 		run( false );
 	} else if ( 'pending' === cfg.status ) {
 		poll( 30 );

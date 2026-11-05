@@ -26,25 +26,49 @@ function cptdp_documents_defaults(): array {
 		'show_book_title' => false,
 		'pages_mode'      => 'auto',
 		'trim_bottom'     => true,
-		'selectable_text' => false,
+		'native_pdf'      => false,
+		'native_pptx'     => false,
 	);
+}
+
+/**
+ * The native viewer formats (Settings > Documents > Native viewer), in the order they are listed.
+ * DOCX and XLSX will join them in a later ticket.
+ *
+ * @return string[]
+ */
+function cptdp_documents_native_formats(): array {
+	return array( 'pdf', 'pptx' );
 }
 
 /**
  * Get the saved Documents settings.
  *
- * @param string|null $key Optional single key: show_book_title, pages_mode, trim_bottom or selectable_text.
+ * `selectable_text` (the setting before the native viewer section existed) is still understood: it is
+ * the PDF checkbox, `native_pdf`, so an existing site keeps its choice.
+ *
+ * @param string|null $key Optional single key: show_book_title, pages_mode, trim_bottom, native_pdf or native_pptx.
  * @return array<string,bool|string>|bool|string
  */
 function cptdp_get_documents_settings( ?string $key = null ) {
 	$saved = get_option( 'cptdp_documents', array() );
 	$saved = is_array( $saved ) ? $saved : array();
+
+	if ( ! array_key_exists( 'native_pdf', $saved ) && array_key_exists( 'selectable_text', $saved ) ) {
+		$saved['native_pdf'] = $saved['selectable_text'];
+	}
+
+	if ( 'selectable_text' === $key ) {
+		$key = 'native_pdf';
+	}
+
 	$value = array_merge( cptdp_documents_defaults(), array_intersect_key( $saved, cptdp_documents_defaults() ) );
 
 	$value['show_book_title'] = rest_sanitize_boolean( $value['show_book_title'] );
 	$value['pages_mode']      = in_array( $value['pages_mode'], cptdp_documents_pages_modes(), true ) ? $value['pages_mode'] : 'auto';
 	$value['trim_bottom']     = rest_sanitize_boolean( $value['trim_bottom'] );
-	$value['selectable_text'] = rest_sanitize_boolean( $value['selectable_text'] );
+	$value['native_pdf']      = rest_sanitize_boolean( $value['native_pdf'] );
+	$value['native_pptx']     = rest_sanitize_boolean( $value['native_pptx'] );
 
 	if ( null === $key ) {
 		return $value;
@@ -74,6 +98,9 @@ function cptdp_documents_register_settings(): void {
 							'enum' => cptdp_documents_pages_modes(),
 						),
 						'trim_bottom'     => array( 'type' => 'boolean' ),
+						'native_pdf'      => array( 'type' => 'boolean' ),
+						'native_pptx'     => array( 'type' => 'boolean' ),
+						// Deprecated name of native_pdf, still accepted.
 						'selectable_text' => array( 'type' => 'boolean' ),
 					),
 					'additionalProperties' => false,
@@ -127,12 +154,26 @@ function cptdp_documents_register_sections(): void {
 	);
 
 	add_settings_field(
-		'cptdp_documents_selectable_text',
-		esc_html__( 'Selectable text', 'custom-post-types-dp' ),
-		'cptdp_documents_render_selectable_text',
+		'cptdp_documents_pptx_status',
+		esc_html__( 'PowerPoint conversion', 'custom-post-types-dp' ),
+		'cptdp_documents_render_pptx_status',
 		'cptdp-documents',
-		'cptdp_documents_section',
-		array( 'label_for' => 'cptdp_documents_selectable_text' )
+		'cptdp_documents_section'
+	);
+
+	add_settings_section(
+		'cptdp_documents_native_section',
+		esc_html__( 'Native viewer', 'custom-post-types-dp' ),
+		'cptdp_documents_render_native_section',
+		'cptdp-documents'
+	);
+
+	add_settings_field(
+		'cptdp_documents_native',
+		esc_html__( 'Let the native viewer draw', 'custom-post-types-dp' ),
+		'cptdp_documents_render_native_formats',
+		'cptdp-documents',
+		'cptdp_documents_native_section'
 	);
 }
 add_action( 'admin_init', 'cptdp_documents_register_sections' );
@@ -228,17 +269,59 @@ function cptdp_documents_render_trim_bottom(): void {
 }
 
 /**
- * Render the "Selectable text" checkbox.
+ * Render the read-only PowerPoint conversion status line.
  */
-function cptdp_documents_render_selectable_text(): void {
-	printf(
-		'<label><input type="checkbox" id="cptdp_documents_selectable_text" name="cptdp_documents[selectable_text]" value="1" %s /> %s</label><p class="description">%s</p><p class="description"><strong>%s</strong> %s</p>',
-		checked( cptdp_get_documents_settings( 'selectable_text' ), true, false ),
-		esc_html__( 'Let visitors select and copy text from document pages', 'custom-post-types-dp' ),
-		esc_html__( 'The page images cannot be selected, so with this on the viewer draws PDF pages with the browser\'s own PDF engine (pdf.js) and lays real, selectable text over them.', 'custom-post-types-dp' ),
-		esc_html__( 'This can make the viewer laggy.', 'custom-post-types-dp' ),
-		esc_html__( 'Pages take longer to appear and to turn, large documents and phones or older computers feel it most, the stored images are not used, and dragging a page corner to turn it is switched off so that dragging selects text. Documents that cannot be drawn this way fall back to the images, without selectable text. Off by default.', 'custom-post-types-dp' )
+function cptdp_documents_render_pptx_status(): void {
+	if ( CPTDP_Pptx_Converter::is_available() ) {
+		$version = CPTDP_Pptx_Converter::version();
+
+		echo '<p><strong>' . esc_html__( 'Available', 'custom-post-types-dp' ) . '</strong>' . ( '' !== $version ? ' (LibreOffice ' . esc_html( $version ) . ')' : '' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'PowerPoint (.pptx, .ppt) and OpenDocument (.odp) files are converted to page images when a document is saved. The result may differ from the original, so a PDF export is still the best option.', 'custom-post-types-dp' ) . '</p>';
+
+		return;
+	}
+
+	echo '<p><strong>' . esc_html__( 'Unavailable', 'custom-post-types-dp' ) . '</strong></p>';
+	echo '<p class="description">' . esc_html( CPTDP_Pptx_Converter::unavailable_reason() ) . '</p>';
+}
+
+/**
+ * Render the native viewer section intro.
+ */
+function cptdp_documents_render_native_section(): void {
+	echo '<p>' . esc_html__( 'By default a document is shown from page images that the server makes when it is saved: quick to open and light on every device. Tick a format to let our own viewer take over instead. It draws the original file in the visitor\'s browser, so text can be selected and copied, and it follows the file more closely.', 'custom-post-types-dp' ) . '</p>';
+	echo '<p><strong>' . esc_html__( 'This comes at the expense of performance:', 'custom-post-types-dp' ) . '</strong> '
+		. esc_html__( 'documents take longer to open and to turn, large ones and phones or older computers feel it most, and the viewer code is downloaded first. When the native viewer cannot draw a document, the stored page images are shown instead. Nothing is sent to anyone: the file is read from this site. Every format is off by default.', 'custom-post-types-dp' ) . '</p>';
+}
+
+/**
+ * Render the native viewer checkboxes, one per format. The fieldset carries the id the editor warning links to.
+ */
+function cptdp_documents_render_native_formats(): void {
+	$formats = array(
+		'pdf'  => array(
+			'label' => __( 'PDF', 'custom-post-types-dp' ),
+			'help'  => __( 'Draws the pages with the browser\'s own PDF engine (pdf.js) and real, selectable text, instead of the stored images. Dragging a page corner to turn it is switched off so that dragging selects text. Documents that cannot be drawn this way use the images.', 'custom-post-types-dp' ),
+		),
+		'pptx' => array(
+			'label' => __( 'PowerPoint (.pptx)', 'custom-post-types-dp' ),
+			'help'  => __( 'Draws the slides from the original file with a bundled viewer (about 2 MB the first time), with selectable text. It does not need LibreOffice on the server, so it also works on hosts that cannot convert presentations. No animations or equations; some charts and effects differ. Older .ppt and OpenDocument .odp files are not supported.', 'custom-post-types-dp' ),
+		),
 	);
+
+	echo '<fieldset id="cptdp-native-viewer"><legend class="screen-reader-text"><span>' . esc_html__( 'Let the native viewer draw', 'custom-post-types-dp' ) . '</span></legend>';
+
+	foreach ( cptdp_documents_native_formats() as $format ) {
+		printf(
+			'<p><label><input type="checkbox" id="cptdp_documents_native_%1$s" name="cptdp_documents[native_%1$s]" value="1" %2$s /> <strong>%3$s</strong></label><br><span class="description">%4$s</span></p>',
+			esc_attr( $format ),
+			checked( cptdp_get_documents_settings( 'native_' . $format ), true, false ),
+			esc_html( $formats[ $format ]['label'] ),
+			esc_html( $formats[ $format ]['help'] )
+		);
+	}
+
+	echo '</fieldset><style>#cptdp-native-viewer:target{background:#fff8c5;outline:6px solid #fff8c5}</style>';
 }
 
 /**
@@ -272,7 +355,12 @@ function cptdp_documents_sanitize( $input ): array {
 		return $form ? cptdp_documents_defaults() : $current;
 	}
 
-	foreach ( array( 'show_book_title', 'trim_bottom', 'selectable_text' ) as $key ) {
+	// The old name of the PDF checkbox: a partial update (REST, code) that still sends it means native_pdf.
+	if ( ! $form && ! array_key_exists( 'native_pdf', $input ) && array_key_exists( 'selectable_text', $input ) ) {
+		$input['native_pdf'] = $input['selectable_text'];
+	}
+
+	foreach ( array( 'show_book_title', 'trim_bottom', 'native_pdf', 'native_pptx' ) as $key ) {
 		if ( $form ) {
 			// Unticked checkboxes are not submitted, so a submitted form without them means "off".
 			$clean[ $key ] = isset( $input[ $key ] ) && rest_sanitize_boolean( $input[ $key ] );
