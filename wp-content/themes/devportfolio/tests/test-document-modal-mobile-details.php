@@ -191,8 +191,8 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/\.documents-mobile__details-row\s*\{[^}]*border-bottom:\s*1px solid var\(--dm-line\)/', $css );
 	}
 
-	public function test_the_title_is_serif_and_bold(): void {
-		$this->assertMatchesRegularExpression( '/\.documents-mobile__details-title\s*\{[^}]*font-family:\s*Georgia[^}]*font-weight:\s*700/s', $this->details_css() );
+	public function test_the_title_uses_the_theme_font_and_is_bold(): void {
+		$this->assertMatchesRegularExpression( '/\.documents-mobile__details-title\s*\{[^}]*font-family:\s*var\(--wp--preset--font-family--sans\)[^}]*font-weight:\s*700/s', $this->details_css() );
 	}
 
 	public function test_held_sideways_the_sheet_has_two_columns_without_a_new_query(): void {

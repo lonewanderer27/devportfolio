@@ -207,7 +207,7 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 	public function test_template_places_block_under_title_inside_content_container(): void {
 		$markup = (string) file_get_contents( $this->theme_dir() . '/templates/archive-document.html' );
 
-		$title     = strpos( $markup, '<h3 class="wp-block-heading">Documents</h3>' );
+		$title     = strpos( $markup, '<h3 class="wp-block-heading documents-page__title">Documents</h3>' );
 		$container = strpos( $markup, 'documents-page__content' );
 		$block     = strpos( $markup, '<!-- wp:devportfolio/document-categories /-->' );
 		$close     = strpos( $markup, '</div>', $block );

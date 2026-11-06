@@ -110,7 +110,7 @@
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 17px;
 	font-weight: 700;
 	line-height: 1.2;
@@ -297,7 +297,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 .documents-modal__title {
 	margin: 0;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 26px;
 	font-weight: 700;
 	line-height: 1.15;
@@ -742,8 +742,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 	background: rgb(255 255 255 / 0.72);
 	border: 1px solid var(--dm-edge);
 	border-radius: 50%;
-	-webkit-backdrop-filter: blur(20px) saturate(180%);
-	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
 	transform: translateY(-50%);
 	transition: opacity 160ms var(--dm-ease), background 160ms var(--dm-ease);
 }
@@ -1524,7 +1524,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	bottom: 6px;
 	left: 50%;
 	padding: 1px 8px;
-	font: 600 12px/1.5 system-ui, sans-serif;
+	font: 600 12px/1.5 var(--wp--preset--font-family--sans);
 	color: var(--dm-ink);
 	background: rgb(255 255 255 / 0.92);
 	border-radius: 999px;
@@ -1580,7 +1580,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	box-sizing: border-box;
 	width: 32px;
 	height: 42px;
-	font: 600 12px/1 system-ui, sans-serif;
+	font: 600 12px/1 var(--wp--preset--font-family--sans);
 	color: var(--dm-subtle);
 	background: #fff;
 	border: 1px solid var(--dm-line);
@@ -1631,7 +1631,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 18px;
 	font-weight: 700;
 	line-height: 1.25;

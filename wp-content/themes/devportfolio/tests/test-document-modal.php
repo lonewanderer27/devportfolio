@@ -338,7 +338,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	public function test_css_header_pager_rules(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__header\s*\{[^}]*border-bottom: 1px solid#', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*Georgia[^}]*font-weight: 700#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*font-family: var\(--wp--preset--font-family--sans\)[^}]*font-weight: 700#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space: nowrap#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\.is-on\s*\{[^}]*background: var\(--dm-ink\)#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\[aria-disabled="true"\]\s*\{[^}]*opacity: 0\.35#', $css );

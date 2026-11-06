@@ -7,16 +7,37 @@
 }
 
 .documents-categories__pill {
+	position: relative;
+	display: inline-flex;
 	flex: none;
+	align-items: center;
+	min-height: 36px;
+	box-sizing: border-box;
 	border: 1.5px solid var(--wp--preset--color--contrast);
 	border-radius: 9999px;
-	padding: 4px 14px;
+	padding: 0 14px;
 	background: var(--wp--preset--color--base);
 	color: var(--wp--preset--color--contrast);
 	font: inherit;
-	font-size: 13px;
+	font-size: 14px;
+	font-weight: 500;
 	line-height: 1.4;
+	white-space: nowrap;
 	cursor: pointer;
+	transition: background-color 160ms ease, color 160ms ease;
+}
+
+/* The pill stays short; the tap area reaches 44px (design system). */
+.documents-categories__pill::after {
+	content: "";
+	position: absolute;
+	inset: -4px 0;
+}
+
+@media (hover: hover) {
+	.documents-categories__pill:hover:not([aria-pressed="true"]) {
+		background: var(--wp--preset--color--fill);
+	}
 }
 
 .documents-categories__pill[aria-pressed="true"] {
@@ -55,15 +76,18 @@
 @media (max-width: 820px) {
 	.wp-block-devportfolio-document-categories {
 		position: sticky;
-		top: 0;
+		/* Sits right under the sticky site header (theme.json sets --site-header-height). */
+		top: calc(var(--site-sticky-top, 0px) + var(--site-header-height, 0px));
 		z-index: 5;
 		flex-wrap: nowrap;
 		overflow-x: auto;
 		white-space: nowrap;
-		margin-bottom: 20px;
-		padding: 6px 0 10px;
-		border-bottom: 1px solid var(--wp--preset--color--line);
-		background: var(--wp--preset--color--base);
+		margin: 0 calc(-1 * (var(--wp--preset--spacing--40) + var(--documents-gutter, 0px)));
+		padding: 8px calc(var(--wp--preset--spacing--40) + var(--documents-gutter, 0px)) 10px;
+		border-bottom: 1px solid var(--wp--custom--edge, rgb(0 0 0 / 0.1));
+		background: var(--wp--custom--glass--tint, rgb(255 255 255 / 0.8));
+		-webkit-backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+		backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
 		scrollbar-width: none;
 		-webkit-overflow-scrolling: touch;
 	}
@@ -73,7 +97,15 @@
 	}
 
 	.documents-categories__pill {
-		padding: 2px 10px;
-		font-size: 11px;
+		min-height: 34px;
+		padding: 0 12px;
+		font-size: 13px;
+	}
+
+	/* A phone held sideways is short: the header already sticks, so the strip scrolls away with the page. */
+	@media (orientation: landscape) and (max-height: 520px) {
+		.wp-block-devportfolio-document-categories {
+			position: static;
+		}
 	}
 }

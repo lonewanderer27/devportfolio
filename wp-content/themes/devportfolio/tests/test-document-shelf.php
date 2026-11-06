@@ -242,8 +242,9 @@ class Devportfolio_Test_Document_Shelf extends WP_UnitTestCase {
 	public function test_narrow_screens_allow_smaller_books_so_a_phone_gets_two_columns(): void {
 		$tablet = $this->media( '(max-width: 820px)' );
 
-		$this->assertStringContainsString( 'grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr))', $tablet );
-		$this->assertStringNotContainsString( 'grid-template-columns', $this->media( '(max-width: 480px)' ) );
+		$this->assertStringContainsString( 'grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr))', $tablet );
+		// Phones: the floor is just under half the width, so two columns fit and a third never does (360px and 375px).
+		$this->assertStringContainsString( 'grid-template-columns: repeat(auto-fill, minmax(max(110px, calc(50% - 16px)), 1fr))', $this->media( '(max-width: 480px)' ) );
 	}
 
 	public function test_page_is_wider_than_the_content_width_with_side_margins(): void {
