@@ -75,12 +75,12 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'export async function acquireSource', $sources );
 	}
 
-	public function test_only_pdfs_and_presentations_are_drawn_on_mobile(): void {
+	public function test_only_pdfs_presentations_and_workbooks_are_drawn_on_mobile(): void {
 		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
 		$this->assertStringContainsString( '! canShowOnMobile( doc )', $js );
 		$this->assertLessThan( strpos( $js, 'acquireSource( doc, alive' ), strpos( $js, '! canShowOnMobile( doc )' ), 'The gate comes before anything is fetched.' );
 		$mode = $this->read( 'blocks/document-modal/mode.js' );
-		$this->assertStringContainsString( "doc.kind === 'pdf' || unitOf( doc ) === 'slide'", $mode );
+		$this->assertStringContainsString( "doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc )", $mode );
 		$this->assertStringContainsString( "return !! doc && doc.kind === 'pdf'", $mode, 'isMobilePdf stays a strict PDF check.' );
 	}
 
@@ -101,6 +101,81 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 			$this->assertStringContainsString( $option, $mount, $option );
 		}
 		$this->assertStringNotContainsString( 'nativeMobile', $mobile . $mount, 'No mobile-only limit.' );
+	}
+
+	public function test_the_native_excel_grid_on_mobile_shares_the_desktop_mount_and_its_limits(): void {
+		$mobile  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$desktop = $this->read( 'blocks/document-modal/viewer.js' );
+		$mount   = $this->read( 'blocks/document-modal/native-xlsx.js' );
+
+		$this->assertStringContainsString( "from './native-xlsx.js'", $mobile );
+		$this->assertStringContainsString( "from './native-xlsx.js'", $desktop );
+		$this->assertStringNotContainsString( 'new lib.XlsxViewer', $mobile . $desktop, 'The options live in one place.' );
+		$this->assertStringNotContainsString( 'import( XLSX_LIB )', $mobile . $desktop );
+		$this->assertStringContainsString( 'canDrawOffice( readNativeEnvironment() )', $mobile );
+		$this->assertStringContainsString( 'isNativeGrid( doc ) ? showGrid( doc, alive ) : showNative( doc, alive )', $mobile );
+
+		// Same privacy options and limits as desktop, set once.
+		foreach ( array( 'wasmUrl: XLSX_WASM', 'useGoogleFonts: false', 'enableHyperlinks: false', 'enableElementSelection: false', 'comments: false', "hiddenSheetMode: 'skip'", 'workerTimeoutMs: limits.nativeTimeoutMs', 'xlsxWorksheetLimits: { maxCells: limits.nativeMaxCells, maxRows: limits.nativeMaxRows }', 'instance.load( doc.nativeUrl )', 'onCreate( instance )' ) as $option ) {
+			$this->assertStringContainsString( $option, $mount, $option );
+		}
+		$this->assertStringContainsString( '?v=${ OOXML_VERSION }', $mount );
+		$this->assertStringContainsString( 'import( XLSX_LIB )', $mount, 'A dynamic import: nothing is downloaded for other documents.' );
+		$this->assertStringNotContainsString( 'nativeMobile', $mobile . $mount, 'No mobile-only limit.' );
+		$this->assertStringNotContainsString( 'innerHTML', $mobile . $mount );
+	}
+
+	public function test_the_native_grid_is_one_piece_with_no_footer_no_page_gestures_and_no_zoom_buttons(): void {
+		$js  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$app = $this->read( 'blocks/document-modal/mobile.js' );
+		$body = substr( $js, (int) strpos( $js, 'const showGrid' ), (int) strpos( $js, '/* ---- public' ) - (int) strpos( $js, 'const showGrid' ) );
+
+		// One piece: mobile.js hides the footer and progress bar when pages < 2, as on desktop.
+		$this->assertStringContainsString( 'onGeometry( { pages: 1, step } )', $body );
+		$this->assertStringContainsString( 'const footerGone = state.pages < 2 || landscape.matches;', $app );
+
+		// Nothing of the page viewer is built for the grid.
+		foreach ( array( 'bindGestures', 'buildUi', 'touchZoom', 'zoomFabs', 'documents-mobile__edge', 'documents-mobile__frame' ) as $page_only ) {
+			$this->assertStringNotContainsString( $page_only, $body, $page_only );
+		}
+		$this->assertStringContainsString( 'makeDetails()', $body, 'Only the details button is kept.' );
+		$this->assertStringContainsString( "documents-mobile__grid", $body );
+		$this->assertStringContainsString( 'if ( ui && gridView )', $js );
+
+		// Closing frees the workers and the stage loses its grid class and variable.
+		$this->assertStringContainsString( 'gridView.instance.destroy()', $js );
+		$this->assertStringContainsString( "stage.classList.remove( 'documents-mobile__stage--grid' )", $js );
+		$this->assertStringContainsString( "stage.style.removeProperty( '--documents-grid-bar' )", $js );
+
+		// A failed grid falls back to the stored sheets, else "can't be previewed".
+		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides when there are some.', $js );
+
+		// The grid owns the arrow, zoom and 0 keys while it has the focus.
+		$this->assertStringContainsString( "closest( '.documents-mobile__grid' )", $app );
+	}
+
+	public function test_the_grid_keeps_clear_of_the_floating_buttons_in_portrait_and_landscape(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		// Own scrolling: not the frame's touch-action: none; the dialog does not scroll behind it.
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__grid\s*\{[^}]*touch-action:\s*pan-x pan-y pinch-zoom#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__grid\s*\{[^}]*overscroll-behavior:\s*contain#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__grid\s*\{[^}]*env\(safe-area-inset-bottom#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__stage--grid\s*\{[^}]*touch-action:\s*auto#', $css );
+
+		// The details button sits above the library's tab bar (height measured after mount), in both orientations.
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__stage--grid \.documents-mobile__fabs\s*\{[^}]*bottom:\s*calc\(\s*var\(--documents-grid-bar, 30px\) \+ 12px#', $css );
+
+		// Thumb-sized tab bar on touch screens.
+		$this->assertMatchesRegularExpression( '#\(pointer: coarse\)\s*\{\s*\.documents-mobile__grid :has\( > \.xlsx-tab-strip \)\s*\{\s*height:\s*40px !important#', $css );
+
+		// Held sideways Close and Download float over the top corners: the grid starts below them.
+		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*\.documents-mobile__grid\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
+
+		// The zoom buttons are not built for it (the library has its own zoom), so nothing sits over its bar's left end.
+		$js   = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$body = substr( $js, (int) strpos( $js, 'const showGrid' ), (int) strpos( $js, '/* ---- public' ) - (int) strpos( $js, 'const showGrid' ) );
+		$this->assertStringNotContainsString( 'documents-mobile__zoomfabs', $body );
 	}
 
 	public function test_the_native_canvas_is_redrawn_in_place_freed_on_close_and_falls_back_to_the_slides(): void {

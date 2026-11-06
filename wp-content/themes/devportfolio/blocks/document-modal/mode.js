@@ -94,20 +94,31 @@ export function isMobilePdf( doc ) {
 }
 
 /**
- * Whether the mobile body draws this document: PDFs (DPD-021) and presentations (DPD-029, converted
- * slides, and the native viewer for a .pptx). Workbooks (DPD-030) and word documents (DPD-031) have their
- * own tickets and show "can't be previewed" until then. This is the one gate to widen.
+ * Whether the mobile body draws this document: PDFs (DPD-021), presentations (DPD-029, converted slides,
+ * and the native viewer for a .pptx) and workbooks (DPD-030, converted sheets, and the native grid for a
+ * .xlsx). Word documents (DPD-031) have their own ticket and show "can't be previewed" until then. This
+ * is the one gate to widen.
  */
 export function canShowOnMobile( doc ) {
-	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' );
+	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) );
 }
 
 /**
- * Whether the mobile body may try the native PowerPoint viewer: the document is a .pptx that carries a
- * `nativeUrl`. Same limits as desktop (the plugin's size ceiling and the timeout), no mobile-only cap.
+ * Whether the mobile body may try a native viewer: a .pptx (slides on a canvas) or a .xlsx (the library's
+ * grid) that carries a `nativeUrl`. Same limits as desktop (the plugin's size ceiling and the timeout),
+ * no mobile-only cap.
  */
 export function nativeAllowedOnMobile( doc ) {
-	return !! doc && doc.kind === 'pptx' && typeof doc.nativeUrl === 'string' && doc.nativeUrl !== '';
+	return !! doc && ( doc.kind === 'pptx' || doc.kind === 'xlsx' ) && typeof doc.nativeUrl === 'string' && doc.nativeUrl !== '';
+}
+
+/**
+ * Whether the native viewer draws this document as a workbook grid: the grid brings its own scrolling,
+ * zoom and sheet tabs, so for the modal it is one piece (no page turner, no footer) and the page gestures
+ * are not bound to it.
+ */
+export function isNativeGrid( doc ) {
+	return !! doc && doc.kind === 'xlsx' && nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native';
 }
 
 /**

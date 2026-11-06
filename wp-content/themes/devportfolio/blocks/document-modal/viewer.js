@@ -29,14 +29,13 @@ import { createStatus } from './status.js';
 import { svgIcon } from './dom.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 import { OOXML_VERSION, readNativeEnvironment, openPptx } from './native-pptx.js';
+import { openXlsx } from './native-xlsx.js';
 import { withTimeout, rememberFailure, acquireSource, buildPageEls, mountWindow } from './page-source.js';
 
 const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).href;
 
 // The spreadsheet viewer (DPD-027) is part of the same package and version: its entry, its worker and its
 // WebAssembly file are the files without a content hash in their name.
-const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
-const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const DOCX_LIB = new URL( `./vendor/ooxml/docx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const DOCX_WASM = new URL( `./vendor/ooxml/docx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 
@@ -636,32 +635,23 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		stage.replaceChildren( wrap );
 
 		try {
-			const lib = await withTimeout( import( XLSX_LIB ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
-				return false;
-			}
-
-			const instance = new lib.XlsxViewer( wrap, {
-				wasmUrl: XLSX_WASM,
-				useGoogleFonts: false,
-				enableHyperlinks: false,
-				enableElementSelection: false,
-				comments: false,
-				hiddenSheetMode: 'skip',
-				showZoomSlider: true,
-				workerTimeoutMs: limits.nativeTimeoutMs,
-				xlsxWorksheetLimits: { maxCells: limits.nativeMaxCells, maxRows: limits.nativeMaxRows },
+			// The viewer is created and loaded by the shared mount (native-xlsx.js), which holds the options.
+			const instance = await openXlsx( {
+				host: wrap,
+				doc,
+				limits,
+				alive,
 				onError: ( error ) => {
 					if ( opened ) {
 						fail( error, mine );
 					}
 				},
+				// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
+				onCreate: ( created ) => {
+					grid = created;
+				},
 			} );
-			// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
-			grid = instance;
-
-			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
+			if ( ! instance || ! alive() ) {
 				return false;
 			}
 

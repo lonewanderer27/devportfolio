@@ -9,8 +9,9 @@
  * follows the finger instead of StPageFlip, whose mouse model fights touch drag, pinch and pan.
  *
  * Touch: swipe, tap the outer 20% of either side, double-tap (centre) or pinch to zoom, drag to pan a
- * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs and
- * presentations (DPD-029); every other kind shows "can't be previewed" until it has its own ticket.
+ * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs,
+ * presentations (DPD-029) and workbooks (DPD-030); word documents show "can't be previewed" until they have
+ * their own ticket.
  *
  * A .pptx with Native viewer > PowerPoint on is drawn from the original file on one canvas (native-pptx.js,
  * the same mount as the desktop modal, same limits) with selectable text; the turn is then a redraw in
@@ -18,13 +19,17 @@
  *
  * The viewer never owns the page shown in the footer: it reports geometry once and page turns made by
  * gesture (`onTurn`), and mobile.js tells it where to go (`goTo`).
+ *
+ * A .xlsx with Native viewer > Excel on is drawn by the library's own grid (native-xlsx.js, same limits): one
+ * piece with its own scrolling, zoom and sheet tabs, so none of the page gestures or the footer apply (DPD-030).
  */
 import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 import { acquireSource, rememberFailure, withTimeout, buildPageEls, mountWindow } from './page-source.js';
 import { normalisePage, turnPage } from './pager.js';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, canDrawOffice, hintKeyFor } from './mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, canDrawOffice, hintKeyFor } from './mode.js';
 import { readNativeEnvironment, openPptx } from './native-pptx.js';
+import { openXlsx } from './native-xlsx.js';
 import { classifyTap, swipeDirection, verticalIntent, zoomPercent, ZOOM_MIN, ZOOM_MAX } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
@@ -64,6 +69,9 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	let pageEls = [];
 	// The native PowerPoint viewer when it draws the document: { instance, box, canvas, count } (DPD-029).
 	let native = null;
+	// The native Excel grid when it draws the workbook: { instance, box } (DPD-030). It is one piece with its
+	// own scrolling, zoom and sheet tabs, so no frame, gestures, zoom buttons, hints or footer are built for it.
+	let gridView = null;
 	let step = 1;
 	let current = 1;
 	let layout = null;
@@ -96,6 +104,16 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			source = null;
 		}
 		native = null;
+		if ( gridView ) {
+			try {
+				gridView.instance.destroy();
+			} catch ( e ) {
+				// Already gone.
+			}
+			gridView = null;
+		}
+		stage.classList.remove( 'documents-mobile__stage--grid' );
+		stage.style.removeProperty( '--documents-grid-bar' );
 		pageEls = [];
 		layout = null;
 		ui = null;
@@ -240,12 +258,21 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 
 	function dismissHint() {
 		hintGone = true;
-		if ( ui ) {
+		if ( ui && ui.hint ) {
 			ui.hint.hidden = true;
 		}
 	}
 
 	function syncControls() {
+		if ( ui && gridView ) {
+			// Only the details button: the footer is gone (one piece) and the library has its own zoom and tabs.
+			ui.fab.hidden = ! ( chrome.info && hasDetails );
+			ui.fabs.hidden = ui.fab.hidden;
+			if ( ui.fab.hidden ) {
+				setDetails( false );
+			}
+			return;
+		}
 		if ( ! ui || ! source ) {
 			return;
 		}
@@ -301,6 +328,48 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		}
 	};
 
+	/**
+	 * The round details button, the Pages button and the details panel (bottom right: the Pages button on top
+	 * of the details button, with the panel above both). Shared by the page viewer and the native grid.
+	 */
+	const makeDetails = () => {
+		// The round "i" button opens the document details (what the desktop header shows).
+		const panelId = `documents-mobile-details-${ ++uid }`;
+		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-expanded': 'false', 'aria-controls': panelId } );
+		fab.appendChild( svgIcon( 'M12 11v6M12 7.5v.01', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' ) );
+		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
+		pagesFab.appendChild( svgIcon( 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' ) );
+		const panel = el( 'div', 'documents-mobile__details-panel', { id: panelId } );
+		panel.hidden = true;
+		const detailLines = [
+			[ 'documents-mobile__details-title', details.title ],
+			[ 'documents-mobile__details-desc', details.description ],
+			[ 'documents-mobile__details-tools', ( details.tools || [] ).join( ' · ' ) ],
+			[ 'documents-mobile__details-format', details.format ],
+		].filter( ( entry ) => entry[ 1 ] );
+		detailLines.forEach( ( [ className, value ] ) => {
+			const line = el( 'p', className );
+			line.textContent = value;
+			panel.appendChild( line );
+		} );
+		hasDetails = detailLines.length > 0;
+
+		// Bottom right: the Pages button on top of the details button, with the details panel above both.
+		const fabs = el( 'div', 'documents-mobile__fabs' );
+		fabs.append( panel, pagesFab, fab );
+		fab.addEventListener( 'click', () => {
+			dismissHint();
+			toggleDetails();
+		} );
+		pagesFab.addEventListener( 'click', () => {
+			dismissHint();
+			if ( onPages ) {
+				onPages();
+			}
+		} );
+		return { fab, pagesFab, panel, fabs };
+	};
+
 	const buildUi = () => {
 		const frame = el( 'div', 'documents-mobile__frame' );
 		const track = el( 'div', 'documents-mobile__track' );
@@ -325,26 +394,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			hint.appendChild( line );
 		}
 
-		// The round "i" button opens the document details (what the desktop header shows).
-		const panelId = `documents-mobile-details-${ ++uid }`;
-		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-expanded': 'false', 'aria-controls': panelId } );
-		fab.appendChild( svgIcon( 'M12 11v6M12 7.5v.01', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' ) );
-		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
-		pagesFab.appendChild( svgIcon( 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' ) );
-		const panel = el( 'div', 'documents-mobile__details-panel', { id: panelId } );
-		panel.hidden = true;
-		const detailLines = [
-			[ 'documents-mobile__details-title', details.title ],
-			[ 'documents-mobile__details-desc', details.description ],
-			[ 'documents-mobile__details-tools', ( details.tools || [] ).join( ' · ' ) ],
-			[ 'documents-mobile__details-format', details.format ],
-		].filter( ( entry ) => entry[ 1 ] );
-		detailLines.forEach( ( [ className, value ] ) => {
-			const line = el( 'p', className );
-			line.textContent = value;
-			panel.appendChild( line );
-		} );
-		hasDetails = detailLines.length > 0;
+		const { fab, pagesFab, panel, fabs } = makeDetails();
 
 		// Round zoom buttons, bottom left: the same steps as the + and - keys, for people who do not pinch.
 		const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
@@ -356,9 +406,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 
 		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
 
-		// Bottom right: the Pages button on top of the details button, with the details panel above both.
-		const fabs = el( 'div', 'documents-mobile__fabs' );
-		fabs.append( panel, pagesFab, fab );
 		stage.append( frame, prev, next, hint, fabs, zoomFabs, live );
 		stage.setAttribute( 'role', 'region' );
 		stage.setAttribute( 'aria-label', text( 'region', 'Document pages' ) );
@@ -368,16 +415,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		next.addEventListener( 'click', () => turn( 1 ) );
 		zoomIn.addEventListener( 'click', () => zoomBy( 1 ) );
 		zoomOut.addEventListener( 'click', () => zoomBy( -1 ) );
-		fab.addEventListener( 'click', () => {
-			dismissHint();
-			toggleDetails();
-		} );
-		pagesFab.addEventListener( 'click', () => {
-			dismissHint();
-			if ( onPages ) {
-				onPages();
-			}
-		} );
 		bindGestures( frame );
 	};
 
@@ -779,6 +816,79 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		}
 	};
 
+	/* ---- native Excel (DPD-030) ----------------------------------------------------------- */
+
+	/**
+	 * Draws a .xlsx from the original file with the library's own grid (the same mount as the desktop modal,
+	 * native-xlsx.js, same limits). The grid brings scrolling, zoom, sheet tabs and cell selection, so it is
+	 * mounted OUTSIDE the swipe/zoom frame: no page gestures, edge taps, zoom buttons or hints are built, and
+	 * it reports one piece, so the footer and progress bar stay hidden, as on desktop (the sheet tabs are the
+	 * navigation). Only the details button is kept, lifted above the library's tab bar (CSS, --documents-grid-bar).
+	 * Returns false when it cannot be drawn: the caller then shows the stored sheets, or "can't be previewed".
+	 */
+	const showGrid = async ( doc, alive ) => {
+		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
+			return false;
+		}
+		const mine = session;
+		let opened = false;
+		let instance = null;
+		const box = el( 'div', 'documents-mobile__grid', { role: 'group', 'aria-label': doc.title || '' } );
+		box.style.visibility = 'hidden';
+		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
+		const { fab, pagesFab, panel, fabs } = makeDetails();
+		pagesFab.hidden = true;
+		stage.classList.add( 'documents-mobile__stage--grid' );
+		stage.append( box, fabs, live );
+		ui = { fab, pagesFab, fabs, panel, live };
+
+		/** The library's tab bar is its only chrome at the bottom: keep the buttons clear of it. */
+		const syncBar = () => {
+			const strip = box.querySelector( '.xlsx-tab-strip' );
+			const bar = strip && strip.parentElement ? strip.parentElement.offsetHeight : 0;
+			if ( bar > 0 ) {
+				stage.style.setProperty( '--documents-grid-bar', `${ bar }px` );
+			}
+		};
+
+		try {
+			instance = await openXlsx( {
+				host: box,
+				doc,
+				limits,
+				alive,
+				onError: ( error ) => {
+					if ( opened ) {
+						fail( error, mine );
+					}
+				},
+				// From here reset() can free it, so closing mid-load cannot leave a worker running.
+				onCreate: ( created ) => {
+					gridView = { instance: created, box };
+				},
+			} );
+			if ( ! instance || ! alive() ) {
+				return false;
+			}
+			step = 1;
+			current = onGeometry( { pages: 1, step } );
+			box.style.visibility = '';
+			setStatus( null );
+			syncControls();
+			syncBar();
+			opened = true;
+			observer = new ResizeObserver( syncBar );
+			observer.observe( box );
+			return true;
+		} catch ( error ) {
+			if ( alive() ) {
+				// Leave nothing of the failed attempt behind: the caller shows the stored sheets or says it can't preview.
+				reset();
+			}
+			return false;
+		}
+	};
+
 	/* ---- public --------------------------------------------------------------------------- */
 
 	return {
@@ -796,14 +906,14 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			budget = budgetFor( 'full', limits );
 
 			if ( ! canShowOnMobile( doc ) ) {
-				// Workbooks (DPD-030) and word documents (DPD-031) on mobile have their own tickets.
+				// Word documents (DPD-031) on mobile have their own ticket.
 				unavailable();
 				return;
 			}
 			setStatus( 'loading' );
 
 			if ( nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native' ) {
-				const drawn = await showNative( doc, alive );
+				const drawn = await ( isNativeGrid( doc ) ? showGrid( doc, alive ) : showNative( doc, alive ) );
 				if ( drawn || ! alive() ) {
 					return;
 				}
