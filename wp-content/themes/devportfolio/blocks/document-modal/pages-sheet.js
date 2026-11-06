@@ -12,6 +12,7 @@
  * opens at.
  */
 import { el, svgIcon } from './dom.js';
+import { createBottomSheet } from './bottom-sheet.js';
 import { visiblePages } from './pager.js';
 
 /** From this many pages the tiles and rows are built in chunks as the sheet scrolls. */
@@ -173,31 +174,6 @@ export function renderCount( total, needed = 1, built = 0 ) {
 	return Math.min( total, Math.max( built, Math.ceil( Math.max( 1, needed ) / CHUNK ) * CHUNK ) );
 }
 
-/** Dragging the sheet down: farther than this (px) closes it; a quick flick closes it from a shorter drag. */
-export const DRAG_CLOSE_DISTANCE = 96;
-export const DRAG_FLICK_DISTANCE = 24;
-export const DRAG_FLICK_SPEED = 0.6; // px per millisecond
-export const DRAG_TAP_SLOP = 6; // movement (px) that still counts as a tap
-
-/**
- * What to do when the handle is let go after a drag.
- *
- * @param {Object} args { dy: distance dragged down (px), speed: last speed down (px/ms) }
- * @return {'close'|'snap'} Close the sheet, or spring back.
- */
-export function dragOutcome( { dy = 0, speed = 0 } = {} ) {
-	if ( dy >= DRAG_CLOSE_DISTANCE ) {
-		return 'close';
-	}
-	return dy >= DRAG_FLICK_DISTANCE && speed >= DRAG_FLICK_SPEED ? 'close' : 'snap';
-}
-
-/** A drag only moves the sheet down: up is held at 0 and a long pull is slowed a little. */
-export function dragOffset( dy ) {
-	const down = Math.max( 0, Number( dy ) || 0 );
-	return down;
-}
-
 /**
  * What the sheet remembers about each document while the page stays open: the view the visitor last used and
  * where each view was scrolled to, so reopening the sheet picks up where they left. Kept in memory only (it
@@ -259,36 +235,34 @@ const saveDataOn = () => !! ( typeof navigator !== 'undefined' && navigator.conn
  */
 export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) {
 	const text = ( key, fallback ) => ( typeof strings[ key ] === 'string' && strings[ key ] !== '' ? strings[ key ] : fallback );
-	const panel = dialog.querySelector( '.documents-mobile__panel' );
+	// The shell (dim layer, sheet, handle, drag to dismiss, inert viewer, Esc) is shared with the Details sheet.
+	const shell = createBottomSheet( {
+		dialog,
+		titleId: 'documents-mobile-pages-title',
+		handleLabel: text( 'closePages', 'Close pages' ),
+		modifier: 'documents-mobile__sheet--pages',
+		onDismiss: () => close( false ),
+	} );
+	const { sheet, head, body } = shell;
 
-	const dim = el( 'div', 'documents-mobile__dim' );
-	dim.hidden = true;
-	const sheet = el( 'div', 'documents-mobile__sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'documents-mobile-pages-title' } );
-	sheet.hidden = true;
-
-	const grab = el( 'button', 'documents-mobile__grab', { type: 'button', 'aria-label': text( 'closePages', 'Close pages' ) } );
-	const head = el( 'div', 'documents-mobile__sheet-head' );
 	const title = el( 'h3', 'documents-mobile__sheet-title', { id: 'documents-mobile-pages-title' } );
 	title.textContent = text( 'pagesTitle', 'Pages' );
 	const toggle = el( 'div', 'documents-mobile__sheet-toggle', { role: 'group', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
-	const galleryBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'true', 'aria-label': text( 'galleryView', 'Gallery view' ), 'data-view': 'grid' } );
+	const galleryBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'true', 'aria-label': text( 'galleryView', 'Gallery view' ), 'data-view': 'grid', 'data-no-drag': '' } );
 	galleryBtn.appendChild( svgIcon( 'M3.5 5.5h17v13h-17z', 'M8 10.5a1.3 1.3 0 1 0 0-.01', 'M4 17l5-5 4 4 3-3 4 4' ) );
-	const listBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'false', 'aria-label': text( 'listView', 'List view' ), 'data-view': 'list' } );
+	const listBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'false', 'aria-label': text( 'listView', 'List view' ), 'data-view': 'list', 'data-no-drag': '' } );
 	listBtn.appendChild( svgIcon( 'M9 6h11M9 12h11M9 18h11', 'M4.5 6h.01M4.5 12h.01M4.5 18h.01' ) );
 	toggle.append( galleryBtn, listBtn );
 	head.append( title, toggle );
 
-	const body = el( 'div', 'documents-mobile__sheet-body' );
 	const grid = el( 'div', 'documents-mobile__pgr' );
 	const list = el( 'div', 'documents-mobile__rows' );
 	list.hidden = true;
 	body.append( grid, list );
-	sheet.append( grab, head, body );
-	dialog.append( dim, sheet );
 
 	const IO = typeof IntersectionObserver === 'function' ? IntersectionObserver : null;
 	const memory = createSheetMemory();
-	const state = { open: false, view: 'grid', opener: null, saveData: false, cache: null, imageObserver: null, growObserver: null };
+	const state = { open: false, view: 'grid', saveData: false, cache: null, imageObserver: null, growObserver: null };
 
 	/** The built tiles and rows of one document; kept while the document stays the same. */
 	const newCache = ( id, model, doc ) => ( {
@@ -600,137 +574,12 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 		state.open = false;
 		stopObserving();
 		cancelPending();
-		sheet.hidden = true;
-		dim.hidden = true;
-		clearDrag();
-		if ( panel ) {
-			panel.inert = false;
-		}
-		const opener = state.opener;
-		state.opener = null;
-		if ( opener && opener.isConnected && typeof opener.focus === 'function' && ! silent ) {
-			opener.focus();
-		}
+		shell.hide( silent );
 		if ( ! silent && onClose ) {
 			onClose();
 		}
 	};
 
-	const requestClose = () => close( false );
-
-	dim.addEventListener( 'click', requestClose );
-
-	/**
-	 * Drag the handle (or the title row) down to dismiss. A tap still closes it; so do Enter and Space on the handle.
-	 * The sheet follows the finger, then closes past the distance (or on a flick) or springs back.
-	 */
-	const clearDrag = () => {
-		sheet.style.transform = '';
-		sheet.style.transition = '';
-		dim.style.opacity = '';
-		dim.style.transition = '';
-	};
-	const reduced = () => typeof window.matchMedia === 'function' && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
-	let drag = null;
-	let swallowClick = false;
-	const moveSheet = ( dy ) => {
-		sheet.style.transition = 'none';
-		sheet.style.transform = `translateY(${ dragOffset( dy ) }px)`;
-		dim.style.transition = 'none';
-		dim.style.opacity = String( Math.max( 0.2, 1 - dragOffset( dy ) / Math.max( 1, sheet.offsetHeight ) ) );
-	};
-	const finishDrag = ( outcome ) => {
-		if ( outcome === 'close' ) {
-			if ( reduced() ) {
-				clearDrag();
-				requestClose();
-				return;
-			}
-			sheet.style.transition = 'transform 180ms ease-in';
-			dim.style.transition = 'opacity 180ms ease-in';
-			sheet.style.transform = 'translateY(100%)';
-			dim.style.opacity = '0';
-			let done = false;
-			const end = () => {
-				if ( done ) {
-					return;
-				}
-				done = true;
-				clearDrag();
-				requestClose();
-			};
-			sheet.addEventListener( 'transitionend', end, { once: true } );
-			window.setTimeout( end, 260 );
-			return;
-		}
-		// Back to where it was.
-		if ( reduced() ) {
-			clearDrag();
-			return;
-		}
-		sheet.style.transition = 'transform 160ms ease-out';
-		dim.style.transition = 'opacity 160ms ease-out';
-		sheet.style.transform = 'translateY(0)';
-		dim.style.opacity = '';
-		window.setTimeout( clearDrag, 200 );
-	};
-	const startDrag = ( event ) => {
-		if ( ! state.open || ( event.pointerType === 'mouse' && event.button !== 0 ) || event.target.closest( '[data-view]' ) ) {
-			return;
-		}
-		drag = { id: event.pointerId, y0: event.clientY, t0: event.timeStamp, y: event.clientY, t: event.timeStamp, speed: 0, moved: false, el: event.currentTarget };
-		try {
-			drag.el.setPointerCapture( event.pointerId );
-		} catch ( e ) {
-			// A capture failure only means the drag ends if the finger leaves the handle.
-		}
-	};
-	const moveDrag = ( event ) => {
-		if ( ! drag || event.pointerId !== drag.id ) {
-			return;
-		}
-		const dy = event.clientY - drag.y0;
-		if ( ! drag.moved && Math.abs( dy ) < DRAG_TAP_SLOP ) {
-			return;
-		}
-		drag.moved = true;
-		const dt = Math.max( 1, event.timeStamp - drag.t );
-		drag.speed = ( event.clientY - drag.y ) / dt;
-		drag.y = event.clientY;
-		drag.t = event.timeStamp;
-		moveSheet( dy );
-	};
-	const endDrag = ( event, cancelled = false ) => {
-		if ( ! drag || event.pointerId !== drag.id ) {
-			return;
-		}
-		const finished = drag;
-		drag = null;
-		try {
-			finished.el.releasePointerCapture( event.pointerId );
-		} catch ( e ) {
-			// Already released.
-		}
-		if ( ! finished.moved ) {
-			return; // A tap: the click that follows closes the sheet.
-		}
-		swallowClick = true; // The click a drag ends with must not close the sheet a second time.
-		window.setTimeout( () => {
-			swallowClick = false;
-		}, 0 );
-		finishDrag( cancelled ? 'snap' : dragOutcome( { dy: event.clientY - finished.y0, speed: finished.speed } ) );
-	};
-	[ grab, head ].forEach( ( node ) => {
-		node.addEventListener( 'pointerdown', startDrag );
-		node.addEventListener( 'pointermove', moveDrag );
-		node.addEventListener( 'pointerup', ( event ) => endDrag( event ) );
-		node.addEventListener( 'pointercancel', ( event ) => endDrag( event, true ) );
-	} );
-	grab.addEventListener( 'click', () => {
-		if ( ! swallowClick ) {
-			requestClose();
-		}
-	} );
 	toggle.addEventListener( 'click', ( event ) => {
 		const button = event.target.closest( '[data-view]' );
 		if ( button && button.getAttribute( 'data-view' ) !== state.view ) {
@@ -749,21 +598,6 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 	};
 	grid.addEventListener( 'click', choose );
 	list.addEventListener( 'click', choose );
-	sheet.addEventListener( 'keydown', ( event ) => {
-		if ( event.key === 'Escape' ) {
-			event.preventDefault();
-			event.stopPropagation();
-			requestClose();
-		}
-	} );
-	// The dialog's own Esc closes the viewer; while the sheet is open it closes the sheet first.
-	dialog.addEventListener( 'cancel', ( event ) => {
-		if ( state.open ) {
-			event.preventDefault();
-			requestClose();
-		}
-	} );
-
 	return {
 		/**
 		 * Shows the sheet in the view this document was last shown in (Gallery the first time), scrolled to where it was left.
@@ -777,7 +611,6 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 				return false;
 			}
 			state.saveData = saveDataOn();
-			state.opener = opener || null;
 			const same = state.cache && state.cache.id === doc.id && state.cache.model.length === model.length;
 			if ( same ) {
 				// Built once: only the current markers move.
@@ -799,12 +632,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 				grow( cache, 'list', Math.max( cache.builtRows, renderCount( model.length, currentFirst( cache ), cache.builtRows ) ) );
 			}
 			state.open = true;
-			if ( panel ) {
-				panel.inert = true;
-			}
-			clearDrag();
-			dim.hidden = false;
-			sheet.hidden = false;
+			shell.show( { opener } );
 			// The view this document was last shown in, scrolled to where it was left (first time: Gallery at the current page).
 			const view = memory.viewFor( cache.id );
 			setView( view, memory.scrollFor( cache.id, view ) );

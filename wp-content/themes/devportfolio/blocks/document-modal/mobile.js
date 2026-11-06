@@ -3,7 +3,7 @@ import { unitOf, wording, positionText } from './mode.js';
 import { applyDownload, guardDisabledDownload } from './download.js';
 import { createMobileViewer } from './mobile-viewer.js';
 import { SIDEWAYS_QUERY } from './routing.js';
-import { createSheetHistory } from './sheet-back.js';
+import { createSheetController } from './sheet-controller.js';
 
 export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {}, limits = {}, selectableText = false, onClose } ) {
 	const $ = ( selector ) => dialog.querySelector( selector );
@@ -20,10 +20,10 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		status: $( '.documents-mobile__state' ),
 	};
 	const state = { id: 0, page: 1, pages: 0, step: 1 };
-	// The Pages sheet (DPD-020): its code is loaded with import() on the first tap of Pages. While open it owns one
-	// history entry (sheet-back.js) so Back closes only the sheet.
-	let sheet = null;
-	let sheetLoading = false;
+	// The bottom sheets (Pages, DPD-020; Details, DPD-023): each one's code is loaded with import() on its first
+	// tap, one is open at a time, and while open it owns one history entry (sheet-controller.js, sheet-back.js)
+	// so Back closes only the sheet. The controller is created here, at start, never inside a lazy import.
+	const sheets = createSheetController( { dialog } );
 	let openDoc = null;
 	// A phone held sideways: the footer makes way for the page, and its buttons become round buttons (DPD-024).
 	const landscape = window.matchMedia( SIDEWAYS_QUERY );
@@ -47,7 +47,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		els.footer.hidden = footerGone;
 		els.pages.hidden = state.pages < 2;
 		// The footer's Details and Pages buttons live on as round buttons while the footer is gone.
-		viewer.setChrome( { info: footerGone && state.pages > 0, pages: landscape.matches && state.pages > 1 } );
+		viewer.setChrome( { info: footerGone, pages: landscape.matches && state.pages > 1 } );
 	};
 
 	// A page turn made inside the viewer (swipe, edge tap, edge button, key): only the footer follows.
@@ -67,50 +67,38 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		return state.page;
 	};
 
-	const sheetHistory = createSheetHistory( {
-		isOpen: () => !! sheet && sheet.isOpen(),
-		onBack: () => closeSheet( { fromHistory: true } ),
+	sheets.register( 'pages', {
+		closeOnRotate: true,
+		create: async ( { dialog: host, onClose: closed } ) => {
+			const mod = await import( './pages-sheet.js' );
+			return mod.createPagesSheet( {
+				dialog: host,
+				strings,
+				onSelect: ( page ) => {
+					sheets.close();
+					setPage( page );
+				},
+				onClose: closed,
+			} );
+		},
+	} );
+	// The Details sheet keeps its place when the phone is rotated: it only re-lays out (CSS).
+	sheets.register( 'details', {
+		create: async ( { dialog: host, onClose: closed } ) => {
+			const mod = await import( './details-sheet.js' );
+			return mod.createDetailsSheet( { dialog: host, strings, units, onClose: closed } );
+		},
 	} );
 
-	/** Closes the sheet (when open); the history entry it added is popped unless history itself closed it. */
-	const closeSheet = ( { fromHistory = false } = {} ) => {
-		if ( ! sheet || ! sheet.isOpen() ) {
-			return;
-		}
-		sheet.close( true );
-		if ( fromHistory ) {
-			sheetHistory.release();
-		} else {
-			sheetHistory.pop();
+	const openPages = () => {
+		if ( openDoc && state.pages >= 2 ) {
+			sheets.open( 'pages', { doc: openDoc, page: state.page, pages: state.pages, step: state.step, opener: document.activeElement } );
 		}
 	};
 
-	const openPages = async () => {
-		if ( ! openDoc || state.pages < 2 || sheetLoading || ( sheet && sheet.isOpen() ) ) {
-			return;
-		}
-		sheetLoading = true;
-		const opener = document.activeElement;
-		try {
-			if ( ! sheet ) {
-				const mod = await import( './pages-sheet.js' );
-				sheet = mod.createPagesSheet( {
-					dialog,
-					strings,
-					onSelect: ( page ) => {
-						closeSheet();
-						setPage( page );
-					},
-					onClose: () => closeSheet(),
-				} );
-			}
-			if ( dialog.open && sheet.open( { doc: openDoc, page: state.page, pages: state.pages, step: state.step, opener } ) ) {
-				sheetHistory.push();
-			}
-		} catch ( e ) {
-			sheet = null;
-		} finally {
-			sheetLoading = false;
+	const openDetails = () => {
+		if ( openDoc ) {
+			sheets.open( 'details', { doc: openDoc, opener: document.activeElement } );
 		}
 	};
 
@@ -125,12 +113,14 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		onGeometry: setGeometry,
 		onTurn: turned,
 		onPages: () => emit( 'documents:mobile-pages' ),
+		onDetails: () => emit( 'documents:mobile-details' ),
 	} );
 	landscape.addEventListener( 'change', () => {
-		closeSheet();
+		sheets.closeOnRotate();
 		drawFooter();
 	} );
 	dialog.addEventListener( 'documents:mobile-pages', openPages );
+	dialog.addEventListener( 'documents:mobile-details', openDetails );
 
 
 	const setPage = ( page ) => {
@@ -143,16 +133,11 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 	guardDisabledDownload( els.download );
 	els.close.addEventListener( 'click', () => dialog.close() );
 	els.pages.addEventListener( 'click', () => emit( 'documents:mobile-pages' ) );
-	els.details.addEventListener( 'click', () => {
-		viewer.toggleDetails();
-		emit( 'documents:mobile-details' );
-	} );
+	els.details.addEventListener( 'click', () => emit( 'documents:mobile-details' ) );
 	dialog.addEventListener( 'close', () => {
 		// The viewer closed with the sheet open: its history entry is still there; view.js removes it too.
-		const extra = sheetHistory.release();
-		if ( sheet ) {
-			sheet.reset();
-		}
+		const extra = sheets.release();
+		sheets.reset();
 		openDoc = null;
 		viewer.destroy();
 		if ( onClose ) {
@@ -166,8 +151,8 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		if ( event.target && event.target.closest && event.target.closest( 'input, textarea, select, [contenteditable]' ) ) {
 			return;
 		}
-		// The Pages sheet is on top of the viewer: the page keys do nothing behind it.
-		if ( sheet && sheet.isOpen() ) {
+		// A sheet is on top of the viewer: the page keys do nothing behind it.
+		if ( sheets.isAnyOpen() ) {
 			return;
 		}
 		// The native workbook grid and Word scroller (DPD-030, DPD-031) own the arrow, zoom and 0 keys while it has the focus.
@@ -196,9 +181,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		show( doc, page = 1 ) {
 			state.id = doc.id;
 			openDoc = doc;
-			if ( sheet ) {
-				sheet.reset();
-			}
+			sheets.reset();
 			words = wording( unitOf( doc ), units );
 			state.pages = ( Array.isArray( doc.images ) && doc.images.length ) || doc.pages || 0;
 			state.step = 1;

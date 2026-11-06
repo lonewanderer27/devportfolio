@@ -146,11 +146,13 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		$this->assertStringContainsString( "import( './pages-sheet.js' )", $mobile );
 		$this->assertDoesNotMatchRegularExpression( "/^import .* from '\.\/pages-sheet\.js';/m", $mobile, 'pages-sheet.js must not be a static import.' );
 		$this->assertStringContainsString( "'documents:mobile-pages'", $mobile );
+		// The sheets are registered with the controller (DPD-023), which loads each module once.
+		$this->assertStringContainsString( "sheets.register( 'pages'", $mobile );
 	}
 
 	public function test_selecting_a_page_closes_the_sheet_and_turns_the_viewer(): void {
 		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
-		$this->assertMatchesRegularExpression( '/onSelect:\s*\(\s*page\s*\)\s*=>\s*\{\s*closeSheet\(\s*\);\s*setPage\(\s*page\s*\);/', $mobile );
+		$this->assertMatchesRegularExpression( '/onSelect:\s*\(\s*page\s*\)\s*=>\s*\{\s*sheets\.close\(\s*\);\s*setPage\(\s*page\s*\);/', $mobile );
 	}
 
 	public function test_back_closes_only_the_sheet(): void {
@@ -161,10 +163,16 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'expectPop', $history );
 
 		// mobile.js knows nothing about history: it only asks sheet-back.js (DPD-017 test).
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
-		$this->assertStringContainsString( 'sheetHistory.push()', $mobile );
-		$this->assertStringContainsString( 'sheetHistory.pop()', $mobile );
-		$this->assertStringContainsString( 'sheetHistory.release()', $mobile );
+		$mobile     = $this->read( 'blocks/document-modal/mobile.js' );
+		$controller = $this->read( 'blocks/document-modal/sheet-controller.js' );
+		$this->assertStringContainsString( 'createSheetController( { dialog } )', $mobile );
+		$this->assertStringNotContainsString( 'sheetHistory', $mobile );
+		$this->assertStringContainsString( 'history.push()', $controller );
+		$this->assertStringContainsString( 'history.pop()', $controller );
+		$this->assertStringContainsString( 'history.release()', $controller );
+		// The history listener is created when the controller is, not inside a lazy import (listener order, see sheet-back.js).
+		$this->assertMatchesRegularExpression( '/^\tconst history = createSheetHistory\(/m', $controller );
+		$this->assertDoesNotMatchRegularExpression( '/import\( [\'"]\.\/sheet-back/', $controller );
 
 		$view = $this->read( 'blocks/document-modal/view.js' );
 		$this->assertStringContainsString( 'skipNextPop', $view );
@@ -174,7 +182,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 
 	public function test_the_page_keys_do_nothing_behind_the_open_sheet(): void {
 		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
-		$this->assertMatchesRegularExpression( '/sheet\.isOpen\(\s*\)\s*\)\s*\{\s*return;/', $mobile );
+		$this->assertMatchesRegularExpression( '/sheets\.isAnyOpen\(\s*\)\s*\)\s*\{\s*return;/', $mobile );
 	}
 
 	public function test_thumbnails_are_fetched_only_when_visible(): void {
@@ -200,8 +208,12 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		// One delegated listener per view, not one per tile.
 		$this->assertSame( 2, substr_count( $js, "addEventListener( 'click', choose )" ) );
 		$this->assertStringContainsString( 'applyCurrent', $js );
-		$this->assertStringContainsString( "dialog.addEventListener( 'cancel'", $js );
-		$this->assertStringContainsString( 'panel.inert = true', $js );
+		// Esc, the inert viewer and the dismiss gestures belong to the shared shell.
+		$shell = $this->read( 'blocks/document-modal/bottom-sheet.js' );
+		$this->assertStringContainsString( "dialog.addEventListener( 'cancel'", $shell );
+		$this->assertStringContainsString( 'panel.inert = true', $shell );
+		$this->assertStringContainsString( 'createBottomSheet(', $js );
+		$this->assertStringNotContainsString( 'panel.inert', $js, 'The Pages sheet does not copy the shell.' );
 	}
 
 	/* ---- Styles ------------------------------------------------------ */
@@ -209,7 +221,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	public function test_the_gallery_has_three_columns_capped_at_three_rows(): void {
 		$css = $this->sheet_css();
 		$this->assertMatchesRegularExpression( '/\.documents-mobile__pgr\s*\{[^}]*grid-template-columns:\s*repeat\(\s*3,/', $css );
-		$this->assertMatchesRegularExpression( '/\.documents-mobile__sheet-body\s*\{[^}]*max-height:\s*calc\(\s*3 \*/', $css );
+		$this->assertMatchesRegularExpression( '/\.documents-mobile__sheet--pages \.documents-mobile__sheet-body\s*\{[^}]*max-height:\s*calc\(\s*3 \*/', $css );
 		$this->assertMatchesRegularExpression( '/\.documents-mobile__sheet-body\s*\{[^}]*overflow-y:\s*auto/', $css );
 	}
 
@@ -277,7 +289,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	}
 
 	public function test_the_handle_can_be_dragged_to_dismiss_and_still_taps_and_keys(): void {
-		$js  = $this->read( 'blocks/document-modal/pages-sheet.js' );
+		$js  = $this->read( 'blocks/document-modal/bottom-sheet.js' );
 		$css = $this->sheet_css();
 
 		// Pointer events on the handle and the title row, with the tap and keyboard paths kept.
@@ -291,7 +303,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'dragOutcome(', $js );
 
 		// The view-switch buttons in the title row never start a drag; reduced motion skips the animation.
-		$this->assertStringContainsString( "closest( '[data-view]' )", $js );
+		$this->assertStringContainsString( "closest( '[data-no-drag]' )", $js );
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', $js );
 
 		// The drag leaves nothing behind when the sheet hides or shows.
