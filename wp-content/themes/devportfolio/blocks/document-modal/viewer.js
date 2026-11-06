@@ -28,16 +28,12 @@ import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
 import { svgIcon } from './dom.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
-import { OOXML_VERSION, readNativeEnvironment, openPptx } from './native-pptx.js';
+import { readNativeEnvironment, openPptx } from './native-pptx.js';
 import { openXlsx } from './native-xlsx.js';
+import { openDocx } from './native-docx.js';
 import { withTimeout, rememberFailure, acquireSource, buildPageEls, mountWindow } from './page-source.js';
 
 const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).href;
-
-// The spreadsheet viewer (DPD-027) is part of the same package and version: its entry, its worker and its
-// WebAssembly file are the files without a content hash in their name.
-const DOCX_LIB = new URL( `./vendor/ooxml/docx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
-const DOCX_WASM = new URL( `./vendor/ooxml/docx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 
 let flipLibrary = null;
 
@@ -695,37 +691,22 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		stage.replaceChildren( wrap );
 
 		try {
-			const lib = await withTimeout( import( DOCX_LIB ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
-				return false;
-			}
-
-			const instance = new lib.DocxScrollViewer( wrap, {
-				wasmUrl: DOCX_WASM,
-				useGoogleFonts: false,
-				enableTextSelection: true,
-				enableElementSelection: false,
-				comments: false,
-				enableHyperlinks: false,
-				showTrackedChanges: false,
-				pageShadow: false,
-				refitOnResize: true,
-				workerTimeoutMs: limits.nativeTimeoutMs,
-				resourceLimits: {
-					maxArchiveEntries: 5000,
-					maxTotalInflatedBytes: 1024 * 1024 * 1024,
-					maxArchiveEntryBytes: 100 * 1024 * 1024,
-				},
+			const instance = await openDocx( {
+				host: wrap,
+				doc,
+				limits,
+				alive,
 				onError: ( error ) => {
 					if ( opened ) {
 						fail( error, mine );
 					}
 				},
+				// From here reset() can free it, so closing mid-load cannot leave a worker running.
+				onCreate: ( created ) => {
+					docx = created;
+				},
 			} );
-			docx = instance;
-
-			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
+			if ( ! instance || ! alive() ) {
 				return false;
 			}
 
