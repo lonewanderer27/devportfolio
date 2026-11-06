@@ -14,9 +14,8 @@ import { fitPage } from './layout.js';
 import { withTimeout } from './page-source.js';
 
 export const OOXML_VERSION = '0.89.7';
-export const PPTX_VERSION = OOXML_VERSION;
-export const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;
-export const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ PPTX_VERSION }`, import.meta.url ).href;
+export const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
+export const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 
 /** What the bundled viewer needs from the browser. */
 export function readNativeEnvironment() {

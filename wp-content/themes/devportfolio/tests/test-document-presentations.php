@@ -338,7 +338,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 
 		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js'", $js );
-		$this->assertStringContainsString( 'const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;', $js );
+		$this->assertStringContainsString( 'const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;', $js );
 		$this->assertStringContainsString( 'wasmUrl: PPTX_WASM', $js );
 		$this->assertStringContainsString( 'import( PPTX_LIB )', $js, 'A dynamic import: nothing is downloaded for other documents.' );
 		$this->assertDoesNotMatchRegularExpression( '#^import .* from \'\./vendor/ooxml#m', $js, 'No static import of the viewer.' );
@@ -384,8 +384,8 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 
 		$this->assertSame( 1, preg_match( "#const OOXML_VERSION = '([0-9.]+)';#", $js, $m ), 'The version constant exists.' );
 		$this->assertStringContainsString( '**' . $m[1] . '**', $readme, 'It matches the vendored release.' );
-		$this->assertStringContainsString( 'pptx_parser_bg.wasm?v=${ PPTX_VERSION }', $js );
-		$this->assertStringContainsString( 'pptx.mjs?v=${ PPTX_VERSION }', $js );
+		$this->assertStringContainsString( 'pptx_parser_bg.wasm?v=${ OOXML_VERSION }', $js );
+		$this->assertStringContainsString( 'pptx.mjs?v=${ OOXML_VERSION }', $js );
 
 		// Every other file the viewer loads has a content hash in its name, so only these two can go stale.
 		$unhashed = array_filter(
