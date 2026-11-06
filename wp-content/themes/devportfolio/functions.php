@@ -280,6 +280,9 @@ if ( ! function_exists( 'devportfolio_document_mobile_strings' ) ) :
 			'details'   => _x( 'Document details', 'document modal mobile', 'devportfolio' ),
 			'pagesLabel' => _x( 'Pages', 'document modal mobile round button', 'devportfolio' ),
 			'zoom'      => _x( 'Zoom {n}%', 'document modal mobile, {n} is a number', 'devportfolio' ),
+			'zoomIn'    => _x( 'Zoom in', 'document modal mobile', 'devportfolio' ),
+			'zoomOut'   => _x( 'Zoom out', 'document modal mobile', 'devportfolio' ),
+			'zoomControls' => _x( 'Zoom controls', 'document modal mobile', 'devportfolio' ),
 			'pageError' => _x( 'This page could not be loaded.', 'document modal mobile', 'devportfolio' ),
 		);
 	}

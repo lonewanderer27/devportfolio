@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf } from '../mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf, canShowOnMobile, nativeAllowedOnMobile, hintKeyFor } from '../mode.js';
 
 const images = [ 'a.webp', 'b.webp' ];
 
@@ -107,8 +107,24 @@ test( 'the office viewers need WebAssembly, workers and a canvas; the old name s
 	assert.equal( canDrawPresentations, canDrawOffice );
 } );
 
-test( 'the mobile body draws PDFs only for now', () => {
+test( 'isMobilePdf is a strict PDF check', () => {
 	assert.equal( isMobilePdf( { kind: 'pdf' } ), true );
 	[ 'pptx', 'docx', 'xlsx', 'other', '' ].forEach( ( kind ) => assert.equal( isMobilePdf( { kind } ), false ) );
 	assert.equal( isMobilePdf( null ), false );
 } );
+
+test( 'the mobile body draws PDFs and presentations (DPD-029), not workbooks or word documents yet', () => {
+	[ 'pdf', 'pptx', 'ppt', 'odp' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
+	[ 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt', 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
+	assert.equal( canShowOnMobile( null ), false );
+	assert.equal( hintKeyFor( { kind: 'pptx' } ), 'hintSlide' );
+} );
+
+test( 'the native viewer is tried on mobile for a .pptx with a native URL only', () => {
+	assert.equal( nativeAllowedOnMobile( { kind: 'pptx', nativeUrl: 'https://x/a.pptx' } ), true );
+	assert.equal( nativeAllowedOnMobile( { kind: 'pptx', nativeUrl: '' } ), false );
+	assert.equal( nativeAllowedOnMobile( { kind: 'pptx' } ), false );
+	[ 'ppt', 'odp', 'pdf', 'xlsx', 'docx' ].forEach( ( kind ) => assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
+	assert.equal( nativeAllowedOnMobile( null ), false );
+} );
+

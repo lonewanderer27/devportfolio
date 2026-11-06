@@ -129,7 +129,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertNotFalse( $contents, $relative );
 		if ( 'blocks/document-modal/viewer.js' === $relative ) {
 			// The page sources and the status line moved to page-source.js and status.js (DPD-021): the viewer is read as one piece.
-			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/native-pptx.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		}
 
 		return $contents;

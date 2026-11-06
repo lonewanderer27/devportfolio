@@ -88,12 +88,26 @@ export function canDrawOffice( env ) {
 /** The name the presentation viewer used before spreadsheets joined it. */
 export const canDrawPresentations = canDrawOffice;
 
-/**
- * Whether the mobile body draws this document (DPD-021). PDFs only for now: presentations, workbooks
- * and word documents on mobile have their own tickets. Anything else shows "can't be previewed".
- */
+/** Whether a payload entry is a PDF. */
 export function isMobilePdf( doc ) {
 	return !! doc && doc.kind === 'pdf';
+}
+
+/**
+ * Whether the mobile body draws this document: PDFs (DPD-021) and presentations (DPD-029, converted
+ * slides, and the native viewer for a .pptx). Workbooks (DPD-030) and word documents (DPD-031) have their
+ * own tickets and show "can't be previewed" until then. This is the one gate to widen.
+ */
+export function canShowOnMobile( doc ) {
+	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' );
+}
+
+/**
+ * Whether the mobile body may try the native PowerPoint viewer: the document is a .pptx that carries a
+ * `nativeUrl`. Same limits as desktop (the plugin's size ceiling and the timeout), no mobile-only cap.
+ */
+export function nativeAllowedOnMobile( doc ) {
+	return !! doc && doc.kind === 'pptx' && typeof doc.nativeUrl === 'string' && doc.nativeUrl !== '';
 }
 
 /**

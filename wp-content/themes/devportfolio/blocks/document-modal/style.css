@@ -1248,3 +1248,40 @@ html[data-documents-swapping] .documents-shelf__plank {
 		transform: none;
 	}
 }
+
+/* A .pptx drawn from the original file on mobile (DPD-029): one canvas inside the zoom wrapper, with a
+   transparent text layer. The frame turns selection off for the swipe; the slide turns it back on so a
+   long press selects and copies text. */
+.documents-mobile__native {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+/* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
+.documents-mobile__zoomfabs {
+	position: absolute;
+	bottom: 12px;
+	left: max(12px, env(safe-area-inset-left, 0px));
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.documents-mobile__zoomfabs .documents-mobile__fab {
+	position: relative;
+	width: 38px;
+	height: 38px;
+}
+
+.documents-mobile__zoomfabs .documents-mobile__fab:disabled {
+	color: var(--dm-subtle);
+	cursor: default;
+	opacity: 0.45;
+}

@@ -28,41 +28,17 @@ import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
 import { svgIcon } from './dom.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
+import { OOXML_VERSION, readNativeEnvironment, openPptx } from './native-pptx.js';
 import { withTimeout, rememberFailure, acquireSource, buildPageEls, mountWindow } from './page-source.js';
 
 const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).href;
 
-/**
- * The bundled PPTX viewer (vendor/ooxml/, @silurus/ooxml); imported lazily, only for a document the native
- * viewer draws. Its entry file and WebAssembly file keep the same name in every release, so both carry the
- * library version in the query: a long browser cache can then never serve old code for a new release.
- * Keep PPTX_VERSION equal to the version in vendor/ooxml/README.md (a test compares them).
- */
-const OOXML_VERSION = '0.89.7';
-const PPTX_VERSION = OOXML_VERSION;
-const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;
-const PPTX_WASM = new URL( `./vendor/ooxml/pptx_parser_bg.wasm?v=${ PPTX_VERSION }`, import.meta.url ).href;
 // The spreadsheet viewer (DPD-027) is part of the same package and version: its entry, its worker and its
 // WebAssembly file are the files without a content hash in their name.
 const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const DOCX_LIB = new URL( `./vendor/ooxml/docx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;
 const DOCX_WASM = new URL( `./vendor/ooxml/docx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;
-
-/** What the bundled viewer needs from the browser. */
-function readNativeEnvironment() {
-	let canvas2d = false;
-	try {
-		canvas2d = !! document.createElement( 'canvas' ).getContext( '2d' );
-	} catch ( e ) {
-		canvas2d = false;
-	}
-	return {
-		webassembly: typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function',
-		worker: typeof Worker === 'function',
-		canvas2d,
-	};
-}
 
 let flipLibrary = null;
 
@@ -567,25 +543,13 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		};
 
 		try {
-			const lib = await withTimeout( import( PPTX_LIB ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
-				return false;
-			}
-
-			// Draw at the size it will be shown (times the device ratio below), not larger: a 4K canvas costs
-			// about four times the memory of a full-HD one. Slides are mostly 16:9, which this assumes.
-			const size = measure();
-			const room = fitPage( { stageW: size.w, stageH: Math.max( 40, size.h ), ratio: 16 / 9 } );
-			const instance = new lib.PptxViewer( canvas, {
-				wasmUrl: PPTX_WASM,
-				width: Math.max( 640, Math.min( 1920, room.pageW ) ),
-				dpr: Math.min( 2, window.devicePixelRatio || 1 ),
-				enableTextSelection: true,
-				enableHyperlinks: false,
-				enableMediaPlayback: false,
-				enableElementSelection: false,
-				useGoogleFonts: false,
-				workerTimeoutMs: limits.nativeTimeoutMs,
+			// The viewer is created and loaded by the shared mount (native-pptx.js), which holds the options.
+			const instance = await openPptx( {
+				canvas,
+				doc,
+				limits,
+				size: measure(),
+				alive,
 				onSlideChange: ( index, total ) => {
 					if ( mine !== session ) {
 						return;
@@ -603,12 +567,12 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 						fail( error, mine );
 					}
 				},
+				// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
+				onCreate: ( created ) => {
+					pptx = created;
+				},
 			} );
-			// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
-			pptx = instance;
-
-			await withTimeout( instance.load( doc.nativeUrl ), limits.nativeTimeoutMs );
-			if ( ! alive() ) {
+			if ( ! instance || ! alive() ) {
 				return false;
 			}
 
