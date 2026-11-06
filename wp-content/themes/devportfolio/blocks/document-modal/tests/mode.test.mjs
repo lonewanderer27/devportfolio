@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, hintKeyFor } from '../mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawOffice, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, isNativeScroll, hintKeyFor } from '../mode.js';
 
 const images = [ 'a.webp', 'b.webp' ];
 
@@ -70,18 +70,18 @@ test( 'labels for one piece and for the progress bar', () => {
 test( 'the native viewer needs WebAssembly, workers and a 2D canvas', () => {
 	const ok = { webassembly: true, worker: true, canvas2d: true };
 
-	assert.equal( canDrawPresentations( ok ), true );
-	assert.equal( canDrawPresentations( { ...ok, webassembly: false } ), false );
-	assert.equal( canDrawPresentations( { ...ok, worker: false } ), false );
-	assert.equal( canDrawPresentations( { ...ok, canvas2d: false } ), false );
-	assert.equal( canDrawPresentations( {} ), false );
-	assert.equal( canDrawPresentations( null ), false );
-	assert.equal( canDrawPresentations( { webassembly: 'yes', worker: 1, canvas2d: {} } ), false, 'Only real booleans count.' );
+	assert.equal( canDrawOffice( ok ), true );
+	assert.equal( canDrawOffice( { ...ok, webassembly: false } ), false );
+	assert.equal( canDrawOffice( { ...ok, worker: false } ), false );
+	assert.equal( canDrawOffice( { ...ok, canvas2d: false } ), false );
+	assert.equal( canDrawOffice( {} ), false );
+	assert.equal( canDrawOffice( null ), false );
+	assert.equal( canDrawOffice( { webassembly: 'yes', worker: 1, canvas2d: {} } ), false, 'Only real booleans count.' );
 } );
 
 // --- Spreadsheets (DPD-027) -------------------------------------------------------------------
 
-import { canDrawOffice, isSpreadsheet } from '../mode.js';
+import { isSpreadsheet } from '../mode.js';
 
 test( 'spreadsheets are recognised by kind and are still counted in pages', () => {
 	[ 'xlsx', 'xls', 'ods' ].forEach( ( kind ) => {
@@ -99,36 +99,24 @@ test( 'a workbook with a native url is drawn natively, and falls back to its pag
 	assert.equal( viewerMode( { kind: 'xls', nativeUrl: '', images: [] } ), 'unavailable' );
 } );
 
-test( 'the office viewers need WebAssembly, workers and a canvas; the old name still works', () => {
-	const ok = { webassembly: true, worker: true, canvas2d: true };
-	assert.equal( canDrawOffice( ok ), true );
-	assert.equal( canDrawOffice( { ...ok, webassembly: false } ), false );
-	assert.equal( canDrawOffice( null ), false );
-	assert.equal( canDrawPresentations, canDrawOffice );
-} );
-
-test( 'isMobilePdf is a strict PDF check', () => {
-	assert.equal( isMobilePdf( { kind: 'pdf' } ), true );
-	[ 'pptx', 'docx', 'xlsx', 'other', '' ].forEach( ( kind ) => assert.equal( isMobilePdf( { kind } ), false ) );
-	assert.equal( isMobilePdf( null ), false );
-} );
-
-test( 'the mobile body draws PDFs, presentations (DPD-029) and workbooks (DPD-030), not word documents yet', () => {
-	[ 'pdf', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
-	[ 'docx', 'doc', 'odt', 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
+test( 'the mobile body draws every known kind: PDFs, presentations, workbooks and word documents (DPD-031)', () => {
+	[ 'pdf', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
+	[ 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
 	assert.equal( canShowOnMobile( null ), false );
 	assert.equal( hintKeyFor( { kind: 'pptx' } ), 'hintSlide' );
 	assert.equal( hintKeyFor( { kind: 'xlsx' } ), 'hintSheet' );
+	assert.equal( hintKeyFor( { kind: 'docx' } ), 'hintDoc' );
+	assert.equal( unitOf( { kind: 'docx' } ), 'page', 'Converted word pages keep the page wording.' );
 	assert.equal( unitOf( { kind: 'xlsx' } ), 'page', 'Converted sheets keep the page wording.' );
 } );
 
-test( 'the native viewer is tried on mobile for a .pptx or .xlsx with a native URL only', () => {
-	[ 'pptx', 'xlsx' ].forEach( ( kind ) => {
+test( 'the native viewer is tried on mobile for a .pptx, .xlsx or .docx with a native URL only', () => {
+	[ 'pptx', 'xlsx', 'docx' ].forEach( ( kind ) => {
 		assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), true, kind );
 		assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: '' } ), false, kind );
 		assert.equal( nativeAllowedOnMobile( { kind } ), false, kind );
 	} );
-	[ 'ppt', 'odp', 'pdf', 'xls', 'ods', 'docx' ].forEach( ( kind ) => assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
+	[ 'ppt', 'odp', 'pdf', 'xls', 'ods', 'doc', 'odt' ].forEach( ( kind ) => assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
 	assert.equal( nativeAllowedOnMobile( null ), false );
 } );
 
@@ -138,4 +126,15 @@ test( 'only a .xlsx with a native URL is drawn as a workbook grid (one piece, no
 	assert.equal( isNativeGrid( { kind: 'xlsx' } ), false );
 	[ 'pptx', 'xls', 'ods', 'pdf', 'docx' ].forEach( ( kind ) => assert.equal( isNativeGrid( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
 	assert.equal( isNativeGrid( null ), false );
+} );
+
+test( 'a .xlsx or .docx with a native URL is drawn by a scroller of its own (one piece, no footer)', () => {
+	[ 'xlsx', 'docx' ].forEach( ( kind ) => {
+		assert.equal( isNativeScroll( { kind, nativeUrl: 'https://x/a' } ), true, kind );
+		assert.equal( isNativeScroll( { kind, nativeUrl: '', images: [ 'a' ] } ), false, kind );
+		assert.equal( isNativeScroll( { kind } ), false, kind );
+	} );
+	[ 'pptx', 'xls', 'ods', 'pdf', 'doc', 'odt' ].forEach( ( kind ) => assert.equal( isNativeScroll( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
+	assert.equal( isNativeScroll( null ), false );
+	assert.equal( isNativeGrid( { kind: 'docx', nativeUrl: 'https://x/a' } ), false, 'Only a workbook has a tab bar.' );
 } );
