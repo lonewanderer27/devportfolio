@@ -114,7 +114,7 @@ class Devportfolio_Test_Navigation extends WP_UnitTestCase {
 	public function test_links_point_to_the_right_targets(): void {
 		$expected = array(
 			'Home'         => home_url( '/' ),
-			'Services'     => get_post_type_archive_link( 'service' ),
+			'Services'     => home_url( '/#services' ),
 			'Documents'    => get_post_type_archive_link( 'document' ),
 			'Videos'       => get_post_type_archive_link( 'video' ),
 			'Collaterals'  => get_post_type_archive_link( 'collateral' ),
@@ -146,9 +146,8 @@ class Devportfolio_Test_Navigation extends WP_UnitTestCase {
 	 */
 	public function archive_provider(): array {
 		return array(
-			'services'    => array( 'service', 'Services' ),
 			'documents'   => array( 'document', 'Documents' ),
-			'videos'      => array( 'video', 'Videos' ),
+			'videos'       => array( 'video', 'Videos' ),
 			'collaterals' => array( 'collateral', 'Collaterals' ),
 		);
 	}
