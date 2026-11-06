@@ -199,24 +199,29 @@ class Devportfolio_Test_Document_Spreadsheets extends WP_UnitTestCase {
 	// --- Structure -----------------------------------------------------------------------------
 
 	public function test_the_native_xlsx_viewer_loads_only_on_demand_and_is_locked_down(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js    = $this->read( 'blocks/document-modal/viewer.js' );
+		$mount = $this->read( 'blocks/document-modal/native-xlsx.js' );
 
-		$this->assertStringContainsString( 'const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;', $js );
-		$this->assertStringContainsString( 'const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;', $js );
-		$this->assertStringContainsString( 'import( XLSX_LIB )', $js, 'A dynamic import: nothing is downloaded for other documents.' );
-		$this->assertDoesNotMatchRegularExpression( '#^import .* from \'\./vendor/ooxml#m', $js );
-		$this->assertStringContainsString( 'new lib.XlsxViewer( wrap, {', $js );
+		// The mount (shared with the mobile viewer, DPD-030) holds the URLs and every option.
+		$this->assertStringContainsString( 'export const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;', $mount );
+		$this->assertStringContainsString( 'export const XLSX_WASM = new URL( `./vendor/ooxml/xlsx_parser_bg.wasm?v=${ OOXML_VERSION }`, import.meta.url ).href;', $mount );
+		$this->assertStringContainsString( 'import( XLSX_LIB )', $mount, 'A dynamic import: nothing is downloaded for other documents.' );
+		$this->assertDoesNotMatchRegularExpression( '#^import .* from \'\./vendor/ooxml#m', $js . $mount );
+		$this->assertStringContainsString( 'new lib.XlsxViewer( host, {', $mount );
+		$this->assertStringNotContainsString( 'new lib.XlsxViewer', $js, 'The options live in one place.' );
+		$this->assertStringContainsString( "from './native-xlsx.js'", $js );
 
-		$body = substr( $js, (int) strpos( $js, 'const showXlsx' ), 3500 );
 		foreach ( array( 'wasmUrl: XLSX_WASM', 'useGoogleFonts: false', 'enableHyperlinks: false', 'enableElementSelection: false', 'comments: false', "hiddenSheetMode: 'skip'", 'workerTimeoutMs: limits.nativeTimeoutMs', 'xlsxWorksheetLimits', 'instance.load( doc.nativeUrl )', 'limits.nativeTimeoutMs' ) as $option ) {
-			$this->assertStringContainsString( $option, $body, $option );
+			$this->assertStringContainsString( $option, $mount, $option );
 		}
 
+		$body = substr( $js, (int) strpos( $js, 'const showXlsx' ), 3500 );
+		$this->assertStringContainsString( 'openXlsx( {', $body );
 		$this->assertStringContainsString( 'onGeometry( { pages: 1, step } )', $body, 'One piece: the modal footer and arrows are hidden.' );
 		$this->assertStringContainsString( 'destroyNative( grid )', $js, 'Closing frees the workers.' );
 		$this->assertStringContainsString( "doc.kind === 'xlsx'", $js );
-		$this->assertStringNotContainsString( 'innerHTML', $js );
-		$this->assertStringNotContainsString( '<iframe', $js );
+		$this->assertStringNotContainsString( 'innerHTML', $js . $mount );
+		$this->assertStringNotContainsString( '<iframe', $js . $mount );
 	}
 
 	public function test_the_grid_keeps_its_own_arrow_keys_and_the_hint_exists(): void {
