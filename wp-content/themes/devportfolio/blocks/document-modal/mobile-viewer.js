@@ -1,0 +1,727 @@
+/**
+ * The mobile viewer (DPD-021, DPD-024): the body of the full-screen mobile modal.
+ *
+ * It draws a PDF one page at a time, or two side by side when the document is portrait and the space
+ * allows it (spreadFits(), re-checked on every resize, so rotation, folding and split screen re-lay
+ * out in place). Pages come from the same sources as the desktop book (page-source.js): stored page
+ * images first, pdf.js as the fallback behind the same capability gate, and pdf.js with a real text
+ * layer when Settings > Documents > Native viewer > PDF is on. Only the page-turn differs: a slide that
+ * follows the finger instead of StPageFlip, whose mouse model fights touch drag, pinch and pan.
+ *
+ * Touch: swipe, tap the outer 20% of either side, double-tap (centre) or pinch to zoom, drag to pan a
+ * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs only:
+ * every other kind shows "can't be previewed" until it has its own ticket.
+ *
+ * The viewer never owns the page shown in the footer: it reports geometry once and page turns made by
+ * gesture (`onTurn`), and mobile.js tells it where to go (`goTo`).
+ */
+import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
+import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
+import { acquireSource, rememberFailure, withTimeout, buildPageEls, mountWindow } from './page-source.js';
+import { normalisePage, turnPage } from './pager.js';
+import { unitOf, wording, pieceLabel, positionText, isMobilePdf, hintKeyFor } from './mode.js';
+import { classifyTap, swipeDirection, verticalIntent, zoomPercent } from './gestures.js';
+import { createTouchZoom } from './touch-zoom.js';
+import { createStatus } from './status.js';
+import { el, svgIcon } from './dom.js';
+
+let uid = 0;
+
+/**
+ * @param {object}   options
+ * @param {Element}  options.stage       .documents-mobile__stage (empty; everything is built inside it).
+ * @param {Element}  options.status      .documents-mobile__state (loading / can't preview message).
+ * @param {object}   options.pdfjs       { module, worker } URLs of the plugin's pdf.js, or {}.
+ * @param {object}   options.limits      Merged gate limits.
+ * @param {object}   options.units       data-units strings.
+ * @param {object}   options.strings     data-mobile-strings.
+ * @param {boolean}  options.selectableText  Native viewer > PDF: pdf.js with a real text layer.
+ * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
+ * @param {Function} options.onTurn      ( page ) A page turn made by gesture, button or key.
+ */
+export function createMobileViewer( { stage, status, pdfjs, limits, units = null, strings = {}, selectableText = false, onGeometry, onTurn, onPages = null } ) {
+	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
+	const statusView = createStatus( { stage, status } );
+	const setStatus = ( kind ) => statusView.set( kind );
+	const text = ( key, fallback = '' ) => ( typeof strings[ key ] === 'string' && strings[ key ] !== '' ? strings[ key ] : fallback );
+
+	let session = 0;
+	let words = wording( 'page', units );
+	let source = null;
+	let budget = null;
+	let usedPdf = false;
+	let landscapeDoc = false;
+	// Which round buttons the footer cannot show: the details button when the footer is gone (one page, or
+	// landscape), the Pages button in landscape. Set by mobile.js through setChrome().
+	let chrome = { info: false, pages: false };
+	let hasDetails = false;
+	let details = { title: '', description: '', tools: [], format: '' };
+	let pageEls = [];
+	let step = 1;
+	let current = 1;
+	let layout = null;
+	let size = { w: 0, h: 0 };
+	let builtFor = { w: 0, h: 0 };
+	let observer = null;
+	let resizeTimer = 0;
+	let turning = false;
+	let turnTimer = 0;
+	let hintGone = false;
+	let fabTimers = [];
+	let ui = null;
+	let zoomEl = null;
+
+	const clearFabTimers = () => {
+		fabTimers.forEach( ( timer ) => window.clearTimeout( timer ) );
+		fabTimers = [];
+	};
+
+	const reset = () => {
+		window.clearTimeout( resizeTimer );
+		window.clearTimeout( turnTimer );
+		clearFabTimers();
+		if ( observer ) {
+			observer.disconnect();
+			observer = null;
+		}
+		if ( source ) {
+			source.destroy();
+			source = null;
+		}
+		pageEls = [];
+		layout = null;
+		ui = null;
+		zoomEl = null;
+		turning = false;
+		hintGone = false;
+		touchZoom.reset();
+		stage.replaceChildren();
+		stage.removeAttribute( 'role' );
+		stage.removeAttribute( 'aria-label' );
+	};
+
+	const unavailable = () => {
+		reset();
+		setStatus( 'unavailable' );
+		onGeometry( { pages: 0, step: 1 } );
+	};
+
+	const announce = ( message ) => {
+		if ( ui ) {
+			ui.live.textContent = message;
+		}
+	};
+
+	/* ---- pages ---------------------------------------------------------------------------- */
+
+	const buildPages = ( count ) => {
+		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ) );
+	};
+
+	const ensureWindow = ( page ) => {
+		if ( ! source || ! layout ) {
+			return Promise.resolve();
+		}
+		return mountWindow( { source, layout, pageEls, page, step, ahead: budget.ahead } );
+	};
+
+	const fail = ( error, mine = session ) => {
+		if ( mine !== session || isBenignRenderError( error ) ) {
+			return;
+		}
+		if ( usedPdf || ( error && error.fromPdf ) ) {
+			rememberFailure( error );
+		}
+		unavailable();
+	};
+
+	const draw = ( page ) => {
+		const mine = session;
+		return ensureWindow( page ).catch( ( error ) => fail( error, mine ) );
+	};
+
+	const measure = () => ( { w: stage.clientWidth, h: stage.clientHeight } );
+
+	const firstOf = ( page ) => normalisePage( page, source.count, step );
+	const hasPrev = () => current > 1;
+	const hasNext = () => current + step - 1 < source.count;
+
+	/* ---- view track ----------------------------------------------------------------------- */
+
+	const makeBook = ( first ) => {
+		const book = el( 'div', 'documents-modal__book documents-mobile__book' );
+		book.classList.toggle( 'documents-modal__book--selectable', Boolean( source.textLayer ) );
+		if ( source.crop > 0 ) {
+			book.classList.add( 'documents-modal__book--cropped' );
+			book.style.setProperty( '--documents-crop', String( source.crop ) );
+		}
+		const last = Math.min( source.count, first + step - 1 );
+		const across = last - first + 1;
+		book.style.width = `${ layout.pageW * across }px`;
+		book.style.height = `${ layout.pageH }px`;
+		for ( let index = first; index <= last; index++ ) {
+			const page = pageEls[ index - 1 ];
+			page.style.width = `${ layout.pageW }px`;
+			page.style.height = `${ layout.pageH }px`;
+			page.classList.toggle( 'documents-modal__page--left', step === 2 && index === first );
+			page.classList.toggle( 'documents-modal__page--right', step === 2 && index === last && across === 2 );
+			book.appendChild( page );
+		}
+		return book;
+	};
+
+	/** Builds the previous, current and next views around `current` and puts the track on the current one. */
+	const renderViews = () => {
+		const firsts = [ hasPrev() ? Math.max( 1, current - step ) : null, current, hasNext() ? current + step : null ];
+		const views = firsts.map( ( first, position ) => {
+			const view = el( 'div', 'documents-mobile__view' );
+			view.style.width = `${ size.w }px`;
+			view.style.height = `${ size.h }px`;
+			view.style.left = `${ position * size.w }px`;
+			if ( first !== null ) {
+				const wrap = el( 'div', 'documents-mobile__zoom' );
+				wrap.appendChild( makeBook( first ) );
+				view.appendChild( wrap );
+				if ( position === 1 ) {
+					zoomEl = wrap;
+				}
+			}
+			return view;
+		} );
+		ui.track.style.transition = 'none';
+		ui.track.style.width = `${ size.w * 3 }px`;
+		ui.track.style.transform = `translateX(${ -size.w }px)`;
+		ui.track.replaceChildren( ...views );
+		paintZoom();
+	};
+
+	const zoomText = ( percent ) => text( 'zoom', 'Zoom {n}%' ).replace( '{n}', String( percent ) );
+
+	/** Puts the current zoom on the current view (after a change, and after the views are rebuilt). */
+	const paintZoom = () => {
+		const zoom = touchZoom.get();
+		if ( zoomEl ) {
+			zoomEl.style.transform = zoom.scale === 1 ? '' : `translate(${ zoom.x }px, ${ zoom.y }px) scale(${ zoom.scale })`;
+		}
+		syncControls();
+	};
+
+	// Zoom and pan state (shared with the desktop book's touch handling, touch-zoom.js).
+	const touchZoom = createTouchZoom( { box: () => size, apply: paintZoom } );
+
+	const resetZoom = ( { silent = false } = {} ) => {
+		if ( touchZoom.reset() && ! silent ) {
+			announce( zoomText( 100 ) );
+		}
+	};
+
+	/* ---- controls: edge hints, hint text, help button ------------------------------------- */
+
+	function dismissHint() {
+		hintGone = true;
+		if ( ui ) {
+			ui.hint.hidden = true;
+		}
+	}
+
+	function syncControls() {
+		if ( ! ui || ! source ) {
+			return;
+		}
+		const zoomed = touchZoom.isZoomed();
+		const multi = source.count > 1;
+		ui.prev.hidden = ! multi || zoomed || ! hasPrev();
+		ui.next.hidden = ! multi || zoomed || ! hasNext();
+		ui.hint.hidden = hintGone || zoomed || ( ! multi && ! landscapeDoc );
+		ui.fab.hidden = ! ( chrome.info && hasDetails );
+		ui.pagesFab.hidden = ! chrome.pages;
+		ui.fabs.hidden = ui.fab.hidden && ui.pagesFab.hidden;
+		if ( ui.fab.hidden ) {
+			setDetails( false );
+		}
+	}
+
+	const setDetails = ( open ) => {
+		if ( ! ui ) {
+			return;
+		}
+		ui.panel.hidden = ! open;
+		ui.fab.setAttribute( 'aria-expanded', String( open ) );
+	};
+
+	function toggleDetails() {
+		if ( ui && hasDetails ) {
+			setDetails( ui.panel.hidden );
+		}
+	}
+
+	const setFabAway = ( away ) => {
+		clearFabTimers();
+		ui.fabs.classList.toggle( 'is-away', away );
+		if ( away ) {
+			setDetails( false );
+			// Never stays hidden: it comes back after a quiet moment even without a swipe up.
+			fabTimers.push( window.setTimeout( () => setFabAway( false ), 2000 ) );
+		}
+	};
+
+	const buildUi = () => {
+		const frame = el( 'div', 'documents-mobile__frame' );
+		const track = el( 'div', 'documents-mobile__track' );
+		frame.appendChild( track );
+
+		const prev = el( 'button', 'documents-mobile__edge documents-mobile__edge--prev', { type: 'button', 'aria-label': words.prev } );
+		prev.appendChild( svgIcon( 'M15 5l-7 7 7 7' ) );
+		const next = el( 'button', 'documents-mobile__edge documents-mobile__edge--next', { type: 'button', 'aria-label': words.next } );
+		next.appendChild( svgIcon( 'M9 5l7 7-7 7' ) );
+
+		const hint = el( 'div', 'documents-mobile__hint', { 'aria-hidden': 'true' } );
+		if ( landscapeDoc ) {
+			const rotate = el( 'span', 'documents-mobile__pill documents-mobile__pill--dark' );
+			rotate.append( svgIcon( 'M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5' ), document.createTextNode( text( 'rotate', 'Rotate for a bigger view' ) ) );
+			const pinch = el( 'span', 'documents-mobile__pill' );
+			pinch.textContent = text( 'pinch', 'Pinch to zoom' );
+			hint.append( rotate, pinch );
+		} else {
+			// Plain floating text under the document; it goes away at the first action in the body.
+			const line = el( 'span', 'documents-mobile__hint-text' );
+			line.textContent = text( 'hint', 'swipe or tap edges' );
+			hint.appendChild( line );
+		}
+
+		// The round "i" button opens the document details (what the desktop header shows).
+		const panelId = `documents-mobile-details-${ ++uid }`;
+		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-expanded': 'false', 'aria-controls': panelId } );
+		fab.appendChild( svgIcon( 'M12 11v6M12 7.5v.01', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' ) );
+		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
+		pagesFab.appendChild( svgIcon( 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' ) );
+		const panel = el( 'div', 'documents-mobile__details-panel', { id: panelId } );
+		panel.hidden = true;
+		const detailLines = [
+			[ 'documents-mobile__details-title', details.title ],
+			[ 'documents-mobile__details-desc', details.description ],
+			[ 'documents-mobile__details-tools', ( details.tools || [] ).join( ' · ' ) ],
+			[ 'documents-mobile__details-format', details.format ],
+		].filter( ( entry ) => entry[ 1 ] );
+		detailLines.forEach( ( [ className, value ] ) => {
+			const line = el( 'p', className );
+			line.textContent = value;
+			panel.appendChild( line );
+		} );
+		hasDetails = detailLines.length > 0;
+
+		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
+
+		// Bottom right: the Pages button on top of the details button, with the details panel above both.
+		const fabs = el( 'div', 'documents-mobile__fabs' );
+		fabs.append( panel, pagesFab, fab );
+		stage.append( frame, prev, next, hint, fabs, live );
+		stage.setAttribute( 'role', 'region' );
+		stage.setAttribute( 'aria-label', text( 'region', 'Document pages' ) );
+		ui = { frame, track, prev, next, hint, fab, pagesFab, fabs, panel, live };
+
+		prev.addEventListener( 'click', () => turn( -1 ) );
+		next.addEventListener( 'click', () => turn( 1 ) );
+		fab.addEventListener( 'click', () => {
+			dismissHint();
+			toggleDetails();
+		} );
+		pagesFab.addEventListener( 'click', () => {
+			dismissHint();
+			if ( onPages ) {
+				onPages();
+			}
+		} );
+		bindGestures( frame );
+	};
+
+	/* ---- turning -------------------------------------------------------------------------- */
+
+	const finishTurn = ( target ) => {
+		current = target;
+		resetZoom( { silent: true } );
+		renderViews();
+		turning = false;
+		dismissHint();
+		draw( current );
+		announce( positionText( words, current, Math.min( source.count, current + step - 1 ), source.count ) );
+		onTurn( current );
+	};
+
+	/** Moves one view in a direction (-1 / 1) with the slide; ignored at the ends and while sliding. */
+	function turn( direction ) {
+		if ( ! source || turning ) {
+			return false;
+		}
+		dismissHint();
+		if ( touchZoom.isZoomed() ) {
+			return false;
+		}
+		const target = turnPage( current, source.count, step, direction );
+		if ( target === current ) {
+			return false;
+		}
+		slideTo( target, direction );
+		return true;
+	}
+
+	function slideTo( target, direction, fromDrag = false ) {
+		turning = true;
+		setDetails( false );
+		if ( reducedMotion.matches ) {
+			finishTurn( target );
+			return;
+		}
+		ui.track.style.transition = fromDrag ? 'transform 160ms ease-out' : 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+		ui.track.style.transform = `translateX(${ direction > 0 ? -size.w * 2 : 0 }px)`;
+		const mine = session;
+		turnTimer = window.setTimeout( () => {
+			if ( mine === session && source ) {
+				finishTurn( target );
+			}
+		}, 230 );
+	}
+
+	/* ---- gestures ------------------------------------------------------------------------- */
+
+	function bindGestures( frame ) {
+		const pointers = new Map();
+		let gesture = null; // 'press' | 'drag' | 'pan' | 'pinch'
+		// The frame never moves while a gesture runs, so its rect is read once per gesture, not per event.
+		let origin = { left: 0, top: 0 };
+		const point = ( event ) => ( { x: event.clientX - origin.left, y: event.clientY - origin.top } );
+		const fingers = () => [ ...pointers.values() ];
+
+		frame.addEventListener( 'pointerdown', ( event ) => {
+			// Any touch in the body counts as having read the hint.
+			dismissHint();
+			if ( ! source || turning ) {
+				return;
+			}
+			setDetails( false );
+			if ( pointers.size === 0 ) {
+				origin = frame.getBoundingClientRect();
+			}
+			const start = point( event );
+			pointers.set( event.pointerId, { ...start, sx: start.x, sy: start.y, t: event.timeStamp } );
+			if ( pointers.size === 1 ) {
+				gesture = 'press';
+				touchZoom.startPan();
+			} else if ( pointers.size === 2 ) {
+				gesture = 'pinch';
+				touchZoom.startPinch( ...fingers() );
+			}
+		} );
+
+		frame.addEventListener( 'pointermove', ( event ) => {
+			const entry = pointers.get( event.pointerId );
+			if ( ! entry || ! gesture ) {
+				return;
+			}
+			Object.assign( entry, point( event ) );
+			if ( gesture === 'pinch' && pointers.size === 2 ) {
+				touchZoom.movePinch( ...fingers() );
+				dismissHint();
+				return;
+			}
+			if ( pointers.size !== 1 ) {
+				return;
+			}
+			const dx = entry.x - entry.sx;
+			const dy = entry.y - entry.sy;
+			if ( touchZoom.isZoomed() ) {
+				gesture = 'pan';
+				touchZoom.movePan( dx, dy );
+				return;
+			}
+			if ( gesture === 'press' && Math.abs( dx ) > 10 && Math.abs( dx ) > Math.abs( dy ) && source.count > 1 ) {
+				gesture = 'drag';
+				ui.track.style.transition = 'none';
+				frame.setPointerCapture && frame.setPointerCapture( event.pointerId );
+			}
+			if ( gesture === 'drag' ) {
+				// Resistance when there is nothing in that direction.
+				const blocked = ( dx > 0 && ! hasPrev() ) || ( dx < 0 && ! hasNext() );
+				ui.track.style.transform = `translateX(${ -size.w + dx * ( blocked ? 0.25 : 1 ) }px)`;
+			}
+		} );
+
+		const finish = ( event, cancelled ) => {
+			const entry = pointers.get( event.pointerId );
+			if ( ! entry ) {
+				return;
+			}
+			pointers.delete( event.pointerId );
+			const done = gesture;
+			touchZoom.endPinch();
+			if ( pointers.size > 0 ) {
+				// One finger of a pinch lifted: carry on as a pan from here.
+				const rest = fingers()[ 0 ];
+				rest.sx = rest.x;
+				rest.sy = rest.y;
+				gesture = 'press';
+				touchZoom.startPan();
+				return;
+			}
+			gesture = null;
+			if ( ! done ) {
+				return;
+			}
+			if ( cancelled ) {
+				if ( done === 'drag' ) {
+					slideBack();
+				}
+				return;
+			}
+			const dx = entry.x - entry.sx;
+			const dy = entry.y - entry.sy;
+
+			// Vertical drags move the round buttons out of the way and bring them back.
+			const intent = verticalIntent( { dx, dy } );
+			if ( intent === 'down' ) {
+				setFabAway( true );
+			} else if ( intent === 'up' ) {
+				clearFabTimers();
+				fabTimers.push( window.setTimeout( () => setFabAway( false ), 300 ) );
+			}
+
+			if ( done === 'drag' ) {
+				const direction = swipeDirection( { dx, dy, dt: event.timeStamp - entry.t } );
+				const target = direction !== 0 ? turnPage( current, source.count, step, direction ) : current;
+				if ( direction !== 0 && target !== current ) {
+					slideTo( target, direction, true );
+				} else {
+					slideBack();
+				}
+				return;
+			}
+			if ( done !== 'press' ) {
+				return;
+			}
+			const kind = classifyTap( { x: entry.sx, w: size.w, t0: entry.t, t1: event.timeStamp, moved: Math.hypot( dx, dy ) } );
+			if ( kind === 'edge-prev' || kind === 'edge-next' ) {
+				touchZoom.forgetTap();
+				turn( kind === 'edge-next' ? 1 : -1 );
+			} else if ( kind === 'centre' && touchZoom.tap( { t: event.timeStamp, x: entry.sx, y: entry.sy } ) ) {
+				announce( zoomText( zoomPercent( touchZoom.get().scale ) ) );
+			}
+		};
+		frame.addEventListener( 'pointerup', ( event ) => finish( event, false ) );
+		frame.addEventListener( 'pointercancel', ( event ) => finish( event, true ) );
+	}
+
+	function slideBack() {
+		if ( ! ui ) {
+			return;
+		}
+		ui.track.style.transition = reducedMotion.matches ? 'none' : 'transform 160ms ease-out';
+		ui.track.style.transform = `translateX(${ -size.w }px)`;
+	}
+
+	/* ---- layout and resize ---------------------------------------------------------------- */
+
+	/** Picks the step for this stage and builds the layout; returns false when the stage has no size. */
+	const computeLayout = () => {
+		size = measure();
+		if ( size.w < 40 || size.h < 40 ) {
+			return false;
+		}
+		step = spreadFits( { stageW: size.w, stageH: size.h, ratio: source.ratio, pages: source.count } ) ? 2 : 1;
+		const { pageW, pageH } = fitPage( { stageW: size.w, stageH: size.h, ratio: source.ratio, step, maxPageW: source.maxPageW } );
+		layout = {
+			pageW,
+			pageH,
+			scale: canvasScale( { pageW, pageH, dpr: window.devicePixelRatio, dprCap: budget.dprCap, maxPixels: budget.maxPixels } ),
+		};
+		builtFor = size;
+		return true;
+	};
+
+	/**
+	 * Fades the pages out while the screen is turning and back in once it has settled and the pages are
+	 * redrawn, so a rotation never shows a half-built layout. No fade with reduced motion.
+	 */
+	const fade = ( hidden ) => {
+		if ( ! ui || reducedMotion.matches ) {
+			return;
+		}
+		[ ui.frame, ui.prev, ui.next ].forEach( ( node ) => {
+			node.style.transition = hidden ? 'opacity 120ms ease-out' : 'opacity 260ms ease-in';
+			node.style.opacity = hidden ? '0' : '';
+		} );
+	};
+
+	const onResize = () => {
+		window.clearTimeout( resizeTimer );
+		const mine = session;
+		if ( source && ui ) {
+			const moving = measure();
+			if ( Math.abs( moving.w - builtFor.w ) >= 2 || Math.abs( moving.h - builtFor.h ) >= 2 ) {
+				fade( true );
+			}
+		}
+		// Wait until the size stops changing (the rotation has finished) before rebuilding.
+		resizeTimer = window.setTimeout( async () => {
+			if ( ! source || mine !== session || ! ui ) {
+				return;
+			}
+			const now = measure();
+			if ( Math.abs( now.w - builtFor.w ) < 2 && Math.abs( now.h - builtFor.h ) < 2 ) {
+				fade( false );
+				return;
+			}
+			const before = step;
+			try {
+				source.mounted().forEach( ( index ) => source.release( index, pageEls[ index - 1 ] ) );
+				if ( ! computeLayout() ) {
+					return;
+				}
+				if ( step !== before ) {
+					// A spread always starts on an odd page; the footer learns the new step.
+					current = onGeometry( { pages: source.count, step } );
+					current = firstOf( current );
+				}
+				resetZoom( { silent: true } );
+				renderViews();
+				// Fade in when the pages are drawn, but never wait longer than a moment for a slow one.
+				await Promise.race( [ ensureWindow( current ), new Promise( ( resolve ) => window.setTimeout( resolve, 1500 ) ) ] );
+			} catch ( error ) {
+				fail( error, mine );
+			} finally {
+				if ( mine === session ) {
+					fade( false );
+				}
+			}
+		}, 250 );
+	};
+
+	/* ---- public --------------------------------------------------------------------------- */
+
+	return {
+		/** Shows a document. Resolves when the first view is drawn (or the stage says it can't be previewed). */
+		async show( doc, page = 1 ) {
+			reset();
+			const mine = ++session;
+			const alive = () => mine === session;
+			const unit = unitOf( doc );
+			details = { title: doc.title || '', description: doc.description || '', tools: Array.isArray( doc.tools ) ? doc.tools : [], format: doc.format || '' };
+			statusView.setHintKey( hintKeyFor( doc ) );
+			words = wording( unit, units );
+			current = page;
+			usedPdf = false;
+			budget = budgetFor( 'full', limits );
+
+			if ( ! isMobilePdf( doc ) ) {
+				// Presentations, workbooks and word documents on mobile have their own tickets.
+				unavailable();
+				return;
+			}
+			setStatus( 'loading' );
+
+			let got = null;
+			try {
+				got = await acquireSource( doc, alive, { pdfjs, limits, selectableText } );
+				if ( ! alive() ) {
+					if ( got ) {
+						got.source.destroy();
+					}
+					return;
+				}
+				if ( ! got ) {
+					unavailable();
+					return;
+				}
+				source = got.source;
+				if ( got.budget ) {
+					budget = got.budget;
+				}
+				usedPdf = source.kind === 'pdf';
+				landscapeDoc = orientationOf( source.ratio, 1 ) === 'landscape';
+				buildPages( source.count );
+				buildUi();
+
+				// The dialog has only just opened: wait a frame for the stage to have a size.
+				if ( ! computeLayout() ) {
+					await new Promise( ( resolve ) => requestAnimationFrame( resolve ) );
+					if ( ! alive() ) {
+						return;
+					}
+					if ( ! computeLayout() ) {
+						throw new Error( 'stage has no size' );
+					}
+				}
+				current = firstOf( onGeometry( { pages: source.count, step } ) );
+				renderViews();
+				await withTimeout( ensureWindow( current ), limits.firstPageTimeoutMs );
+				if ( ! alive() ) {
+					return;
+				}
+				if ( usedPdf ) {
+					clearFailure( safeStorage() );
+				}
+				setStatus( null );
+				syncControls();
+				observer = new ResizeObserver( onResize );
+				observer.observe( stage );
+			} catch ( error ) {
+				if ( alive() ) {
+					if ( got && ! source ) {
+						got.source.destroy();
+					}
+					fail( error );
+				}
+			}
+		},
+
+		/** Turns one view (-1 previous, 1 next). */
+		turn,
+
+		/** Which round buttons to show because the footer cannot: `{ info, pages }`. */
+		setChrome( next ) {
+			chrome = { info: Boolean( next.info ), pages: Boolean( next.pages ) };
+			syncControls();
+		},
+
+		/** Opens or closes the document details (the round button and the footer's Details button). */
+		toggleDetails,
+
+		/** True while a view is sliding, so callers can ignore a second turn. */
+		isTurning: () => turning,
+
+		/** Jumps to a page (used by mobile.js for programmatic changes, e.g. a later Pages sheet). */
+		goTo( page ) {
+			if ( ! source || ! ui ) {
+				current = page;
+				return;
+			}
+			const target = firstOf( page );
+			if ( target === current ) {
+				return;
+			}
+			window.clearTimeout( turnTimer );
+			turning = false;
+			current = target;
+			resetZoom( { silent: true } );
+			renderViews();
+			draw( current );
+		},
+
+		/** Keyboard zoom: +1 in, -1 out (half steps), centred on the stage. */
+		zoomStep( direction ) {
+			if ( source && ui && touchZoom.step( direction ) ) {
+				dismissHint();
+				announce( zoomText( zoomPercent( touchZoom.get().scale ) ) );
+			}
+		},
+
+
+		resetZoom: () => resetZoom(),
+
+		/** Closes the viewer and frees pages, canvases and the PDF. */
+		destroy() {
+			session++;
+			reset();
+			setStatus( null );
+		},
+	};
+}

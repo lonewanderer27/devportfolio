@@ -97,7 +97,7 @@ class Devportfolio_Test_Document_Modal_Mobile extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-radius: 0;', $css );
 		$this->assertStringContainsString( '.documents-mobile::backdrop', $css );
 		$this->assertStringContainsString( 'background: transparent', $css );
-		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\)\s*\{\s*\.documents-mobile\s*\{\s*display: none#s', $css );
+		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\)[^{]*\{\s*\.documents-mobile\s*\{\s*display: none#s', $css );
 		$this->assertStringContainsString( 'grid-template-columns: 1fr auto 1fr', $css );
 		$this->assertStringContainsString( 'transition: width var(--dm-dur)', $css );
 		$this->assertStringContainsString( 'bottom: 0;', $css );

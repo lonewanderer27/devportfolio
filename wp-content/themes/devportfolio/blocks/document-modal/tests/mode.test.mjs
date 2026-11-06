@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations } from '../mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf } from '../mode.js';
 
 const images = [ 'a.webp', 'b.webp' ];
 
@@ -105,4 +105,10 @@ test( 'the office viewers need WebAssembly, workers and a canvas; the old name s
 	assert.equal( canDrawOffice( { ...ok, webassembly: false } ), false );
 	assert.equal( canDrawOffice( null ), false );
 	assert.equal( canDrawPresentations, canDrawOffice );
+} );
+
+test( 'the mobile body draws PDFs only for now', () => {
+	assert.equal( isMobilePdf( { kind: 'pdf' } ), true );
+	[ 'pptx', 'docx', 'xlsx', 'other', '' ].forEach( ( kind ) => assert.equal( isMobilePdf( { kind } ), false ) );
+	assert.equal( isMobilePdf( null ), false );
 } );

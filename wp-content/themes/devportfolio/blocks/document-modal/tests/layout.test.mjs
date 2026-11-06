@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { orientationOf, fitPage, renderWindow, canvasScale } from '../layout.js';
+import { orientationOf, fitPage, renderWindow, canvasScale, spreadFits } from '../layout.js';
 
 test( 'orientation: wider than tall is landscape, everything else portrait', () => {
 	assert.equal( orientationOf( 792, 612 ), 'landscape' );
@@ -81,4 +81,22 @@ test( 'canvas scale is lowered so one canvas stays under the pixel cap', () => {
 	assert.ok( scale < 2 );
 	// 0 means no pixel cap.
 	assert.equal( canvasScale( { pageW: 2000, pageH: 3000, dpr: 2, dprCap: 2, maxPixels: 0 } ), 2 );
+} );
+
+test( 'spread: a portrait document spreads only when two pages are as big as one would be', () => {
+	const r = 0.7;
+	// phone in portrait: needs 700 wide for a 500 tall stage
+	assert.equal( spreadFits( { stageW: 390, stageH: 500, ratio: r, pages: 12 } ), false );
+	// phone in landscape: 844 x 240 needs 336
+	assert.equal( spreadFits( { stageW: 844, stageH: 240, ratio: r, pages: 12 } ), true );
+	// near-square foldable: 700 x 640 needs 896, so one larger page
+	assert.equal( spreadFits( { stageW: 700, stageH: 640, ratio: r, pages: 12 } ), false );
+	// exactly enough
+	assert.equal( spreadFits( { stageW: 700, stageH: 500, ratio: r, pages: 4 } ), true );
+} );
+
+test( 'spread: never for one page or a landscape document', () => {
+	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 0.7, pages: 1 } ), false );
+	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 1.4, pages: 8 } ), false );
+	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 0, pages: 8 } ), false );
 } );

@@ -87,3 +87,25 @@ export function canDrawOffice( env ) {
 
 /** The name the presentation viewer used before spreadsheets joined it. */
 export const canDrawPresentations = canDrawOffice;
+
+/**
+ * Whether the mobile body draws this document (DPD-021). PDFs only for now: presentations, workbooks
+ * and word documents on mobile have their own tickets. Anything else shows "can't be previewed".
+ */
+export function isMobilePdf( doc ) {
+	return !! doc && doc.kind === 'pdf';
+}
+
+/**
+ * Which `data-hint*` string of the status element explains an unavailable document: presentations,
+ * workbooks and word documents each name their own program; everything else gets the generic one.
+ */
+export function hintKeyFor( doc ) {
+	if ( unitOf( doc ) === 'slide' ) {
+		return 'hintSlide';
+	}
+	if ( isSpreadsheet( doc ) ) {
+		return 'hintSheet';
+	}
+	return isWord( doc ) ? 'hintDoc' : 'hint';
+}

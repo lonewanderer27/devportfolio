@@ -4,6 +4,8 @@ This plan is written to be handed to another agent: it is self-contained. Read *
 
 **Implementation status:** Implemented and reviewed in the theme. The mobile dialog, shared download handling, responsive routing/history, mobile footer state, resize swap, tests and documentation are in place. The implementation keeps desktop and mobile concerns separated, shares download and pager helpers, and avoids loading the desktop viewer for mobile. The mobile progress bar is positioned at the bottom of the body, matching the desktop placement, and is hidden when the page count is below 2. Validation completed with 231 theme PHPUnit tests, 690 plugin PHPUnit tests (12 skipped), 72 Node modal tests, 7 focused mobile-modal tests, and `git diff --check`.
 
+> **Superseded in part by `DPD-021-024-Document-Modal-Mobile-Viewer.md`:** (1) the mobile dialog is also used by a touch screen held sideways, not only at 700px or less (`routing.js` is the single definition); (2) the footer is **hidden** for one-page documents and in touch landscape (owner decision 2 below no longer holds); (3) the body is no longer blank: it is the mobile viewer, and the Pages/Details buttons still only emit events.
+
 ## Tickets (verbatim intent)
 
 **DPD-017, Modal, Mobile** (High, User Interface, device or browser window 700px wide or less). *As a user, when I tap a document AND I am using a really small device (screen width of 700px or less), then a separate blank modal specifically for mobile only should display.*

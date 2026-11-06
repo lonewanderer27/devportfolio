@@ -261,6 +261,30 @@ if ( ! function_exists( 'devportfolio_document_unit_strings' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'devportfolio_document_mobile_strings' ) ) :
+	/**
+	 * The mobile body's wording, for mobile-viewer.js (`data-mobile-strings` on the block root) (DPD-021, DPD-024).
+	 *
+	 * `zoom` holds a `{n}` placeholder for the percentage.
+	 *
+	 * @since 0.7.0
+	 *
+	 * @return array<string,string>
+	 */
+	function devportfolio_document_mobile_strings() {
+		return array(
+			'region'    => _x( 'Document pages', 'document modal mobile', 'devportfolio' ),
+			'hint'      => _x( 'swipe or tap edges', 'document modal mobile', 'devportfolio' ),
+			'rotate'    => _x( 'Rotate for a bigger view', 'document modal mobile', 'devportfolio' ),
+			'pinch'     => _x( 'Pinch to zoom', 'document modal mobile', 'devportfolio' ),
+			'details'   => _x( 'Document details', 'document modal mobile', 'devportfolio' ),
+			'pagesLabel' => _x( 'Pages', 'document modal mobile round button', 'devportfolio' ),
+			'zoom'      => _x( 'Zoom {n}%', 'document modal mobile, {n} is a number', 'devportfolio' ),
+			'pageError' => _x( 'This page could not be loaded.', 'document modal mobile', 'devportfolio' ),
+		);
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 	/**
 	 * Builds the cover format line, e.g. "PDF · 24 pp" (DPD-005).
