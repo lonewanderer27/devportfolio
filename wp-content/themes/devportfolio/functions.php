@@ -284,6 +284,15 @@ if ( ! function_exists( 'devportfolio_document_mobile_strings' ) ) :
 			'zoomOut'   => _x( 'Zoom out', 'document modal mobile', 'devportfolio' ),
 			'zoomControls' => _x( 'Zoom controls', 'document modal mobile', 'devportfolio' ),
 			'pageError' => _x( 'This page could not be loaded.', 'document modal mobile', 'devportfolio' ),
+			// The Pages sheet (DPD-020). `{n}` is the page number; a row without a name shows the label without it.
+			'pagesTitle' => _x( 'Pages', 'document modal mobile pages sheet title', 'devportfolio' ),
+			'galleryView' => _x( 'Gallery view', 'document modal mobile pages sheet', 'devportfolio' ),
+			'listView'  => _x( 'List view', 'document modal mobile pages sheet', 'devportfolio' ),
+			'current'   => _x( 'current', 'document modal mobile pages sheet, the page on screen', 'devportfolio' ),
+			'pageLabel' => _x( 'Page {n}', 'document modal mobile pages sheet, {n} is a number', 'devportfolio' ),
+			'slideLabel' => _x( 'Slide {n}', 'document modal mobile pages sheet, {n} is a number', 'devportfolio' ),
+			'sheetLabel' => _x( 'Sheet {n}', 'document modal mobile pages sheet, {n} is a number', 'devportfolio' ),
+			'closePages' => _x( 'Close pages', 'document modal mobile pages sheet', 'devportfolio' ),
 		);
 	}
 endif;
@@ -501,7 +510,141 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			'viewerUrl'    => $viewer['viewerUrl'],
 			'nativeUrl'   => $viewer['nativeUrl'],
 			'pdfBytes'     => $viewer['pdfBytes'],
-		);
+		) + devportfolio_document_pages_extras( $post_id );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_name_ranges' ) ) :
+	/**
+	 * Packs one name per page into ranges for the payload (DPD-020): `[ [ first_page, name ], ... ]`.
+	 *
+	 * A name holds from its first page until the next range, so a six-chapter report is six entries. A page
+	 * without a name starts a range with an empty name only when a named range came before it. Names are plain
+	 * text (the script writes them with textContent), tags removed, at most 200 characters. Nothing at all
+	 * (an empty array) when no page has a name.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param mixed $names One name per page, as `cptdp_get_document_pages()['names']`.
+	 * @return array<int,array{0:int,1:string}>
+	 */
+	function devportfolio_document_name_ranges( $names ) {
+		if ( ! is_array( $names ) ) {
+			return array();
+		}
+
+		$ranges = array();
+		$last   = '';
+		$any    = false;
+		foreach ( array_values( $names ) as $index => $name ) {
+			$name = is_string( $name ) ? trim( preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( $name ), ENT_QUOTES, 'UTF-8' ) ) ) : '';
+			$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 200 ) : substr( $name, 0, 200 );
+			if ( $name !== $last ) {
+				$ranges[] = array( $index + 1, $name );
+				$last     = $name;
+			}
+			if ( '' !== $name ) {
+				$any = true;
+			}
+		}
+
+		return $any ? $ranges : array();
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_thumbs_descriptor' ) ) :
+	/**
+	 * Describes the page thumbnails for the payload (DPD-020, DPB-031).
+	 *
+	 * The modal payload carries every published document, so a 300-page document sends
+	 * `{ base, ext, count, width, height }` (page n is `base . 't-' . pad( n, 3 ) . ext`) instead of 300 URLs.
+	 * When the URLs do not follow that pattern (or there is not one per page) the plain list is sent, and an
+	 * incomplete or empty set sends nothing, so a half set is never used.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param mixed $thumbs One URL per page.
+	 * @param mixed $width  Thumbnail width in pixels, 0 when unknown.
+	 * @param mixed $height Thumbnail height in pixels, 0 when unknown.
+	 * @return array<string,mixed>|string[]
+	 */
+	function devportfolio_document_thumbs_descriptor( $thumbs, $width = 0, $height = 0 ) {
+		if ( ! is_array( $thumbs ) || array() === $thumbs ) {
+			return array();
+		}
+
+		$urls = array();
+		foreach ( array_values( $thumbs ) as $url ) {
+			$url = is_string( $url ) ? esc_url_raw( $url ) : '';
+			if ( '' === $url ) {
+				return array();
+			}
+			$urls[] = $url;
+		}
+
+		$ext  = '';
+		$base = '';
+		if ( preg_match( '#^(.*/)t-(\d{3,})(\.[a-z0-9]+)$#i', $urls[0], $match ) ) {
+			$base = $match[1];
+			$ext  = $match[3];
+		}
+		if ( '' !== $base ) {
+			$follows = true;
+			foreach ( $urls as $index => $url ) {
+				if ( sprintf( '%s%s%03d%s', $base, 't-', $index + 1, $ext ) !== $url ) {
+					$follows = false;
+					break;
+				}
+			}
+			if ( $follows ) {
+				return array(
+					'base'   => $base,
+					'ext'    => $ext,
+					'count'  => count( $urls ),
+					'width'  => max( 0, (int) $width ),
+					'height' => max( 0, (int) $height ),
+				);
+			}
+		}
+
+		return $urls;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_pages_extras' ) ) :
+	/**
+	 * The payload keys the mobile Pages sheet adds (DPD-020): `pageNames` (ranges) and `thumbs` (descriptor).
+	 *
+	 * Both come from the plugin's page store through a function_exists guard (DPB-030, DPB-031), and a key is
+	 * left out entirely when the document has nothing for it (no names, no thumbnails, plugin missing), so the
+	 * payload that carries every published document stays small and the sheet falls back to numbered tiles and
+	 * the unit word.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array<string,mixed>
+	 */
+	function devportfolio_document_pages_extras( $post_id ) {
+		if ( ! function_exists( 'cptdp_get_document_pages' ) ) {
+			return array();
+		}
+		$stored = cptdp_get_document_pages( (int) $post_id );
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+
+		$extras = array();
+		$names  = devportfolio_document_name_ranges( $stored['names'] ?? array() );
+		if ( array() !== $names ) {
+			$extras['pageNames'] = $names;
+		}
+		$thumbs = devportfolio_document_thumbs_descriptor( $stored['thumbs'] ?? array(), $stored['thumb_width'] ?? 0, $stored['thumb_height'] ?? 0 );
+		if ( array() !== $thumbs ) {
+			$extras['thumbs'] = $thumbs;
+		}
+
+		return $extras;
 	}
 endif;
 

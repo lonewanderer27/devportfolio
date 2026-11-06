@@ -23,7 +23,7 @@ export function normalisePage( page, pages, step ) {
 }
 
 /** First and last visible page. */
-function visibleRange( page, pages, step ) {
+export function visibleRange( page, pages, step ) {
 	const first = normalisePage( page, pages, step );
 	return { first, last: Math.min( first + step - 1, pages ) };
 }

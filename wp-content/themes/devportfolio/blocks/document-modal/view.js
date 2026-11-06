@@ -20,7 +20,7 @@ import {
 import { mergeLimits } from './capability.js';
 import { createViewer } from './viewer.js';
 import { viewerMode, unitOf, wording, positionText } from './mode.js';
-import { slugFromUrl, urlWithSlug, urlWithoutSlug } from './deeplink.js';
+import { slugFromUrl, urlWithSlug, urlWithoutSlug, hasSheetState } from './deeplink.js';
 import { createMobileModal } from './mobile.js';
 import { createRouting } from './routing.js';
 import { applyDownload, guardDisabledDownload } from './download.js';
@@ -230,12 +230,20 @@ if ( dialog && dataEl ) {
 		onSwipe: ( direction ) => turn( direction ),
 	} );
 
-	const finishClose = ( which ) => {
+	// A Pages sheet entry left in the history when the viewer closes (DPD-020): `skipNextPop` makes the popstate
+	// that removing it causes do nothing but drop a stale `?document_slug` from the URL.
+	let skipNextPop = false;
+
+	const finishClose = ( which, extra = 0 ) => {
 		if ( which === 'desktop' ) {
 			viewer.destroy();
 		}
 		if ( swapping ) {
 			swapping = false;
+			if ( extra > 0 ) {
+				// The sheet's entry has the same URL as the viewer's: step back onto it; the other dialog is open.
+				window.history.go( -extra );
+			}
 			swap();
 			return;
 		}
@@ -249,7 +257,15 @@ if ( dialog && dataEl ) {
 			pushed = false;
 		} else if ( pushed ) {
 			pushed = false;
-			window.history.back();
+			if ( extra > 0 ) {
+				// Also remove the Pages sheet's entry.
+				window.history.go( -( 1 + extra ) );
+			} else {
+				window.history.back();
+			}
+		} else if ( extra > 0 ) {
+			skipNextPop = true;
+			window.history.go( -extra );
 		} else if ( slugFromUrl( window.location.href ) ) {
 			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
 		}
@@ -262,7 +278,7 @@ if ( dialog && dataEl ) {
 		pdfjs: readJson( 'data-pdfjs' ),
 		limits: mergeLimits( readJson( 'data-limits' ) ),
 		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
-		onClose: () => finishClose( 'mobile' ),
+		onClose: ( extra ) => finishClose( 'mobile', extra ),
 	} ) : null;
 
 	const isOpen = () => dialog.open || ( mobile !== null && mobile.isOpen() );
@@ -366,20 +382,38 @@ if ( dialog && dataEl ) {
 
 	dialog.addEventListener( 'close', () => finishClose( 'desktop' ) );
 
-	// Back and Forward open or close the modal to match the URL, without adding entries.
-	window.addEventListener( 'popstate', () => {
+	// Back and Forward open or close the modal to match the URL, without adding entries. Registered in the capture
+	// phase and stopping the event whenever it acts on it: WordPress's Interactivity Router (loaded for the
+	// Navigation block) answers every popstate and reloads the page for a URL it has not cached (here
+	// `?document_slug=...`), which flashed the page on Forward. A move that is not the modal's (a category change,
+	// or the modal already in the state the URL describes) still reaches the other listeners.
+	window.addEventListener( 'popstate', ( event ) => {
+		if ( skipNextPop ) {
+			skipNextPop = false;
+			if ( slugFromUrl( window.location.href ) && ! isOpen() ) {
+				window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
+			}
+			event.stopImmediatePropagation();
+			return;
+		}
 		if ( swapping ) {
+			event.stopImmediatePropagation();
 			return;
 		}
 		const slug = slugFromUrl( window.location.href );
 		if ( ! slug && isOpen() ) {
+			event.stopImmediatePropagation();
 			closingFromHistory = true;
 			closeOpen();
 		} else if ( slug && ! isOpen() && idBySlug[ slug ] ) {
+			event.stopImmediatePropagation();
 			open( idBySlug[ slug ], null, { push: false } );
 			pushed = true;
+		} else if ( slug && isOpen() && hasSheetState( event.state ) ) {
+			// Forward onto the Pages sheet's old entry: same URL, nothing to do (and nothing for the router to reload).
+			event.stopImmediatePropagation();
 		}
-	} );
+	}, true );
 
 	// First load with a link to a document: open it. A slug that is not a published document is dropped.
 	const linked = slugFromUrl( window.location.href );

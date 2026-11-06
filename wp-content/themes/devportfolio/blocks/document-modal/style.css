@@ -1340,3 +1340,336 @@ html[data-documents-swapping] .documents-shelf__plank {
 	cursor: default;
 	opacity: 0.45;
 }
+
+/* Mobile Pages sheet (DPD-020): a bottom sheet over the dimmed viewer, inside the mobile dialog. It has a Gallery
+   view (3 columns of page thumbnails, at most 3 rows tall, scrolling for more) and a List view (one row per page).
+   The viewer behind it is `inert` (pages-sheet.js), so the round buttons cannot be reached while it is open. */
+.documents-mobile__dim {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	background: rgb(0 0 0 / 0.4);
+	animation: documents-mobile-fade var(--dm-dur) ease;
+}
+
+.documents-mobile__sheet {
+	--pg-ratio: 0.7576;
+	--pg-crop: 0;
+	--pg-gap: 14px;
+	--pg-pad: 18px;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 21;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	max-width: 560px;
+	max-height: 82%;
+	margin: 0 auto;
+	padding: 10px var(--pg-pad) calc(18px + env(safe-area-inset-bottom, 0px));
+	color: var(--dm-ink);
+	background: var(--dm-surface);
+	border-top: 1px solid var(--dm-edge);
+	border-radius: 14px 14px 0 0;
+	box-shadow: 0 -8px 28px rgb(0 0 0 / 0.16);
+	container-type: inline-size;
+	animation: documents-mobile-sheet-up var(--dm-dur) var(--dm-ease);
+}
+
+.documents-mobile__dim[hidden],
+.documents-mobile__sheet[hidden] {
+	display: none;
+}
+
+@keyframes documents-mobile-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes documents-mobile-sheet-up {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+}
+
+.documents-mobile__grab {
+	position: relative;
+	display: block;
+	flex: none;
+	width: 40px;
+	height: 4px;
+	padding: 0;
+	margin: 0 auto 12px;
+	cursor: pointer;
+	background: var(--dm-line);
+	border: 0;
+	border-radius: 2px;
+}
+
+.documents-mobile__grab::after {
+	position: absolute;
+	inset: -12px -20px;
+	content: "";
+}
+
+/* The handle and the title row are dragged down to dismiss the sheet: the browser must not scroll or select there. */
+.documents-mobile__grab,
+.documents-mobile__sheet-head {
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.documents-mobile__grab {
+	cursor: grab;
+}
+
+.documents-mobile__grab:active {
+	cursor: grabbing;
+}
+
+.documents-mobile__sheet-head {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.documents-mobile__sheet-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+/* Two small grouped icon buttons: the active view is filled dark with a light icon, the other is outlined. */
+.documents-mobile__sheet-toggle {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.documents-mobile__sheet-view {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 28px;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--dm-ink);
+	border-radius: 6px;
+}
+
+.documents-mobile__sheet-view::after {
+	position: absolute;
+	inset: -8px -2px;
+	content: "";
+}
+
+.documents-mobile__sheet-view .documents-modal__icon {
+	width: 16px;
+	height: 16px;
+}
+
+.documents-mobile__sheet-view[aria-pressed="true"] {
+	color: var(--dm-on-primary);
+	background: var(--dm-ink);
+}
+
+.documents-mobile__grab:focus-visible,
+.documents-mobile__sheet-view:focus-visible,
+.documents-mobile__tile:focus-visible,
+.documents-mobile__prow:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+/* One scroll area for both views; the gallery shows at most three rows of tiles, so a long document scrolls. */
+.documents-mobile__sheet-body {
+	flex: 0 1 auto;
+	min-height: 0;
+	margin-top: 12px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	contain: layout paint;
+	/* Three tile rows. 100cqw is the sheet's content width: tile width = (that - 2 gaps - the grid's 8px of padding) / 3, tile height = width / ratio. */
+	max-height: calc(3 * ((100cqw - 2 * var(--pg-gap) - 8px) / 3 / var(--pg-ratio)) + 2 * var(--pg-gap) + 8px);
+}
+
+.documents-mobile__pgr {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--pg-gap);
+	padding: 4px 4px 4px;
+}
+
+.documents-mobile__pgr[hidden],
+.documents-mobile__rows[hidden] {
+	display: none;
+}
+
+.documents-mobile__tile {
+	position: relative;
+	display: block;
+	aspect-ratio: var(--pg-ratio);
+	padding: 0;
+	overflow: hidden;
+	color: var(--dm-subtle);
+	cursor: pointer;
+	background: #fff;
+	border: 1px solid var(--dm-line);
+	border-radius: 6px;
+	content-visibility: auto;
+	contain-intrinsic-size: auto 120px;
+}
+
+/* The page thumbnail fills the tile; the bottom crop of the book applies here too (the page image is taller
+   than the visible part, pinned to the top). */
+.documents-mobile__thumb {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: calc(100% / (1 - var(--pg-crop)));
+	object-fit: cover;
+	object-position: top;
+	opacity: 0;
+	transition: opacity 160ms ease;
+}
+
+.documents-mobile__tile.is-loaded .documents-mobile__thumb {
+	opacity: 1;
+}
+
+/* The page number: a small chip at the bottom of a real thumbnail, in the centre of a blank page. */
+.documents-mobile__tile-n {
+	position: absolute;
+	bottom: 6px;
+	left: 50%;
+	padding: 1px 8px;
+	font: 600 12px/1.5 system-ui, sans-serif;
+	color: var(--dm-ink);
+	background: rgb(255 255 255 / 0.92);
+	border-radius: 999px;
+	transform: translateX(-50%);
+}
+
+.documents-mobile__tile--blank {
+	background-image: repeating-linear-gradient(#fff 0 9px, #e5e5ea 9px 11px);
+	background-repeat: no-repeat;
+	background-position: center 30%;
+	background-size: 70% 60%;
+}
+
+.documents-mobile__tile--blank .documents-mobile__tile-n {
+	top: 50%;
+	bottom: auto;
+	font-size: 14px;
+	transform: translate(-50%, -50%);
+}
+
+/* The current page(s): a thick dark outline. */
+.documents-mobile__tile.is-current {
+	border-color: var(--dm-ink);
+	box-shadow: 0 0 0 3px var(--dm-ink);
+}
+
+.documents-mobile__rows {
+	border-top: 1px solid var(--dm-line);
+}
+
+.documents-mobile__prow {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 56px;
+	padding: 8px 2px;
+	color: var(--dm-ink);
+	text-align: left;
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--dm-line);
+	content-visibility: auto;
+	contain-intrinsic-size: auto 56px;
+}
+
+.documents-mobile__prow-n {
+	display: grid;
+	flex: none;
+	place-items: center;
+	box-sizing: border-box;
+	width: 32px;
+	height: 42px;
+	font: 600 12px/1 system-ui, sans-serif;
+	color: var(--dm-subtle);
+	background: #fff;
+	border: 1px solid var(--dm-line);
+	border-radius: 4px;
+}
+
+.documents-mobile__prow.is-current .documents-mobile__prow-n {
+	color: var(--dm-ink);
+	border-color: var(--dm-ink);
+	box-shadow: 0 0 0 2px var(--dm-ink);
+}
+
+.documents-mobile__prow-name {
+	flex: 1;
+	min-width: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+.documents-mobile__prow-text {
+	font-weight: 700;
+}
+
+.documents-mobile__prow-cur {
+	display: none;
+	font-weight: 400;
+	color: var(--dm-subtle);
+}
+
+.documents-mobile__prow.is-current .documents-mobile__prow-cur {
+	display: inline;
+}
+
+.documents-mobile__sentinel {
+	grid-column: 1 / -1;
+	height: 1px;
+}
+
+/* A phone held sideways: the sheet is shorter than the screen, three columns of smaller tiles, the list scrolls. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.documents-mobile__sheet {
+		max-height: 80%;
+		padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+	}
+
+	.documents-mobile__sheet-body {
+		max-height: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.documents-mobile__dim,
+	.documents-mobile__sheet {
+		animation: none;
+	}
+
+	.documents-mobile__thumb {
+		transition: none;
+	}
+}
