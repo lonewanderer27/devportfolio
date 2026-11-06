@@ -8,6 +8,7 @@ import {
 	pagerState,
 	turnPage,
 	indicatorParts,
+	mobileFooterParts,
 } from '../pager.js';
 
 const show = ( pages, page ) => pagerItems( pages, page, stepFor( pages ) ).join( ' ' );
@@ -108,4 +109,20 @@ test( 'indicator parts', () => {
 	assert.deepEqual( indicatorParts( 5, 24, 1 ), { first: 5, last: 5, both: false, percent: 20.83 } );
 	assert.deepEqual( indicatorParts( 3, 3, 2 ), { first: 3, last: 3, both: false, percent: 100 } );
 	assert.deepEqual( indicatorParts( 1, 1, 1 ), { first: 1, last: 1, both: false, percent: 100 } );
+} );
+
+test( 'mobile footer shows one-page progress and clamps safely', () => {
+	assert.deepEqual( mobileFooterParts( 1, 24 ), { page: 1, label: '1 / 24', percent: 4.17 } );
+	assert.deepEqual( mobileFooterParts( 2, 24 ), { page: 2, label: '2 / 24', percent: 8.33 } );
+	assert.deepEqual( mobileFooterParts( 24, 24 ), { page: 24, label: '24 / 24', percent: 100 } );
+	assert.deepEqual( mobileFooterParts( 1, 1 ), { page: 1, label: '1 / 1', percent: 100 } );
+	assert.deepEqual( mobileFooterParts( 5, 0 ), { page: 1, label: '', percent: 0 } );
+	assert.deepEqual( mobileFooterParts( 99, 24 ), { page: 24, label: '24 / 24', percent: 100 } );
+	assert.equal( mobileFooterParts( 0, 24 ).page, 1 );
+	assert.equal( mobileFooterParts( -3, 24 ).page, 1 );
+	assert.equal( mobileFooterParts( 2.7, 24 ).page, 2 );
+	assert.deepEqual( mobileFooterParts( '3', '24' ), { page: 3, label: '3 / 24', percent: 12.5 } );
+	assert.deepEqual( mobileFooterParts( 3, undefined ), { page: 1, label: '', percent: 0 } );
+	assert.equal( turnPage( 24, 24, 1, 1 ), 24 );
+	assert.equal( turnPage( 1, 24, 1, -1 ), 1 );
 } );

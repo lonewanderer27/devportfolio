@@ -4,7 +4,7 @@
 	"name": "devportfolio/document-modal",
 	"title": "Document Modal",
 	"category": "widgets",
-	"description": "The document viewer modal opened from a document book: header, body and footer pager. Opens on any element with data-document-id (desktop only).",
+	"description": "The document viewer modals opened from a document book: desktop and mobile header, body and footer shells.",
 	"textdomain": "devportfolio",
 	"supports": {
 		"html": false

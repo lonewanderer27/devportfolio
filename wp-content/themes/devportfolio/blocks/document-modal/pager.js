@@ -81,6 +81,23 @@ export function turnPage( page, pages, step, direction ) {
 	return normalisePage( first + direction * step, pages, step );
 }
 
+/**
+ * What the mobile footer shows: one page at a time and its progress percent.
+ * An unknown count gives an empty label and zero percent.
+ */
+export function mobileFooterParts( page, pages ) {
+	const count = Math.max( 0, Math.floor( Number( pages ) ) || 0 );
+	if ( count < 1 ) {
+		return { page: 1, label: '', percent: 0 };
+	}
+	const current = normalisePage( page, count, 1 );
+	return {
+		page: current,
+		label: `${ current } / ${ count }`,
+		percent: Math.round( ( current / count ) * 10000 ) / 100,
+	};
+}
+
 /** First and last visible page, whether both show, and the progress percent. */
 export function indicatorParts( page, pages, step ) {
 	const { first, last } = visibleRange( page, pages, step );

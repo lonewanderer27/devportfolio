@@ -542,7 +542,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_viewer_scripts_have_no_external_urls(): void {
-		foreach ( array( 'viewer.js', 'view.js', 'capability.js', 'layout.js', 'pager.js', 'render.php' ) as $file ) {
+		foreach ( array( 'viewer.js', 'view.js', 'capability.js', 'layout.js', 'pager.js', 'mobile.js', 'download.js', 'render.php' ) as $file ) {
 			$source = $this->read( 'blocks/document-modal/' . $file );
 			// The SVG namespace is an identifier for createElementNS(), not a host that is contacted.
 			$source = str_replace( 'http://www.w3.org/2000/svg', '', $source );

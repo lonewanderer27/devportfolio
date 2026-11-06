@@ -1,8 +1,8 @@
 /**
  * Document modal (DPD-009 to DPD-015).
  *
- * Any element with data-document-id opens the shared <dialog> on screens wider
- * than 700px. Fills header and footer from the JSON payload; the body shows the
+ * Any element with data-document-id opens the desktop or mobile <dialog> for
+ * the current viewport. Fills header and footer from the JSON payload; the body shows the
  * pages as an open book (DPD-013, viewer.js). This file owns the current page
  * (`state`): the pager, the arrows, the keyboard and the book itself all end in
  * setPage(), and `documents:modal-change` is dispatched on the dialog after
@@ -21,9 +21,12 @@ import { mergeLimits } from './capability.js';
 import { createViewer } from './viewer.js';
 import { viewerMode, unitOf, wording, positionText } from './mode.js';
 import { slugFromUrl, urlWithSlug, urlWithoutSlug } from './deeplink.js';
+import { createMobileModal } from './mobile.js';
+import { applyDownload, guardDisabledDownload } from './download.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
+const mobileDialog = root ? root.querySelector( '.documents-mobile' ) : null;
 const dataEl = root ? root.querySelector( '.documents-modal__data' ) : null;
 
 if ( dialog && dataEl ) {
@@ -59,6 +62,7 @@ if ( dialog && dataEl ) {
 	// `closingFromHistory` is true while Back/Forward is the reason the dialog closes.
 	let pushed = false;
 	let closingFromHistory = false;
+	let swapping = false;
 	const idBySlug = {};
 	Object.values( documents ).forEach( ( doc ) => {
 		if ( doc && doc.slug ) {
@@ -184,23 +188,7 @@ if ( dialog && dataEl ) {
 		els.format.textContent = doc.format;
 		els.format.hidden = ! doc.format;
 
-		const link = els.download;
-		link.removeAttribute( 'href' );
-		link.removeAttribute( 'download' );
-		link.removeAttribute( 'target' );
-		link.removeAttribute( 'rel' );
-		link.removeAttribute( 'aria-disabled' );
-		link.setAttribute( 'aria-label', `Download ${ doc.title }` );
-		if ( doc.downloadMode === 'file' ) {
-			link.href = doc.downloadUrl;
-			link.setAttribute( 'download', '' );
-		} else if ( doc.downloadMode === 'embed' ) {
-			link.href = doc.downloadUrl;
-			link.target = '_blank';
-			link.rel = 'noopener';
-		} else {
-			link.setAttribute( 'aria-disabled', 'true' );
-		}
+		applyDownload( els.download, doc );
 	};
 
 	/** Page changes made inside the book (drag, corner click) come back here. */
@@ -237,6 +225,46 @@ if ( dialog && dataEl ) {
 		onFlip: syncFromViewer,
 	} );
 
+	const finishClose = ( which ) => {
+		if ( which === 'desktop' ) {
+			viewer.destroy();
+		}
+		if ( swapping ) {
+			swapping = false;
+			swap();
+			return;
+		}
+		document.documentElement.style.overflow = '';
+		if ( opener && document.contains( opener ) ) {
+			opener.focus();
+		}
+		opener = null;
+		if ( closingFromHistory ) {
+			closingFromHistory = false;
+			pushed = false;
+		} else if ( pushed ) {
+			pushed = false;
+			window.history.back();
+		} else if ( slugFromUrl( window.location.href ) ) {
+			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
+		}
+	};
+
+	const mobile = mobileDialog ? createMobileModal( {
+		dialog: mobileDialog,
+		units,
+		onClose: () => finishClose( 'mobile' ),
+	} ) : null;
+
+	const isOpen = () => dialog.open || ( mobile !== null && mobile.isOpen() );
+	const closeOpen = () => {
+		if ( dialog.open ) {
+			dialog.close();
+		} else if ( mobile ) {
+			mobile.close();
+		}
+	};
+
 	/** Goes to a page; `animate` flips the book one view, otherwise it jumps. */
 	const setPage = ( page, animate = false ) => {
 		state.page = normalisePage( page, state.pages, state.step );
@@ -256,9 +284,27 @@ if ( dialog && dataEl ) {
 		}
 	};
 
-	const open = ( id, trigger, push = true ) => {
+	const openDesktop = ( doc, page = 1 ) => {
+		state.id = doc.id;
+		words = wording( unitOf( doc ), units );
+		els.prev.setAttribute( 'aria-label', words.prev );
+		els.next.setAttribute( 'aria-label', words.next );
+		els.pager.setAttribute( 'aria-label', words.nav );
+		const stored = Array.isArray( doc.images ) ? doc.images.length : 0;
+		state.pages = stored || doc.pages;
+		state.step = stepFor( state.pages, ( stored && doc.ratio > 1 ) || viewerMode( doc ) === 'native' ? 'landscape' : 'portrait' );
+		state.page = normalisePage( page, state.pages, state.step );
+		drawHeader( doc );
+		drawFooter();
+		dialog.showModal();
+		els.close.focus();
+		emit();
+		viewer.show( doc, state.page );
+	};
+
+	const open = ( id, trigger, { push = true, page = 1 } = {} ) => {
 		const doc = documents[ id ];
-		if ( ! doc || dialog.open ) {
+		if ( ! doc || isOpen() ) {
 			return;
 		}
 		if ( push && doc.slug ) {
@@ -266,31 +312,17 @@ if ( dialog && dataEl ) {
 			pushed = true;
 		}
 		opener = trigger;
-		state.id = doc.id;
-		words = wording( unitOf( doc ), units );
-		els.prev.setAttribute( 'aria-label', words.prev );
-		els.next.setAttribute( 'aria-label', words.next );
-		els.pager.setAttribute( 'aria-label', words.nav );
-		// The stored images carry the real count and shape; otherwise guess portrait
-		// until the PDF is opened (the viewer reports the truth through setGeometry()).
-		const stored = Array.isArray( doc.images ) ? doc.images.length : 0;
-		state.pages = stored || doc.pages;
-		// Slides are wide: the stored ratio says so, and so does a deck the browser will draw itself.
-		state.step = stepFor( state.pages, ( stored && doc.ratio > 1 ) || viewerMode( doc ) === 'native' ? 'landscape' : 'portrait' );
-		state.page = 1;
-
-		drawHeader( doc );
-		drawFooter();
 		document.documentElement.style.overflow = 'hidden';
-		dialog.showModal();
-		els.close.focus();
-		emit();
-		viewer.show( doc, state.page );
+		if ( desktop.matches || ! mobile ) {
+			openDesktop( doc, page );
+		} else {
+			mobile.show( doc, page );
+		}
 	};
 
 	document.addEventListener( 'click', ( event ) => {
 		const trigger = event.target.closest ? event.target.closest( '[data-document-id]' ) : null;
-		if ( ! trigger || ! desktop.matches ) {
+		if ( ! trigger ) {
 			return;
 		}
 		event.preventDefault();
@@ -305,34 +337,19 @@ if ( dialog && dataEl ) {
 	} );
 	els.close.addEventListener( 'click', () => dialog.close() );
 
-	dialog.addEventListener( 'close', () => {
-		viewer.destroy();
-		document.documentElement.style.overflow = '';
-		if ( opener && document.contains( opener ) ) {
-			opener.focus();
-		}
-		opener = null;
-
-		// Take `?document_slug` out of the URL: step back over the entry we added, else rewrite the current one.
-		if ( closingFromHistory ) {
-			closingFromHistory = false;
-			pushed = false;
-		} else if ( pushed ) {
-			pushed = false;
-			window.history.back();
-		} else if ( slugFromUrl( window.location.href ) ) {
-			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
-		}
-	} );
+	dialog.addEventListener( 'close', () => finishClose( 'desktop' ) );
 
 	// Back and Forward open or close the modal to match the URL, without adding entries.
 	window.addEventListener( 'popstate', () => {
+		if ( swapping ) {
+			return;
+		}
 		const slug = slugFromUrl( window.location.href );
-		if ( ! slug && dialog.open ) {
+		if ( ! slug && isOpen() ) {
 			closingFromHistory = true;
-			dialog.close();
-		} else if ( slug && ! dialog.open && idBySlug[ slug ] && desktop.matches ) {
-			open( idBySlug[ slug ], null, false );
+			closeOpen();
+		} else if ( slug && ! isOpen() && idBySlug[ slug ] ) {
+			open( idBySlug[ slug ], null, { push: false } );
 			pushed = true;
 		}
 	} );
@@ -342,17 +359,13 @@ if ( dialog && dataEl ) {
 	if ( linked ) {
 		if ( ! idBySlug[ linked ] ) {
 			window.history.replaceState( window.history.state, '', urlWithoutSlug( window.location.href ) );
-		} else if ( desktop.matches ) {
+		} else {
 			// The shelf button gets the focus back on close, as after a click.
-			open( idBySlug[ linked ], document.querySelector( `.documents-item__open[data-document-id="${ idBySlug[ linked ] }"]` ), false );
+			open( idBySlug[ linked ], document.querySelector( `.documents-item__open[data-document-id="${ idBySlug[ linked ] }"]` ), { push: false } );
 		}
 	}
 
-	els.download.addEventListener( 'click', ( event ) => {
-		if ( els.download.getAttribute( 'aria-disabled' ) === 'true' ) {
-			event.preventDefault();
-		}
-	} );
+	guardDisabledDownload( els.download );
 
 	[ els.prev, els.next ].forEach( ( arrow ) =>
 		arrow.addEventListener( 'click', () => {
@@ -391,10 +404,38 @@ if ( dialog && dataEl ) {
 		}
 	} );
 
-	// Shrinking to 700px or less closes the desktop modal (mobile is DPD-017).
-	desktop.addEventListener( 'change', ( event ) => {
-		if ( ! event.matches && dialog.open ) {
-			dialog.close();
+	const swap = () => {
+		if ( swapping || ! mobile || ! isOpen() ) {
+			return;
 		}
-	} );
+		const mobileOpen = mobile.isOpen();
+		if ( mobileOpen === ! desktop.matches ) {
+			return;
+		}
+		const doc = documents[ mobileOpen ? mobile.state().id : state.id ];
+		const page = mobileOpen ? mobile.state().page : state.page;
+		const run = () => {
+			swapping = true;
+			if ( mobileOpen ) {
+				mobile.close();
+				openDesktop( doc, page );
+			} else {
+				dialog.close();
+				mobile.show( doc, page );
+			}
+		};
+		const reduce = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+		if ( ! document.startViewTransition || reduce ) {
+			run();
+			return;
+		}
+		const html = document.documentElement;
+		html.setAttribute( 'data-documents-swapping', '' );
+		const transition = document.startViewTransition( run );
+		transition.finished.finally( () => {
+			html.removeAttribute( 'data-documents-swapping' );
+			swap();
+		} );
+	};
+	desktop.addEventListener( 'change', swap );
 }

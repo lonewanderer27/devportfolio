@@ -161,10 +161,10 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	// --- Block markup (DPD-009 shell, DPD-010 header, DPD-011 footer, DPD-012 download) ---
 
-	public function test_dialog_is_rendered_once_with_three_areas_in_order(): void {
+	public function test_desktop_and_mobile_dialogs_are_rendered_in_order(): void {
 		$html = $this->render_modal();
 
-		$this->assertSame( 1, substr_count( $html, '<dialog ' ) );
+		$this->assertSame( 2, substr_count( $html, '<dialog ' ) );
 		$header = strpos( $html, 'class="documents-modal__header"' );
 		$body   = strpos( $html, 'class="documents-modal__body"' );
 		$footer = strpos( $html, 'class="documents-modal__footer"' );
