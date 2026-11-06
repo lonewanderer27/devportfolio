@@ -117,6 +117,23 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__native\s*\{[^}]*user-select:\s*text#', $css, 'Text on the slide can be selected.' );
 	}
 
+	public function test_zoom_buttons_and_the_native_canvas_is_refitted_after_every_slide(): void {
+		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+
+		// The library resets the canvas's CSS size to its drawing size on each render: a turn must fit it again.
+		$this->assertMatchesRegularExpression( '#native\.instance\.goToSlide\( target - 1 \)\.then\(\s*\(\) => \{.*?fitNative\(\);#s', $js );
+		$this->assertStringContainsString( 'zoomIn.addEventListener( \'click\', () => zoomBy( 1 ) )', $js );
+		$this->assertStringContainsString( 'zoomOut.addEventListener( \'click\', () => zoomBy( -1 ) )', $js );
+		$this->assertStringContainsString( 'touchZoom.step( direction )', $js, 'Buttons and keys take the same step.' );
+		$this->assertStringContainsString( 'ui.zoomOut.disabled = touchZoom.get().scale <= ZOOM_MIN', $js );
+
+		$strings = devportfolio_document_mobile_strings();
+		foreach ( array( 'zoomIn', 'zoomOut', 'zoomControls' ) as $key ) {
+			$this->assertNotSame( '', $strings[ $key ], $key );
+		}
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__zoomfabs\s*\{[^}]*left:#', $this->read( 'blocks/document-modal/style.css' ) );
+	}
+
 	public function test_the_crop_and_the_text_layer_are_honoured(): void {
 		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
 		$this->assertStringContainsString( "'documents-modal__book--cropped'", $js );

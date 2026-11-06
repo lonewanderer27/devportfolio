@@ -1256,11 +1256,32 @@ html[data-documents-swapping] .documents-shelf__plank {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 100%;
+	height: 100%;
 	-webkit-user-select: text;
 	user-select: text;
 	-webkit-touch-callout: default;
 }
 
-.documents-mobile__native .documents-modal__native-canvas {
-	max-width: none;
+/* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
+.documents-mobile__zoomfabs {
+	position: absolute;
+	bottom: 12px;
+	left: max(12px, env(safe-area-inset-left, 0px));
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.documents-mobile__zoomfabs .documents-mobile__fab {
+	position: relative;
+	width: 38px;
+	height: 38px;
+}
+
+.documents-mobile__zoomfabs .documents-mobile__fab:disabled {
+	color: var(--dm-subtle);
+	cursor: default;
+	opacity: 0.45;
 }

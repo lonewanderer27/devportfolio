@@ -25,7 +25,7 @@ import { acquireSource, rememberFailure, withTimeout, buildPageEls, mountWindow 
 import { normalisePage, turnPage } from './pager.js';
 import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, canDrawOffice, hintKeyFor } from './mode.js';
 import { readNativeEnvironment, openPptx } from './native-pptx.js';
-import { classifyTap, swipeDirection, verticalIntent, zoomPercent } from './gestures.js';
+import { classifyTap, swipeDirection, verticalIntent, zoomPercent, ZOOM_MIN, ZOOM_MAX } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
 import { el, svgIcon } from './dom.js';
@@ -256,6 +256,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		ui.hint.hidden = hintGone || zoomed || ( ! multi && ! landscapeDoc );
 		ui.fab.hidden = ! ( chrome.info && hasDetails );
 		ui.pagesFab.hidden = ! chrome.pages;
+		ui.zoomIn.disabled = touchZoom.get().scale >= ZOOM_MAX;
+		ui.zoomOut.disabled = touchZoom.get().scale <= ZOOM_MIN;
 		ui.fabs.hidden = ui.fab.hidden && ui.pagesFab.hidden;
 		if ( ui.fab.hidden ) {
 			setDetails( false );
@@ -269,6 +271,19 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		ui.panel.hidden = ! open;
 		ui.fab.setAttribute( 'aria-expanded', String( open ) );
 	};
+
+	/** One zoom step from a button or a key; false at the limit. */
+	function zoomBy( direction ) {
+		if ( ! source || ! ui || turning ) {
+			return false;
+		}
+		dismissHint();
+		if ( ! touchZoom.step( direction ) ) {
+			return false;
+		}
+		announce( zoomText( zoomPercent( touchZoom.get().scale ) ) );
+		return true;
+	}
 
 	function toggleDetails() {
 		if ( ui && hasDetails ) {
@@ -331,18 +346,28 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		} );
 		hasDetails = detailLines.length > 0;
 
+		// Round zoom buttons, bottom left: the same steps as the + and - keys, for people who do not pinch.
+		const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
+		zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
+		const zoomOut = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
+		zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
+		const zoomFabs = el( 'div', 'documents-mobile__zoomfabs', { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
+		zoomFabs.append( zoomIn, zoomOut );
+
 		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
 
 		// Bottom right: the Pages button on top of the details button, with the details panel above both.
 		const fabs = el( 'div', 'documents-mobile__fabs' );
 		fabs.append( panel, pagesFab, fab );
-		stage.append( frame, prev, next, hint, fabs, live );
+		stage.append( frame, prev, next, hint, fabs, zoomFabs, live );
 		stage.setAttribute( 'role', 'region' );
 		stage.setAttribute( 'aria-label', text( 'region', 'Document pages' ) );
-		ui = { frame, track, prev, next, hint, fab, pagesFab, fabs, panel, live };
+		ui = { frame, track, prev, next, hint, fab, pagesFab, fabs, panel, live, zoomIn, zoomOut };
 
 		prev.addEventListener( 'click', () => turn( -1 ) );
 		next.addEventListener( 'click', () => turn( 1 ) );
+		zoomIn.addEventListener( 'click', () => zoomBy( 1 ) );
+		zoomOut.addEventListener( 'click', () => zoomBy( -1 ) );
 		fab.addEventListener( 'click', () => {
 			dismissHint();
 			toggleDetails();
@@ -399,6 +424,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 				}
 				current = target;
 				turning = false;
+				// The library sets the canvas's CSS size to its drawing size on every render: fit it again.
+				fitNative();
 				dismissHint();
 				syncControls();
 				announce( positionText( words, current, current, source.count ) );
@@ -676,6 +703,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 				onSlideChange: ( index, total ) => {
 					if ( mine === session ) {
 						canvas.setAttribute( 'aria-label', pieceLabel( words, index + 1, total || index + 1 ) );
+						fitNative();
 					}
 				},
 				onError: ( error ) => {
@@ -881,10 +909,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 
 		/** Keyboard zoom: +1 in, -1 out (half steps), centred on the stage. */
 		zoomStep( direction ) {
-			if ( source && ui && touchZoom.step( direction ) ) {
-				dismissHint();
-				announce( zoomText( zoomPercent( touchZoom.get().scale ) ) );
-			}
+			zoomBy( direction );
 		},
 
 
