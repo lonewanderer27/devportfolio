@@ -126,3 +126,9 @@ test( 'mobile footer shows one-page progress and clamps safely', () => {
 	assert.equal( turnPage( 24, 24, 1, 1 ), 24 );
 	assert.equal( turnPage( 1, 24, 1, -1 ), 1 );
 } );
+
+test( 'mobile footer in a spread shows both pages and follows the last one', () => {
+	assert.deepEqual( mobileFooterParts( 3, 24, 2 ), { page: 3, label: '3–4 / 24', percent: 16.67 } );
+	assert.deepEqual( mobileFooterParts( 4, 24, 2 ), { page: 3, label: '3–4 / 24', percent: 16.67 } );
+	assert.deepEqual( mobileFooterParts( 23, 23, 2 ), { page: 23, label: '23 / 23', percent: 100 } );
+} );
