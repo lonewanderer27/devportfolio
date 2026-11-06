@@ -75,11 +75,46 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'export async function acquireSource', $sources );
 	}
 
-	public function test_only_pdfs_are_drawn_on_mobile(): void {
+	public function test_only_pdfs_and_presentations_are_drawn_on_mobile(): void {
 		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$this->assertStringContainsString( 'isMobilePdf( doc )', $js );
-		$this->assertLessThan( strpos( $js, 'acquireSource( doc, alive' ), strpos( $js, 'isMobilePdf( doc )' ), 'The gate comes before anything is fetched.' );
-		$this->assertStringContainsString( "return !! doc && doc.kind === 'pdf'", $this->read( 'blocks/document-modal/mode.js' ) );
+		$this->assertStringContainsString( '! canShowOnMobile( doc )', $js );
+		$this->assertLessThan( strpos( $js, 'acquireSource( doc, alive' ), strpos( $js, '! canShowOnMobile( doc )' ), 'The gate comes before anything is fetched.' );
+		$mode = $this->read( 'blocks/document-modal/mode.js' );
+		$this->assertStringContainsString( "doc.kind === 'pdf' || unitOf( doc ) === 'slide'", $mode );
+		$this->assertStringContainsString( "return !! doc && doc.kind === 'pdf'", $mode, 'isMobilePdf stays a strict PDF check.' );
+	}
+
+	public function test_the_native_powerpoint_viewer_on_mobile_shares_the_desktop_mount(): void {
+		$mobile  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$desktop = $this->read( 'blocks/document-modal/viewer.js' );
+		$mount   = $this->read( 'blocks/document-modal/native-pptx.js' );
+
+		$this->assertStringContainsString( "from './native-pptx.js'", $mobile );
+		$this->assertStringContainsString( "from './native-pptx.js'", $desktop );
+		$this->assertStringContainsString( 'nativeAllowedOnMobile( doc ) && viewerMode( doc ) === \'native\'', $mobile );
+		$this->assertStringContainsString( 'canDrawOffice( readNativeEnvironment() )', $mobile );
+		$this->assertStringNotContainsString( 'new lib.PptxViewer', $mobile, 'The options live in one place.' );
+		$this->assertStringNotContainsString( 'import( PPTX_LIB )', $mobile );
+
+		// The privacy options are set once, for both viewers, and match the desktop limits.
+		foreach ( array( 'enableTextSelection: true', 'enableHyperlinks: false', 'enableMediaPlayback: false', 'enableElementSelection: false', 'useGoogleFonts: false', 'Math.min( 2, window.devicePixelRatio || 1 )', 'limits.nativeTimeoutMs' ) as $option ) {
+			$this->assertStringContainsString( $option, $mount, $option );
+		}
+		$this->assertStringNotContainsString( 'nativeMobile', $mobile . $mount, 'No mobile-only limit.' );
+	}
+
+	public function test_the_native_canvas_is_redrawn_in_place_freed_on_close_and_falls_back_to_the_slides(): void {
+		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+
+		$this->assertStringContainsString( 'native.instance.goToSlide( target - 1 )', $js );
+		$this->assertStringContainsString( 'created.destroy()', $js, 'Closing frees the workers (reset() calls source.destroy()).' );
+		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides when there are some.', $js );
+		$this->assertStringContainsString( 'native ? native.box : makeBook( first )', $js );
+		$this->assertStringContainsString( 'if ( gesture === \'drag\' && ! native )', $js, 'The canvas does not follow the finger.' );
+		$this->assertStringNotContainsString( 'innerHTML', $js );
+
+		$css = $this->read( 'blocks/document-modal/style.css' );
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__native\s*\{[^}]*user-select:\s*text#', $css, 'Text on the slide can be selected.' );
 	}
 
 	public function test_the_crop_and_the_text_layer_are_honoured(): void {

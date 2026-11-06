@@ -9,8 +9,12 @@
  * follows the finger instead of StPageFlip, whose mouse model fights touch drag, pinch and pan.
  *
  * Touch: swipe, tap the outer 20% of either side, double-tap (centre) or pinch to zoom, drag to pan a
- * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs only:
- * every other kind shows "can't be previewed" until it has its own ticket.
+ * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs and
+ * presentations (DPD-029); every other kind shows "can't be previewed" until it has its own ticket.
+ *
+ * A .pptx with Native viewer > PowerPoint on is drawn from the original file on one canvas (native-pptx.js,
+ * the same mount as the desktop modal, same limits) with selectable text; the turn is then a redraw in
+ * place, not a slide, and the converted slides are the fallback.
  *
  * The viewer never owns the page shown in the footer: it reports geometry once and page turns made by
  * gesture (`onTurn`), and mobile.js tells it where to go (`goTo`).
@@ -19,7 +23,8 @@ import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 import { acquireSource, rememberFailure, withTimeout, buildPageEls, mountWindow } from './page-source.js';
 import { normalisePage, turnPage } from './pager.js';
-import { unitOf, wording, pieceLabel, positionText, isMobilePdf, hintKeyFor } from './mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, canDrawOffice, hintKeyFor } from './mode.js';
+import { readNativeEnvironment, openPptx } from './native-pptx.js';
 import { classifyTap, swipeDirection, verticalIntent, zoomPercent } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
@@ -57,6 +62,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	let hasDetails = false;
 	let details = { title: '', description: '', tools: [], format: '' };
 	let pageEls = [];
+	// The native PowerPoint viewer when it draws the document: { instance, box, canvas, count } (DPD-029).
+	let native = null;
 	let step = 1;
 	let current = 1;
 	let layout = null;
@@ -88,6 +95,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			source.destroy();
 			source = null;
 		}
+		native = null;
 		pageEls = [];
 		layout = null;
 		ui = null;
@@ -119,7 +127,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	};
 
 	const ensureWindow = ( page ) => {
-		if ( ! source || ! layout ) {
+		if ( ! source || ! layout || native ) {
 			return Promise.resolve();
 		}
 		return mountWindow( { source, layout, pageEls, page, step, ahead: budget.ahead } );
@@ -170,9 +178,21 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		return book;
 	};
 
+	/** Scales the native canvas (drawn once) with CSS to the page the stage allows. */
+	const fitNative = () => {
+		if ( ! native || ! layout ) {
+			return;
+		}
+		const ratio = native.canvas.width > 0 && native.canvas.height > 0 ? native.canvas.width / native.canvas.height : 16 / 9;
+		const room = fitPage( { stageW: size.w, stageH: size.h, ratio } );
+		native.canvas.style.width = `${ room.pageW }px`;
+		native.canvas.style.height = `${ room.pageH }px`;
+	};
+
 	/** Builds the previous, current and next views around `current` and puts the track on the current one. */
 	const renderViews = () => {
-		const firsts = [ hasPrev() ? Math.max( 1, current - step ) : null, current, hasNext() ? current + step : null ];
+		// The native canvas is one element: only the middle view holds it, the neighbours stay empty.
+		const firsts = native ? [ null, current, null ] : [ hasPrev() ? Math.max( 1, current - step ) : null, current, hasNext() ? current + step : null ];
 		const views = firsts.map( ( first, position ) => {
 			const view = el( 'div', 'documents-mobile__view' );
 			view.style.width = `${ size.w }px`;
@@ -180,7 +200,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			view.style.left = `${ position * size.w }px`;
 			if ( first !== null ) {
 				const wrap = el( 'div', 'documents-mobile__zoom' );
-				wrap.appendChild( makeBook( first ) );
+				wrap.appendChild( native ? native.box : makeBook( first ) );
 				view.appendChild( wrap );
 				if ( position === 1 ) {
 					zoomEl = wrap;
@@ -188,6 +208,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			}
 			return view;
 		} );
+		fitNative();
 		ui.track.style.transition = 'none';
 		ui.track.style.width = `${ size.w * 3 }px`;
 		ui.track.style.transform = `translateX(${ -size.w }px)`;
@@ -365,7 +386,36 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		return true;
 	}
 
+	/** Native turn: the canvas is redrawn in place (no slide), then the footer follows. */
+	function nativeTurn( target ) {
+		const mine = session;
+		turning = true;
+		setDetails( false );
+		resetZoom( { silent: true } );
+		native.instance.goToSlide( target - 1 ).then(
+			() => {
+				if ( mine !== session || ! native ) {
+					return;
+				}
+				current = target;
+				turning = false;
+				dismissHint();
+				syncControls();
+				announce( positionText( words, current, current, source.count ) );
+				onTurn( current );
+			},
+			( error ) => {
+				turning = false;
+				fail( error, mine );
+			}
+		);
+	}
+
 	function slideTo( target, direction, fromDrag = false ) {
+		if ( native ) {
+			nativeTurn( target );
+			return;
+		}
 		turning = true;
 		setDetails( false );
 		if ( reducedMotion.matches ) {
@@ -439,7 +489,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 				ui.track.style.transition = 'none';
 				frame.setPointerCapture && frame.setPointerCapture( event.pointerId );
 			}
-			if ( gesture === 'drag' ) {
+			if ( gesture === 'drag' && ! native ) {
 				// Resistance when there is nothing in that direction.
 				const blocked = ( dx > 0 && ! hasPrev() ) || ( dx < 0 && ! hasNext() );
 				ui.track.style.transform = `translateX(${ -size.w + dx * ( blocked ? 0.25 : 1 ) }px)`;
@@ -526,7 +576,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		if ( size.w < 40 || size.h < 40 ) {
 			return false;
 		}
-		step = spreadFits( { stageW: size.w, stageH: size.h, ratio: source.ratio, pages: source.count } ) ? 2 : 1;
+		step = ! native && spreadFits( { stageW: size.w, stageH: size.h, ratio: source.ratio, pages: source.count } ) ? 2 : 1;
 		const { pageW, pageH } = fitPage( { stageW: size.w, stageH: size.h, ratio: source.ratio, step, maxPageW: source.maxPageW } );
 		layout = {
 			pageW,
@@ -595,6 +645,112 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		}, 250 );
 	};
 
+	/* ---- native PowerPoint (DPD-029) ------------------------------------------------------ */
+
+	/**
+	 * Draws a .pptx from the original file with the bundled viewer (the same mount as the desktop modal).
+	 * The canvas is one element inside the normal frame, so gestures, zoom, hint, footer and round buttons
+	 * are the ones of the image viewer. Returns false when it cannot be drawn: the caller then shows the
+	 * stored slides, or "can't be previewed".
+	 */
+	const showNative = async ( doc, alive ) => {
+		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
+			return false;
+		}
+		const mine = session;
+		let opened = false;
+		let instance = null;
+		const box = el( 'div', 'documents-mobile__native' );
+		const canvas = el( 'canvas', 'documents-modal__native-canvas', { role: 'img', 'aria-label': doc.title || '' } );
+		box.appendChild( canvas );
+		try {
+			if ( ! measure().w ) {
+				await new Promise( ( resolve ) => requestAnimationFrame( resolve ) );
+			}
+			instance = await openPptx( {
+				canvas,
+				doc,
+				limits,
+				size: measure(),
+				alive,
+				onSlideChange: ( index, total ) => {
+					if ( mine === session ) {
+						canvas.setAttribute( 'aria-label', pieceLabel( words, index + 1, total || index + 1 ) );
+					}
+				},
+				onError: ( error ) => {
+					if ( opened ) {
+						fail( error, mine );
+					}
+				},
+				// From here reset() can free it, so closing mid-load cannot leave a worker running.
+				onCreate: ( created ) => {
+					instance = created;
+					source = {
+						count: 0,
+						ratio: 16 / 9,
+						maxPageW: undefined,
+						crop: 0,
+						kind: 'native',
+						mounted: () => [],
+						release: () => {},
+						destroy: () => {
+							try {
+								created.destroy();
+							} catch ( e ) {
+								// Already gone.
+							}
+						},
+					};
+				},
+			} );
+			if ( ! instance || ! alive() ) {
+				return false;
+			}
+			const count = instance.slideCount;
+			if ( ! ( count > 0 ) ) {
+				throw new Error( 'empty deck' );
+			}
+			source.count = count;
+			if ( canvas.width > 0 && canvas.height > 0 ) {
+				source.ratio = canvas.width / canvas.height;
+			}
+			native = { instance, box, canvas };
+			landscapeDoc = true;
+			step = 1;
+			buildUi();
+			if ( ! computeLayout() ) {
+				await new Promise( ( resolve ) => requestAnimationFrame( resolve ) );
+				if ( ! alive() ) {
+					return false;
+				}
+				if ( ! computeLayout() ) {
+					throw new Error( 'stage has no size' );
+				}
+			}
+			current = firstOf( onGeometry( { pages: count, step } ) );
+			if ( current > 1 ) {
+				await instance.goToSlide( current - 1 );
+				if ( ! alive() ) {
+					return false;
+				}
+			}
+			renderViews();
+			setStatus( null );
+			syncControls();
+			opened = true;
+			observer = new ResizeObserver( onResize );
+			observer.observe( stage );
+			return true;
+		} catch ( error ) {
+			if ( alive() ) {
+				// Leave nothing of the failed attempt behind: the caller shows the stored slides or says it can't preview.
+				reset();
+			}
+			return false;
+		}
+	};
+
 	/* ---- public --------------------------------------------------------------------------- */
 
 	return {
@@ -611,12 +767,25 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			usedPdf = false;
 			budget = budgetFor( 'full', limits );
 
-			if ( ! isMobilePdf( doc ) ) {
-				// Presentations, workbooks and word documents on mobile have their own tickets.
+			if ( ! canShowOnMobile( doc ) ) {
+				// Workbooks (DPD-030) and word documents (DPD-031) on mobile have their own tickets.
 				unavailable();
 				return;
 			}
 			setStatus( 'loading' );
+
+			if ( nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native' ) {
+				const drawn = await showNative( doc, alive );
+				if ( drawn || ! alive() ) {
+					return;
+				}
+				// The native viewer could not draw it: use the stored slides when there are some.
+				if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
+					unavailable();
+					return;
+				}
+				setStatus( 'loading' );
+			}
 
 			let got = null;
 			try {
@@ -700,8 +869,12 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			}
 			window.clearTimeout( turnTimer );
 			turning = false;
-			current = target;
 			resetZoom( { silent: true } );
+			if ( native ) {
+				nativeTurn( target );
+				return;
+			}
+			current = target;
 			renderViews();
 			draw( current );
 		},

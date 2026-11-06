@@ -1248,3 +1248,19 @@ html[data-documents-swapping] .documents-shelf__plank {
 		transform: none;
 	}
 }
+
+/* A .pptx drawn from the original file on mobile (DPD-029): one canvas inside the zoom wrapper, with a
+   transparent text layer. The frame turns selection off for the swipe; the slide turns it back on so a
+   long press selects and copies text. */
+.documents-mobile__native {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+.documents-mobile__native .documents-modal__native-canvas {
+	max-width: none;
+}
