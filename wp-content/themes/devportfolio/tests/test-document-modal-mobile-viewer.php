@@ -215,6 +215,16 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__scroll--doc\s*\{[^}]*overflow:\s*auto#', $css );
 	}
 
+	public function test_held_sideways_the_word_scroller_fills_the_screen_but_the_grid_keeps_clear_of_the_buttons(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		// A spreadsheet grid starts below the floating Close and Download buttons (its tab bar sits at the bottom).
+		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
+
+		// A Word document scrolls under the round buttons like the page viewer: no visible bar across the top.
+		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{[^@]*\.documents-mobile__scroll--doc\s*\{\s*top:\s*0;#', $css, 'The Word viewer must start at the very top held sideways.' );
+	}
+
 	public function test_the_native_canvas_is_redrawn_in_place_freed_on_close_and_falls_back_to_the_slides(): void {
 		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
 

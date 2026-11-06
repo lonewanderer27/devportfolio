@@ -261,27 +261,80 @@ class Devportfolio_Test_Navigation extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'className', devportfolio_prepare_navigation_link( $home )['attrs'] );
 	}
 
-	public function test_theme_json_styles_inactive_grey_and_active_ink_with_bar(): void {
+	public function test_theme_json_styles_links_as_compact_targets_with_a_filled_active_item(): void {
 		$json = json_decode( (string) file_get_contents( $this->theme_dir() . '/theme.json' ), true );
 		$nav  = $json['styles']['blocks']['core/navigation'] ?? array();
 		$css  = $nav['css'] ?? '';
 
-		// Inactive links inherit the faded grey (core forces `color: inherit` on links, so it is set on the nav).
-		$this->assertSame( 'var:preset|color|mid', $nav['color']['text'] ?? '' );
-		$this->assertSame( '#8a8a8a', $this->palette_color( $json, 'mid' ) );
+		// Links are ink on the nav (core forces `color: inherit` on links, so it is set on the nav).
+		$this->assertSame( 'var:preset|color|contrast', $nav['color']['text'] ?? '' );
 		$this->assertSame( '#222222', $this->palette_color( $json, 'contrast' ) );
+		$this->assertSame( '#eeeeee', $this->palette_color( $json, 'fill' ) );
 
-		// Active item: ink colour on the <li> (links inherit it) and a 2px ink bar under the link.
-		$this->assertStringContainsString( '.current-menu-item { color: var(--wp--preset--color--contrast)', $css );
-		$this->assertStringContainsString( '.is-current { color: var(--wp--preset--color--contrast)', $css );
-		$this->assertStringContainsString( "a[aria-current='page'] { border-bottom: 2px solid var(--wp--preset--color--contrast)", $css );
-		$this->assertStringContainsString( '.is-current > a { border-bottom: 2px solid var(--wp--preset--color--contrast)', $css );
-		$this->assertStringContainsString( 'font-weight: 400', $css );
+		// Design system nav item: 14px (medium), weight 500, 6px/12px padding, 34px tall, 6px radius.
+		$this->assertSame( 'var:preset|font-size|medium', $nav['typography']['fontSize'] ?? '' );
+		$this->assertStringContainsString( 'font-weight: 500', $css );
+		$this->assertStringContainsString( 'padding: 6px 12px', $css );
+		$this->assertStringContainsString( 'min-height: 34px', $css );
+		$this->assertStringContainsString( 'border-radius: 6px', $css );
+
+		// Hover: soft fill. Active: ink fill with light text (colour on the <li>, which the link inherits).
+		$this->assertStringContainsString( '.wp-block-navigation-item:hover > a { background: var(--wp--preset--color--fill)', $css );
+		$this->assertStringContainsString( '.current-menu-item { color: var(--wp--preset--color--base)', $css );
+		$this->assertStringContainsString( '.is-current { color: var(--wp--preset--color--base)', $css );
+		$this->assertStringContainsString( '.current-menu-item > a { background: var(--wp--preset--color--contrast)', $css );
+		$this->assertStringContainsString( '.is-current > a { background: var(--wp--preset--color--contrast)', $css );
+		// In the phone overlay (its own text colour) the active item is a light fill with ink text instead.
+		$this->assertStringContainsString( '.is-menu-open .is-current > a { background: var(--wp--preset--color--fill)', $css );
+		$this->assertStringNotContainsString( 'border-bottom', $css );
 
 		// Core overrides link colours (`color: inherit`, higher specificity) and mangles two things in this string.
 		$this->assertDoesNotMatchRegularExpression( '/(^|\})\s*&\s*a\s*\{[^}]*\bcolor:/', $css );
 		$this->assertStringNotContainsString( 'body.home', $css );
 		$this->assertDoesNotMatchRegularExpression( '/[^{}]*,[^{}]*\{/', $css );
+	}
+
+	public function test_header_shows_the_site_title_on_phones_and_large_screens(): void {
+		$header = (string) file_get_contents( $this->theme_dir() . '/parts/header.html' );
+		$json   = json_decode( (string) file_get_contents( $this->theme_dir() . '/theme.json' ), true );
+		$css    = $json['styles']['css'] ?? '';
+
+		$this->assertStringContainsString( 'wp:site-title', $header );
+		$this->assertStringContainsString( 'site-header__title', $header );
+		$this->assertStringContainsString( '@media (min-width: 600px) and (max-width: 1023px) { .site-header__title { display: none; } }', $css );
+		$this->assertStringContainsString( 'width: 36px; height: 36px', $css );
+		// From 1024px the title sits left with the links centred (equal side columns).
+		$this->assertStringContainsString( 'grid-template-columns: 1fr auto 1fr', $css );
+		// ...and the last link (Contact) leaves the row and sits right as an outlined pill; still the seventh link in the markup.
+		$this->assertStringContainsString( '.site-header__bar .wp-block-navigation-item:last-child { position: absolute; right: 0;', $css );
+	}
+
+	public function test_header_is_sticky_with_a_translucent_blurred_layer_that_leaves_the_overlay_menu_alone(): void {
+		$json = json_decode( (string) file_get_contents( $this->theme_dir() . '/theme.json' ), true );
+		$css  = $json['styles']['css'] ?? '';
+
+		$this->assertStringContainsString( 'header.wp-block-template-part { position: sticky; top: var(--site-sticky-top)', $css );
+		// The blur lives on a pseudo-element: backdrop-filter on the header itself would trap the fixed mobile menu overlay.
+		$this->assertMatchesRegularExpression( '/header\.wp-block-template-part::before \{[^}]*backdrop-filter: var\(--wp--custom--glass--filter\)/', $css );
+		$this->assertDoesNotMatchRegularExpression( '/header\.wp-block-template-part \{[^}]*backdrop-filter/', $css );
+		// The admin bar is fixed only above 600px; below it scrolls away, so reserving its height there left a gap above the header.
+		$this->assertStringContainsString( '@media (min-width: 601px) { :root { --site-sticky-top: var(--wp-admin--admin-bar--height, 0px); } }', $css );
+		// During a category change the pills and books get transition names that paint above everything; the header has its own name (and a solid backing, since the blur is not captured) so it stays on top.
+		$this->assertStringContainsString( 'header.wp-block-template-part.is-view-transitioning { view-transition-name: site-header; }', $css );
+		$this->assertStringContainsString( '::view-transition-new(site-header) { animation: none; background: var(--wp--preset--color--base); }', $css );
+		// A transition name makes the header a backdrop root and turns its blur off, so the name only exists during a change (view.js).
+		$this->assertStringNotContainsString( 'header.wp-block-template-part { view-transition-name', $css );
+		$this->assertStringContainsString( 'is-view-transitioning', (string) file_get_contents( $this->theme_dir() . '/blocks/document-categories/view.js' ) );
+		// Three-bar menu icon drawn in CSS (core ships a two-line icon).
+		$this->assertStringContainsString( '.wp-block-navigation__responsive-container-open svg { display: none; }', $css );
+		// Opaque when transparency is reduced or unsupported.
+		$this->assertStringContainsString( 'prefers-reduced-transparency: reduce', $css );
+		$this->assertStringContainsString( '@supports not', $css );
+		// Anchors and the mobile category strip clear the header.
+		$this->assertStringContainsString( '--site-header-height: 61px', $css );
+		$this->assertStringContainsString( 'scroll-padding-top', $css );
+		$strip = (string) file_get_contents( $this->theme_dir() . '/blocks/document-categories/style.css' );
+		$this->assertStringContainsString( 'var(--site-header-height, 0px)', $strip );
 	}
 
 	/**
