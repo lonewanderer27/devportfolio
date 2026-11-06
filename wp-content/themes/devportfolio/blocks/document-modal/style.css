@@ -880,15 +880,16 @@ html[data-documents-swapping] .documents-shelf__plank {
 	}
 }
 
-/* Mobile (700px and below): the mobile modal takes over from the desktop modal. */
-@media (max-width: 700px) {
+/* Mobile (700px and below, or a touch screen held sideways): the mobile modal takes over from the desktop modal.
+   These two queries and the mobile-dialog one below are the same as in routing.js (a test compares them). */
+@media (max-width: 700px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
 	.documents-modal,
 	.documents-modal__footer {
 		display: none;
 	}
 }
 
-@media (min-width: 701px) {
+@media (min-width: 701px) and (not ((pointer: coarse) and (orientation: landscape) and (max-height: 520px))) {
 	.documents-mobile {
 		display: none;
 	}
@@ -942,4 +943,308 @@ html[data-documents-swapping] .documents-shelf__plank {
 /* Whole-item click target (any element carrying data-document-id). */
 [data-document-id] {
 	cursor: pointer;
+}
+
+/* Mobile body (DPD-021, DPD-024). One page, or a spread when the space allows, on the light grey of the body.
+   mobile-viewer.js builds frame > track > view > zoom > book; the pages reuse the desktop page rules above. */
+.documents-mobile__stage {
+	overflow: hidden;
+}
+
+.documents-mobile__frame {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.documents-mobile__track {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+}
+
+.documents-mobile__view {
+	position: absolute;
+	top: 0;
+	overflow: hidden;
+}
+
+.documents-mobile__zoom {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	transform-origin: 0 0;
+}
+
+.documents-mobile__book {
+	display: flex;
+	justify-content: center;
+}
+
+.documents-mobile__book .documents-modal__page {
+	position: relative;
+	flex: none;
+}
+
+.documents-mobile__state {
+	z-index: 4;
+}
+
+/* No fold shading down the middle of a spread on mobile: it only adds paint work and a visible seam. */
+.documents-mobile__book .documents-modal__page--left::after,
+.documents-mobile__book .documents-modal__page--right::after {
+	display: none;
+}
+
+/* Edge hints: small, light, round; the tap zone itself is the outer 20% of the page area. */
+.documents-mobile__edge,
+.documents-mobile__fab {
+	position: absolute;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: rgb(255 255 255 / 0.9);
+	border: 1px solid var(--dm-line);
+	border-radius: 50%;
+	box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+.documents-mobile__edge::after,
+.documents-mobile__fab::after {
+	position: absolute;
+	inset: -6px;
+	content: "";
+}
+
+.documents-mobile__edge {
+	top: 50%;
+	width: 38px;
+	height: 38px;
+	transform: translateY(-50%);
+}
+
+/* The same size and side inset as the round buttons (close, download, pages, details), so they line up in columns. */
+.documents-mobile__edge--prev {
+	left: max(12px, env(safe-area-inset-left, 0px));
+}
+
+.documents-mobile__edge--next {
+	right: max(12px, env(safe-area-inset-right, 0px));
+}
+
+.documents-mobile__edge .documents-modal__icon,
+.documents-mobile__fab .documents-modal__icon {
+	width: 18px;
+	height: 18px;
+}
+
+.documents-mobile__footer[hidden],
+.documents-mobile__bar[hidden],
+.documents-mobile__edge[hidden],
+.documents-mobile__hint[hidden],
+.documents-mobile__details-panel[hidden],
+.documents-mobile__fab[hidden] {
+	display: none;
+}
+
+/* The hint line under the document: plain "swipe or tap edges" text, or the two pills of a landscape document.
+   It disappears at the first action in the body. */
+.documents-mobile__hint {
+	position: absolute;
+	right: 0;
+	bottom: 14px;
+	left: 0;
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 6px 8px;
+	padding: 0 64px;
+	pointer-events: none;
+}
+
+.documents-mobile__hint-text {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--dm-subtle);
+	text-shadow: 0 0 6px var(--dm-surface-alt), 0 0 2px var(--dm-surface-alt);
+}
+
+.documents-mobile__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	font-size: 12.5px;
+	font-weight: 500;
+	line-height: 1.2;
+	color: var(--dm-ink);
+	background: rgb(255 255 255 / 0.92);
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+}
+
+.documents-mobile__pill--dark {
+	color: var(--dm-on-primary);
+	background: var(--dm-line-strong);
+	border-color: var(--dm-line-strong);
+}
+
+.documents-mobile__pill .documents-modal__icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* Document details: a floating button that gets out of the way on a swipe down and returns after a swipe up. */
+.documents-mobile__fabs {
+	position: absolute;
+	right: max(12px, env(safe-area-inset-right, 0px));
+	bottom: 12px;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 10px;
+	transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.documents-mobile__fabs[hidden] {
+	display: none;
+}
+
+.documents-mobile__fabs .documents-mobile__fab {
+	position: relative;
+	width: 38px;
+	height: 38px;
+}
+
+.documents-mobile__fabs.is-away {
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(14px);
+}
+
+.documents-mobile__details-panel {
+	z-index: 3;
+	box-sizing: border-box;
+	max-width: min(280px, calc(100% - 24px));
+	padding: 10px 14px;
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--dm-ink);
+	background: var(--dm-surface);
+	border: 1px solid var(--dm-line);
+	border-radius: 12px;
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.14);
+}
+
+.documents-mobile__details-panel p {
+	margin: 0;
+}
+
+.documents-mobile__details-title {
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.documents-mobile__details-format {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--dm-subtle);
+}
+
+.documents-mobile__details-panel p + p {
+	margin-top: 6px;
+}
+
+.documents-mobile__edge:focus-visible,
+.documents-mobile__fab:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+.documents-mobile__live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* A rotated phone or an unfolded foldable gets the desktop dialog (wider than 700px) on a touch screen:
+   the book is driven by swipe and pinch, the browser must not scroll or zoom the page there, the
+   arrows are always visible, and a short screen gives the book most of its height (DPD-024). */
+@media (pointer: coarse) {
+	.documents-modal__stage {
+		touch-action: none;
+	}
+}
+
+/* A touch screen held sideways uses the mobile dialog (view.js): no header and no footer. Close sits top left and
+   Download top right as round buttons, in the same columns as the page buttons and the round buttons below them. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.documents-mobile__panel {
+		position: relative;
+	}
+
+	/* The header's children float over the page; the title stays for screen readers. */
+	.documents-mobile__header {
+		display: contents;
+	}
+
+	.documents-mobile__title {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.documents-mobile__btn {
+		box-sizing: border-box;
+		position: absolute;
+		top: max(12px, env(safe-area-inset-top, 0px));
+		z-index: 5;
+		width: 38px;
+		height: 38px;
+		background: rgb(255 255 255 / 0.9);
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+	}
+
+	.documents-mobile__close {
+		left: max(12px, env(safe-area-inset-left, 0px));
+	}
+
+	.documents-mobile__download {
+		right: max(12px, env(safe-area-inset-right, 0px));
+	}
+
+	.documents-mobile__footer {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.documents-mobile__fabs {
+		transition: opacity 150ms ease;
+	}
+
+	.documents-mobile__fabs.is-away {
+		transform: none;
+	}
 }

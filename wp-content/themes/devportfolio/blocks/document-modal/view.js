@@ -22,6 +22,7 @@ import { createViewer } from './viewer.js';
 import { viewerMode, unitOf, wording, positionText } from './mode.js';
 import { slugFromUrl, urlWithSlug, urlWithoutSlug } from './deeplink.js';
 import { createMobileModal } from './mobile.js';
+import { createRouting } from './routing.js';
 import { applyDownload, guardDisabledDownload } from './download.js';
 
 const root = document.querySelector( '.documents-modal-root' );
@@ -37,7 +38,9 @@ if ( dialog && dataEl ) {
 		documents = {};
 	}
 
-	const desktop = window.matchMedia( '(min-width: 701px)' );
+	// One definition of which dialog a screen gets (routing.js); the CSS repeats its queries.
+	const routing = createRouting();
+	const desktop = { get matches() { return routing.isDesktop(); } };
 	const $ = ( selector ) => dialog.querySelector( selector );
 	const els = {
 		title: $( '.documents-modal__title' ),
@@ -223,6 +226,8 @@ if ( dialog && dataEl ) {
 		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
 		onGeometry: setGeometry,
 		onFlip: syncFromViewer,
+		// A swipe on a touch screen turns the view like Back / Next (DPD-024).
+		onSwipe: ( direction ) => turn( direction ),
 	} );
 
 	const finishClose = ( which ) => {
@@ -253,10 +258,31 @@ if ( dialog && dataEl ) {
 	const mobile = mobileDialog ? createMobileModal( {
 		dialog: mobileDialog,
 		units,
+		strings: readJson( 'data-mobile-strings' ),
+		pdfjs: readJson( 'data-pdfjs' ),
+		limits: mergeLimits( readJson( 'data-limits' ) ),
+		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
 		onClose: () => finishClose( 'mobile' ),
 	} ) : null;
 
 	const isOpen = () => dialog.open || ( mobile !== null && mobile.isOpen() );
+
+	/**
+	 * Never both dialogs at once. If it ever happens (a swap interrupted, two media changes in one frame),
+	 * the one that does not belong on this screen is closed; `swapping` makes its close handler reconcile
+	 * instead of ending the whole session.
+	 */
+	const enforceSingleDialog = () => {
+		if ( ! mobile || ! dialog.open || ! mobile.isOpen() ) {
+			return;
+		}
+		swapping = true;
+		if ( desktop.matches ) {
+			mobile.close();
+		} else {
+			dialog.close();
+		}
+	};
 	const closeOpen = () => {
 		if ( dialog.open ) {
 			dialog.close();
@@ -318,6 +344,7 @@ if ( dialog && dataEl ) {
 		} else {
 			mobile.show( doc, page );
 		}
+		enforceSingleDialog();
 	};
 
 	document.addEventListener( 'click', ( event ) => {
@@ -405,6 +432,7 @@ if ( dialog && dataEl ) {
 	} );
 
 	const swap = () => {
+		enforceSingleDialog();
 		if ( swapping || ! mobile || ! isOpen() ) {
 			return;
 		}
@@ -437,5 +465,5 @@ if ( dialog && dataEl ) {
 			swap();
 		} );
 	};
-	desktop.addEventListener( 'change', swap );
+	routing.onChange( swap );
 }

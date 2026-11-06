@@ -40,11 +40,31 @@ $devportfolio_root     = array(
 	'data-pdfjs'  => wp_json_encode( (object) ( '' !== $devportfolio_pdfjs['module'] ? $devportfolio_pdfjs : array() ) ),
 	'data-limits' => wp_json_encode( (object) devportfolio_document_viewer_limits() ),
 	'data-units'  => wp_json_encode( devportfolio_document_unit_strings() ),
+	'data-mobile-strings' => wp_json_encode( devportfolio_document_mobile_strings() ),
 );
 if ( devportfolio_document_selectable_text() ) {
 	// Settings > Documents > Selectable text: the viewer draws pages with pdf.js and a real text layer.
 	$devportfolio_root['data-selectable-text'] = '1';
 }
+$devportfolio_state = static function ( $class ) {
+	?>
+	<div
+		class="<?php echo esc_attr( $class ); ?>"
+		role="status"
+		hidden
+		data-loading="<?php echo esc_attr_x( 'Loading pages…', 'document modal viewer', 'devportfolio' ); ?>"
+		data-unavailable="<?php echo esc_attr_x( 'This document can’t be previewed.', 'document modal viewer', 'devportfolio' ); ?>"
+		data-hint="<?php echo esc_attr_x( 'Use Download to open it.', 'document modal viewer', 'devportfolio' ); ?>"
+		data-hint-sheet="<?php echo esc_attr_x( 'Spreadsheets can’t always be previewed here. Download the file to open it in Excel.', 'document modal viewer', 'devportfolio' ); ?>"
+		data-hint-slide="<?php echo esc_attr_x( 'Presentations can’t always be previewed here. Download the file to open it in PowerPoint.', 'document modal viewer', 'devportfolio' ); ?>"
+		data-hint-doc="<?php echo esc_attr_x( 'Documents can’t always be previewed here. Download the file to open it in Word.', 'document modal viewer', 'devportfolio' ); ?>"
+	>
+		<span class="documents-modal__spinner" aria-hidden="true"></span>
+		<span class="documents-modal__state-text"></span>
+		<span class="documents-modal__state-hint"></span>
+	</div>
+	<?php
+};
 $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
 ?>
 <div <?php echo get_block_wrapper_attributes( $devportfolio_root ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
@@ -75,21 +95,7 @@ $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24"
 				<button class="documents-modal__arrow documents-modal__arrow--next" type="button" aria-label="<?php echo esc_attr_x( 'Next page', 'document modal', 'devportfolio' ); ?>">
 					<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg>
 				</button>
-				<div
-					class="documents-modal__state"
-					role="status"
-					hidden
-					data-loading="<?php echo esc_attr_x( 'Loading pages…', 'document modal viewer', 'devportfolio' ); ?>"
-					data-unavailable="<?php echo esc_attr_x( 'This document can’t be previewed.', 'document modal viewer', 'devportfolio' ); ?>"
-					data-hint="<?php echo esc_attr_x( 'Use Download to open it.', 'document modal viewer', 'devportfolio' ); ?>"
-					data-hint-sheet="<?php echo esc_attr_x( 'Spreadsheets can’t always be previewed here. Download the file to open it in Excel.', 'document modal viewer', 'devportfolio' ); ?>"
-					data-hint-slide="<?php echo esc_attr_x( 'Presentations can’t always be previewed here. Download the file to open it in PowerPoint.', 'document modal viewer', 'devportfolio' ); ?>"
-					data-hint-doc="<?php echo esc_attr_x( 'Documents can’t always be previewed here. Download the file to open it in Word.', 'document modal viewer', 'devportfolio' ); ?>"
-				>
-					<span class="documents-modal__spinner" aria-hidden="true"></span>
-					<span class="documents-modal__state-text"></span>
-					<span class="documents-modal__state-hint"></span>
-				</div>
+				<?php $devportfolio_state( 'documents-modal__state' ); ?>
 			</div>
 			<footer class="documents-modal__footer" hidden>
 				<nav class="documents-modal__pager" aria-label="<?php echo esc_attr_x( 'Pages', 'document modal pager', 'devportfolio' ); ?>" hidden></nav>
@@ -112,6 +118,7 @@ $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24"
 			</header>
 			<div class="documents-mobile__body">
 				<div class="documents-mobile__stage"></div>
+				<?php $devportfolio_state( 'documents-modal__state documents-mobile__state' ); ?>
 				<div class="documents-mobile__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="" aria-label="<?php echo esc_attr_x( 'Reading progress', 'document modal', 'devportfolio' ); ?>" hidden><i></i></div>
 			</div>
 			<footer class="documents-mobile__footer">

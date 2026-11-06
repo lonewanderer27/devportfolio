@@ -331,7 +331,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-radius: 14px', $css );
 		$this->assertStringContainsString( '.documents-modal::backdrop', $css );
 		$this->assertMatchesRegularExpression( '#@media \(max-width: 1200px\)\s*\{\s*\.documents-modal\s*\{[^}]*width: 100%[^}]*height: 100dvh[^}]*border-radius: 0#s', $css );
-		$this->assertMatchesRegularExpression( '#@media \(max-width: 700px\)\s*\{[^}]*\.documents-modal,\s*\.documents-modal__footer\s*\{\s*display: none#s', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 700px\)[^{]*\{[^}]*\.documents-modal,\s*\.documents-modal__footer\s*\{\s*display: none#s', $css );
 		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)#', $css );
 	}
 
@@ -346,7 +346,8 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_view_script_wiring(): void {
 		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( '(min-width: 701px)', $js );
+		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/document-modal/routing.js' ), 'The one definition of the 700px rule.' );
+		$this->assertStringContainsString( 'createRouting()', $js );
 		$this->assertStringContainsString( 'event.target === dialog', $js );
 		$this->assertStringContainsString( 'showModal()', $js );
 		$this->assertStringContainsString( 'documents:modal-change', $js );
