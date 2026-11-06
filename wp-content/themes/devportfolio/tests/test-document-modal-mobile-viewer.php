@@ -281,7 +281,8 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'els.pages.hidden = state.pages < 2', $js );
 		$this->assertStringContainsString( 'els.footer.hidden = footerGone', $js, 'One page: no footer.' );
 		$this->assertStringContainsString( 'els.bar.hidden = state.pages < 2', $js, 'One page: no progress bar.' );
-		$this->assertStringContainsString( 'viewer.toggleDetails()', $js, 'The footer Details button opens the same panel.' );
+		$this->assertStringContainsString( "els.details.addEventListener( 'click', () => emit( 'documents:mobile-details' ) )", $js, 'The footer Details button opens the Details sheet.' );
+		$this->assertStringNotContainsString( 'toggleDetails', $js );
 	}
 
 	public function test_the_details_button_hides_on_a_swipe_down_and_returns(): void {
@@ -289,13 +290,15 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( "intent === 'down'", $js );
 		$this->assertStringContainsString( "intent === 'up'", $js );
 		$this->assertStringContainsString( 'setFabAway( false ), 2000 )', $js, 'It also returns after 2s of quiet.' );
-		$this->assertStringContainsString( "'aria-expanded'", $js );
-		$this->assertStringContainsString( "'aria-controls'", $js );
-		$this->assertStringContainsString( 'details.description', $js, 'The button opens the document details.' );
-		$this->assertStringContainsString( "[ 'documents-mobile__details-title', details.title ]", $js, 'The title lives in the details when the header is gone.' );
+		// The popover is gone (DPD-023): the button asks mobile.js to open the Details sheet.
+		$this->assertStringNotContainsString( "'aria-expanded'", $js );
+		$this->assertStringNotContainsString( "'aria-controls'", $js );
+		$this->assertStringNotContainsString( 'details-panel', $js );
+		$this->assertStringNotContainsString( 'setDetails', $js );
+		$this->assertStringContainsString( "'aria-haspopup': 'dialog'", $js );
 		$this->assertStringContainsString( 'documents-mobile__hint-text', $js );
 		$this->assertStringContainsString( "// Any touch in the body counts as having read the hint.", $js );
-		$this->assertMatchesRegularExpression( "#fab\\.addEventListener\\( 'click', \\(\\) => \\{\\s*dismissHint\\(\\);\\s*toggleDetails\\(\\);#", $js, 'Opening the details counts as an action.' );
+		$this->assertMatchesRegularExpression( "#fab\\.addEventListener\\( 'click', \\(\\) => \\{\\s*dismissHint\\(\\);\\s*if \\( onDetails \\) \\{\\s*onDetails\\(\\);#", $js, 'Opening the details counts as an action.' );
 		$this->assertStringContainsString( "'aria-live': 'polite'", $js );
 	}
 
@@ -341,12 +344,12 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 
 		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
 		$this->assertStringContainsString( 'const footerGone = state.pages < 2 || landscape.matches', $mobile );
-		$this->assertStringContainsString( 'info: footerGone && state.pages > 0', $mobile, 'The details button is only shown when the footer is gone.' );
+		$this->assertStringContainsString( 'info: footerGone,', $mobile, 'The details button is shown whenever the footer is gone, even with no pages (DPD-023).' );
 		$this->assertStringContainsString( 'pages: landscape.matches && state.pages > 1', $mobile );
 
 		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$this->assertStringContainsString( 'fabs.append( panel, pagesFab, fab )', $js, 'Pages on top of details.' );
-		$this->assertStringContainsString( 'ui.fab.hidden = ! ( chrome.info && hasDetails )', $js );
+		$this->assertStringContainsString( 'fabs.append( pagesFab, fab )', $js, 'Pages on top of details.' );
+		$this->assertStringContainsString( 'ui.fab.hidden = ! chrome.info', $js );
 
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\) and \(not \(\(pointer: coarse\) and \(orientation: landscape\)#', $css, 'The mobile dialog is not hidden when sideways.' );
