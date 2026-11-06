@@ -1,9 +1,34 @@
-order,title,description,category,software_tools,filetype,total_pages,author
-10,Q3 Executive Summary,Headline results and decisions for the quarter in one readable brief.,executive-docs,Canva|Google Workspace|Claude,PDF,12,Dave
-20,Board Strategy Briefing,The three-year plan and the risks the board needs to weigh.,executive-docs,Google Workspace,PDF,24,Dave
-30,Company Operations Handbook,"How the team runs day to day: roles, handovers, escalation paths, tooling, weekly rhythms and the checklists that keep client work consistent from kickoff to delivery.",operations-docs,Notion|Google Workspace|Slack|Asana,PDF,48,Dave
-40,Onboarding Process Playbook,A step-by-step guide to bringing a new client or teammate up to speed.,operations-docs,Notion,PDF,16,Dave
-50,Client Pitch Deck,The story and proof points used to win new work.,presentation-decks,Canva|Adobe CC,PDF,30,Dave
-60,Product Launch Presentation,Positioning and rollout plan for a new service line.,presentation-decks,Canva|Adobe CC|ChatGPT,PDF,22,Dave
-70,Annual Performance Report and Strategic Outlook for the Year Ahead,Results against targets with a look at where the work goes next.,reports,Google Workspace|Salesforce|HubSpot,PDF,36,Dave
-80,Social Media Analytics Report,One-page snapshot of reach and engagement.,reports,,PDF,1,Dave
+order,title,description,category,software_tools,filetype,total_pages,author,file
+10,Q3 Executive Summary,Headline results and decisions for the quarter in one readable brief.,executive-docs,Canva|Google Workspace|Claude,PDF,12,Dave,
+20,Board Strategy Briefing,The three-year plan and the risks the board needs to weigh.,executive-docs,Google Workspace,PDF,24,Dave,
+30,Company Operations Handbook,"How the team runs day to day: roles, handovers, escalation paths, tooling, weekly rhythms and the checklists that keep client work consistent from kickoff to delivery.",operations-docs,Notion|Google Workspace|Slack|Asana,PDF,48,Dave,
+40,Onboarding Process Playbook,A step-by-step guide to bringing a new client or teammate up to speed.,operations-docs,Notion,PDF,16,Dave,
+50,Client Pitch Deck,The story and proof points used to win new work.,presentation-decks,Canva|Adobe CC,PDF,30,Dave,
+60,Product Launch Presentation,Positioning and rollout plan for a new service line.,presentation-decks,Canva|Adobe CC|ChatGPT,PDF,22,Dave,
+70,Annual Performance Report and Strategic Outlook for the Year Ahead,Results against targets with a look at where the work goes next.,reports,Google Workspace|Salesforce|HubSpot,PDF,36,Dave,
+80,Social Media Analytics Report,One-page snapshot of reach and engagement.,reports,,PDF,1,Dave,
+100,Sample Portrait PDF One Page,A single portrait page tests the basic PDF preview.,reports,Google Workspace,PDF,1,Dave,pdf-portrait-1p.pdf
+110,Sample Portrait PDF Three Pages,Three portrait pages test an odd page count and an empty right side.,reports,Google Workspace|Claude,PDF,3,Dave,pdf-portrait-3pp.pdf
+120,Sample Portrait PDF Four Pages,Four portrait pages test an even two-page book spread.,reports,Canva,PDF,4,Dave,pdf-portrait-4pp.pdf
+130,Sample Landscape PDF One Page,A single landscape page tests wide PDF rendering.,executive-docs,Canva,PDF,1,Dave,pdf-landscape-1p.pdf
+140,Sample Landscape PDF Three Pages,Three landscape pages test wide pages and navigation.,executive-docs,Canva|Adobe CC,PDF,3,Dave,pdf-landscape-3pp.pdf
+150,Sample Long PDF Twenty Four Pages,Twenty four portrait pages test the viewer gate and pager window.,operations-docs,Notion|Slack|Asana|Google Workspace,PDF,24,Dave,pdf-portrait-24pp.pdf
+160,Sample Corrupt PDF,A truncated PDF tests the failed preview path.,reports,,PDF,4,Dave,pdf-corrupt.pdf
+170,Sample Three Slide Deck,A normal three slide PowerPoint deck tests converted slides.,presentation-decks,Canva,PPTX,3,Dave,sample.pptx
+180,Sample One Slide Deck,A one slide deck tests the single presentation view.,presentation-decks,Canva,PPTX,1,Dave,pptx-1-slide.pptx
+190,Sample 4:3 Deck,A four slide 4:3 deck tests a traditional presentation ratio.,presentation-decks,Adobe CC,PPTX,4,Dave,pptx-4x3.pptx
+200,Sample Corrupt Deck,A truncated PowerPoint deck tests Office validation errors.,presentation-decks,,PPTX,3,Dave,pptx-corrupt.pptx
+210,Sample Legacy PowerPoint,A legacy PowerPoint file tests server conversion without native viewing.,presentation-decks,,PPT,3,Dave,sample.ppt
+220,Sample OpenDocument Presentation,An OpenDocument presentation tests the alternate slide format.,presentation-decks,,ODP,3,Dave,sample.odp
+230,Sample Budget Workbook,A small Excel workbook tests native and converted spreadsheet viewing.,reports,Google Workspace|Salesforce|HubSpot,XLSX,3,Dave,sample.xlsx
+240,Sample Workbook with a Hidden Sheet,A workbook with a hidden sheet tests visible sheet counting.,reports,Google Workspace,XLSX,2,Dave,xlsx-hidden-sheet.xlsx
+250,Sample Corrupt Workbook,A truncated Excel workbook tests spreadsheet validation errors.,reports,,XLSX,3,Dave,xlsx-corrupt.xlsx
+260,Sample Legacy Excel Workbook,A legacy Excel file tests server conversion without native viewing.,reports,,XLS,3,Dave,sample.xls
+270,Sample OpenDocument Spreadsheet,An OpenDocument spreadsheet tests the alternate workbook format.,reports,,ODS,3,Dave,sample.ods
+280,Sample One Page Word Document,A one page Word document tests the smallest Writer conversion.,operations-docs,Google Workspace,DOCX,1,Dave,docx-1p.docx
+290,Sample Twelve Page Word Document,A long Word document tests tables images footers and a landscape section.,operations-docs,Notion|Google Workspace,DOCX,12,Dave,docx-12pp.docx
+300,Sample Corrupt Word Document,A truncated Word document tests Writer validation errors.,operations-docs,,DOCX,2,Dave,docx-corrupt.docx
+310,Sample Two Page Word Document,A small Word document tests ordinary DOCX conversion.,operations-docs,,DOCX,2,Dave,sample.docx
+320,Sample Legacy Word Document,A legacy Word file tests server conversion without native viewing.,operations-docs,,DOC,2,Dave,sample.doc
+330,Sample OpenDocument Text,An OpenDocument text file tests the alternate Writer format.,operations-docs,,ODT,2,Dave,sample.odt
+340,Sample Operations Playbook,A six page operations playbook tests a believable document preview.,operations-docs,Notion|Slack,DOCX,6,Dave,sample-operations-playbook.docx
