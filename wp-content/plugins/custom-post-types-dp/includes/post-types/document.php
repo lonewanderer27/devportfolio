@@ -109,7 +109,15 @@ add_filter( 'manage_document_posts_columns', 'cptdp_document_columns' );
 function cptdp_document_column_content( string $column, int $post_id ): void {
 	switch ( $column ) {
 		case 'thumbnail':
+			// The featured image if there is one, else page 1 of the document (the picture the Pages sheet shows).
 			$thumb = get_the_post_thumbnail( $post_id, array( 50, 50 ) );
+
+			if ( ! $thumb && function_exists( 'cptdp_document_admin_thumb_html' ) ) {
+				$thumb = cptdp_document_admin_thumb_html( $post_id );
+				echo '' !== $thumb ? $thumb : '&mdash;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_document_admin_thumb_html().
+				break;
+			}
+
 			echo $thumb ? wp_kses_post( $thumb ) : '&mdash;';
 			break;
 
@@ -194,7 +202,7 @@ function cptdp_document_admin_css(): void {
 		return;
 	}
 
-	echo '<style>.column-thumbnail{width:60px}.column-cptdp_filetype,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-cptdp_pages_status{width:140px}.column-menu_order{width:70px}</style>';
+	echo '<style>.column-thumbnail{width:90px}.column-cptdp_filetype,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-cptdp_pages_status{width:140px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_document_admin_css' );
 

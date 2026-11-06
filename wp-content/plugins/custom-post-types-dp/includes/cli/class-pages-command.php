@@ -149,6 +149,76 @@ class CPTDP_Pages_Command {
 	}
 
 	/**
+	 * Make the small page thumbnails of stored sets, without converting again.
+	 *
+	 * Resizes the page images already on disk (no LibreOffice, Ghostscript or browser), one document
+	 * at a time. Documents that already have thumbnails are skipped unless --force is given.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<id>]
+	 * : Document ID.
+	 *
+	 * [--all]
+	 * : Every document that has valid page images.
+	 *
+	 * [--force]
+	 * : Make them again even when the set has them.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp cptdp pages thumbs --all
+	 *
+	 * @param string[]             $args       Positional args.
+	 * @param array<string, mixed> $assoc_args Flags.
+	 */
+	public function thumbs( array $args, array $assoc_args ): void {
+		if ( ! CPTDP_Page_Thumbs::is_available() ) {
+			WP_CLI::error( 'Imagick is needed to make thumbnails.' );
+		}
+
+		$force = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'force', false );
+		$ids   = $this->target_ids( $args, $assoc_args );
+
+		foreach ( $ids as $id ) {
+			WP_CLI::log( sprintf( '%d: %s', $id, CPTDP_Page_Store::make_thumbs( $id, $force ) ) );
+		}
+
+		WP_CLI::success( sprintf( '%d document(s) processed.', count( $ids ) ) );
+	}
+
+	/**
+	 * Read page names again from the stored files, without converting.
+	 *
+	 * PDF outlines and Excel sheet names. Word documents need `generate <id> --force` once (their converted
+	 * PDF is not kept); presentations have no names.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<id>]
+	 * : Document ID.
+	 *
+	 * [--all]
+	 * : Every document that has valid page images.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp cptdp pages names --all
+	 *
+	 * @param string[]             $args       Positional args.
+	 * @param array<string, mixed> $assoc_args Flags.
+	 */
+	public function names( array $args, array $assoc_args ): void {
+		$ids = $this->target_ids( $args, $assoc_args );
+
+		foreach ( $ids as $id ) {
+			WP_CLI::log( sprintf( '%d: %s', $id, CPTDP_Page_Store::refresh_names( $id ) ) );
+		}
+
+		WP_CLI::success( sprintf( '%d document(s) processed.', count( $ids ) ) );
+	}
+
+	/**
 	 * Show the page image status of documents.
 	 *
 	 * ## OPTIONS
@@ -175,11 +245,13 @@ class CPTDP_Pages_Command {
 				'pages'    => null !== $manifest ? (int) $manifest['count'] : 0,
 				'producer' => null !== $manifest ? (string) ( $manifest['producer'] ?? '' ) : '',
 				'crop'     => null !== $manifest ? self::percent( CPTDP_Page_Store::stored_crop( $manifest ) ) : '',
+				'names'    => null !== $manifest ? count( array_filter( CPTDP_Page_Outline::expand( CPTDP_Page_Outline::sanitize_ranges( $manifest['page_names'] ?? array(), (int) $manifest['count'] ), (int) $manifest['count'] ) ) ) : 0,
+				'thumbs'   => null !== $manifest && (int) ( $manifest['thumb_width'] ?? 0 ) > 0 ? (int) $manifest['count'] : 0,
 				'error'    => CPTDP_Page_Store::get_error( $id ),
 			);
 		}
 
-		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'kind', 'status', 'valid', 'pages', 'producer', 'crop', 'error' ) );
+		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'kind', 'status', 'valid', 'pages', 'producer', 'crop', 'names', 'thumbs', 'error' ) );
 	}
 
 	/**

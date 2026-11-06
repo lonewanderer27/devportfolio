@@ -154,8 +154,63 @@
 		return Math.round( Math.min( MAX_CROP, crop ) * 10000 ) / 10000;
 	}
 
-	function upload( page, blob ) {
+	/* A small copy of a rendered page (the Pages sheet and the admin list use it), DPB-031. */
+	function thumbBlob( canvas ) {
+		var width = Math.min( cfg.thumbWidth || 240, canvas.width );
+		var height = Math.max( 1, Math.round( canvas.height * width / canvas.width ) );
+		var small = document.createElement( 'canvas' );
+		small.width = width;
+		small.height = height;
+		var ctx = small.getContext( '2d' );
+		ctx.imageSmoothingQuality = 'high';
+		ctx.drawImage( canvas, 0, 0, width, height );
+		return toBlob( small ).then( function ( blob ) {
+			small.width = 0;
+			return blob;
+		} );
+	}
+
+	/* Bookmarks as [ [ page, title ], ... ] in document order (DPB-030). Never fails the run. */
+	function readNames( doc ) {
+		var ranges = [];
+		var walk = function ( items ) {
+			return items.reduce( function ( chain, item ) {
+				return chain.then( function () {
+					if ( ranges.length >= 2000 ) {
+						return null;
+					}
+					var dest = item.dest;
+					var named = 'string' === typeof dest ? doc.getDestination( dest ) : Promise.resolve( dest );
+					return named.then( function ( d ) {
+						if ( ! d || null == d[ 0 ] ) {
+							return null;
+						}
+						var index = 'object' === typeof d[ 0 ] ? doc.getPageIndex( d[ 0 ] ) : Promise.resolve( d[ 0 ] );
+						return index.then( function ( i ) {
+							if ( item.title ) {
+								ranges.push( [ i + 1, String( item.title ) ] );
+							}
+						} );
+					} ).catch( function () {} ).then( function () {
+						return walk( item.items || [] );
+					} );
+				} );
+			}, Promise.resolve() );
+		};
+		return doc.getOutline().then( function ( outline ) {
+			return walk( outline || [] );
+		} ).then( function () {
+			return ranges;
+		} ).catch( function () {
+			return [];
+		} );
+	}
+
+	function upload( page, blob, thumb ) {
 		var url = cfg.uploadUrl.replace( '__PAGE__', String( page ) );
+		if ( thumb ) {
+			url += ( -1 < url.indexOf( '?' ) ? '&' : '?' ) + 'thumb=1';
+		}
 		var attempt = function ( left ) {
 			return request( url, { method: 'POST', headers: headers( { 'Content-Type': blob.type } ), body: blob } ).catch( function ( error ) {
 				if ( left > 0 ) {
@@ -247,9 +302,14 @@
 											ext = 'jpg';
 										}
 										smallestBlank = Math.min( smallestBlank, blankFraction( canvas ) );
-										canvas.width = 0;
-										p.cleanup();
-										return upload( page, blob );
+										return thumbBlob( canvas ).then( function ( thumb ) {
+											canvas.width = 0;
+											p.cleanup();
+											return upload( page, blob ).then( function () {
+												// A missing thumbnail only means the set has none: the finish step checks.
+												return upload( page, thumb, true ).catch( function () {} );
+											} );
+										} );
 									} )
 									.then( function () {
 										progress( page, count );
@@ -262,7 +322,10 @@
 				return chain;
 			} )
 			.then( function () {
-				return finish( { count: count, ext: ext, fingerprint: cfg.fingerprint, cropBottom: documentCrop( smallestBlank ) } );
+				return readNames( pdf );
+			} )
+			.then( function ( names ) {
+				return finish( { count: count, ext: ext, fingerprint: cfg.fingerprint, cropBottom: documentCrop( smallestBlank ), pageNames: names } );
 			} )
 			.then( showState )
 			.catch( function ( error ) {

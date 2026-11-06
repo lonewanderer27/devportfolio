@@ -509,7 +509,11 @@ class CPTDP_Page_Store {
 	 * setting needs no regeneration.
 	 *
 	 * @param int $post_id Document ID.
-	 * @return array{pages:string[],count:int,width:int,height:int,ratio:float,crop_bottom:float}|null
+	 * Also returns `names` (one string per page, '' where none, or [] when the file has none; DPB-030),
+	 * `name_ranges` (the same as `[ [ first_page, title ], ... ]`) and `thumbs` (small thumbnail URLs,
+	 * one per page, or [] when any is missing; DPB-031) with `thumb_width`/`thumb_height`.
+	 *
+	 * @return array{pages:string[],count:int,width:int,height:int,ratio:float,crop_bottom:float,names:string[],name_ranges:array,thumbs:string[],thumb_width:int,thumb_height:int}|null
 	 */
 	public static function get_pages( int $post_id ): ?array {
 		$manifest = self::valid_manifest( $post_id );
@@ -530,14 +534,98 @@ class CPTDP_Page_Store {
 			$pages[] = $base . '/' . self::page_filename( $i, $ext );
 		}
 
+		$ranges = CPTDP_Page_Outline::sanitize_ranges( $manifest['page_names'] ?? array(), $count );
+		$thumbs = array();
+		$thumb_w = (int) ( $manifest['thumb_width'] ?? 0 );
+
+		if ( $thumb_w > 0 && CPTDP_Page_Thumbs::exist( self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' ), $ext, $count ) ) {
+			for ( $i = 1; $i <= $count; $i++ ) {
+				$thumbs[] = $base . '/' . CPTDP_Page_Thumbs::filename( $i, $ext );
+			}
+		}
+
 		return array(
-			'pages'       => $pages,
-			'count'       => $count,
-			'width'       => $width,
-			'height'      => $height,
-			'ratio'       => $width > 0 && $height > 0 ? round( $width / ( $height * ( 1 - $crop ) ), 4 ) : 0.0,
-			'crop_bottom' => $crop,
+			'pages'        => $pages,
+			'count'        => $count,
+			'width'        => $width,
+			'height'       => $height,
+			'ratio'        => $width > 0 && $height > 0 ? round( $width / ( $height * ( 1 - $crop ) ), 4 ) : 0.0,
+			'crop_bottom'  => $crop,
+			'names'        => CPTDP_Page_Outline::expand( $ranges, $count ),
+			'name_ranges'  => $ranges,
+			'thumbs'       => $thumbs,
+			'thumb_width'  => $thumbs ? $thumb_w : 0,
+			'thumb_height' => $thumbs ? (int) ( $manifest['thumb_height'] ?? 0 ) : 0,
 		);
+	}
+
+	/**
+	 * Make the small thumbnails of a stored set from its page images, without converting (DPB-031).
+	 *
+	 * @param int  $post_id Document ID.
+	 * @param bool $force   Make them again even when the set has them.
+	 * @return string `made`, `skipped` (already complete), `none` (no valid set) or `failed`.
+	 */
+	public static function make_thumbs( int $post_id, bool $force = false ): string {
+		$manifest = self::get_manifest( $post_id );
+
+		if ( null === $manifest || ! self::manifest_matches_source( $post_id, $manifest ) || ! self::files_exist( $manifest ) ) {
+			return 'none';
+		}
+
+		$dir   = self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' );
+		$ext   = (string) $manifest['ext'];
+		$count = (int) $manifest['count'];
+
+		if ( ! $force && (int) ( $manifest['thumb_width'] ?? 0 ) > 0 && CPTDP_Page_Thumbs::exist( $dir, $ext, $count ) ) {
+			return 'skipped';
+		}
+
+		$size = CPTDP_Page_Thumbs::make_for_folder( $dir, $ext, $count );
+
+		if ( null === $size ) {
+			return 'failed';
+		}
+
+		$manifest['thumb_width']  = $size['width'];
+		$manifest['thumb_height'] = $size['height'];
+		update_post_meta( $post_id, self::META_MANIFEST, $manifest );
+
+		return 'made';
+	}
+
+	/**
+	 * Read the page names again from the stored source file, without converting (DPB-030).
+	 *
+	 * Works for PDFs and Excel files. Word files need their converted PDF (deleted after conversion), so
+	 * they need `generate --force`; presentations have no names.
+	 *
+	 * @param int $post_id Document ID.
+	 * @return string `made`, `empty` (read, none found), `unsupported` or `none` (no valid set).
+	 */
+	public static function refresh_names( int $post_id ): string {
+		$manifest = self::get_manifest( $post_id );
+		$source   = self::get_source( $post_id );
+
+		if ( null === $manifest || null === $source || ! self::manifest_matches_source( $post_id, $manifest ) || ! self::files_exist( $manifest ) ) {
+			return 'none';
+		}
+
+		if ( ! in_array( $source['kind'], array( self::KIND_PDF, self::KIND_XLSX, self::KIND_ODS ), true ) ) {
+			return 'unsupported';
+		}
+
+		$ranges = CPTDP_Page_Converter::page_names( $source['path'], $source, (int) $manifest['count'] );
+
+		if ( $ranges ) {
+			$manifest['page_names'] = $ranges;
+		} else {
+			unset( $manifest['page_names'] );
+		}
+
+		update_post_meta( $post_id, self::META_MANIFEST, $manifest );
+
+		return $ranges ? 'made' : 'empty';
 	}
 
 	/**

@@ -86,6 +86,100 @@ class CPTDP_Xlsx_Converter {
 	}
 
 	/**
+	 * Names of the visible sheets, in order (DPB-030): what the Pages list shows for a workbook.
+	 *
+	 * Hidden and very hidden sheets are skipped (they are not drawn, so they are not pages). Only
+	 * the one XML entry that lists the sheets is read, as a stream, without extracting the archive.
+	 * `.xls` (a binary file) has no cheap reader and gives no names. Any problem gives an empty list.
+	 *
+	 * @param string $path File path.
+	 * @param string $kind `xlsx`, `xls` or `ods`.
+	 * @return string[]
+	 */
+	public static function sheet_names( string $path, string $kind ): array {
+		if ( ! class_exists( 'XMLReader' ) || ! class_exists( 'ZipArchive' ) || ! is_file( $path ) || ! in_array( $kind, array( CPTDP_Page_Store::KIND_XLSX, CPTDP_Page_Store::KIND_ODS ), true ) ) {
+			return array();
+		}
+
+		$entry = CPTDP_Page_Store::KIND_XLSX === $kind ? 'xl/workbook.xml' : 'content.xml';
+		$zip   = new ZipArchive();
+
+		if ( true !== $zip->open( $path ) ) {
+			return array();
+		}
+
+		$stat = $zip->statName( $entry );
+		$zip->close();
+
+		if ( ! is_array( $stat ) || $stat['size'] > 512 * 1024 * 1024 ) {
+			return array();
+		}
+
+		$names    = array();
+		$previous = libxml_use_internal_errors( true );
+		$reader   = new XMLReader();
+
+		try {
+			if ( ! $reader->open( 'zip://' . $path . '#' . $entry, null, LIBXML_NONET | LIBXML_NOCDATA ) ) {
+				return array();
+			}
+
+			$nodes       = 0;
+			$sheet_depth = -1;
+			$started     = microtime( true );
+			$office      = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0';
+			$table_ns    = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0';
+			$more        = $reader->read();
+
+			while ( $more ) {
+				if ( ++$nodes > 2000000 || microtime( true ) - $started > 10 ) {
+					return array();
+				}
+
+				if ( XMLReader::ELEMENT !== $reader->nodeType ) {
+					$more = $reader->read();
+					continue;
+				}
+
+				if ( CPTDP_Page_Store::KIND_XLSX === $kind ) {
+					if ( 'sheet' === $reader->localName ) {
+						$state = (string) $reader->getAttribute( 'state' );
+
+						if ( '' === $state || 'visible' === $state ) {
+							$names[] = CPTDP_Page_Outline::clean_title( (string) $reader->getAttribute( 'name' ) );
+						}
+					}
+
+					$more = $reader->read();
+					continue;
+				}
+
+				// ODS: the tables that are direct children of office:spreadsheet; their cells are skipped.
+				if ( 'spreadsheet' === $reader->localName && $office === $reader->namespaceURI ) {
+					$sheet_depth = $reader->depth;
+				} elseif ( 'table' === $reader->localName && $table_ns === $reader->namespaceURI && $sheet_depth >= 0 && $reader->depth === $sheet_depth + 1 ) {
+					if ( 'false' !== (string) $reader->getAttributeNs( 'display', $table_ns ) ) {
+						$names[] = CPTDP_Page_Outline::clean_title( (string) $reader->getAttributeNs( 'name', $table_ns ) );
+					}
+
+					$more = $reader->next();
+					continue;
+				}
+
+				$more = $reader->read();
+			}
+		} catch ( Throwable $e ) {
+			$names = array();
+		} finally {
+			$reader->close();
+			libxml_clear_errors();
+			libxml_use_internal_errors( $previous );
+		}
+
+		return $names;
+	}
+
+	/**
 	 * Write the Calc settings of a throwaway profile: never update links, never recalculate
 	 * on load (numbers match what the author saw) and macros off.
 	 *

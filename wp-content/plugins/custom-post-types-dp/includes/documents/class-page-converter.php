@@ -202,6 +202,23 @@ class CPTDP_Page_Converter {
 			return $result;
 		}
 
+		// Ghostscript sets (and Imagick sets whose thumbnails failed) get them from the stored images.
+		if ( empty( $result['thumb_width'] ) ) {
+			$thumb = CPTDP_Page_Thumbs::make_for_folder( $folder, (string) $result['ext'], (int) $result['count'] );
+
+			if ( null !== $thumb ) {
+				$result['thumb_width']  = $thumb['width'];
+				$result['thumb_height'] = $thumb['height'];
+			}
+		}
+
+		// Page names (DPB-030), never a reason to fail a conversion.
+		$names = self::page_names( $pdf_path, $source, (int) $result['count'] );
+
+		if ( $names ) {
+			$result['page_names'] = $names;
+		}
+
 		// Which file these images were made from: the caller drops them if it was replaced meanwhile.
 		$result['source_token'] = $source['token'];
 		$result['dir']          = basename( $folder );
@@ -213,6 +230,48 @@ class CPTDP_Page_Converter {
 			: CPTDP_Page_Analyzer::analyze_folder( $folder, (string) $result['ext'], (int) $result['count'] );
 
 		return $result;
+	}
+
+	/**
+	 * Names of the pages as ranges (DPB-030): PDF and Word from the outline, Excel from the sheet names.
+	 * PowerPoint and `.xls` have none.
+	 *
+	 * @param string                                                             $pdf_path PDF that was converted (for Word, the temporary one).
+	 * @param array{id:int,path:string,fingerprint:string,token:string,kind:string} $source   The document's source.
+	 * @param int                                                                $count    Pages made.
+	 * @return array<int,array{0:int,1:string}>
+	 */
+	public static function page_names( string $pdf_path, array $source, int $count ): array {
+		try {
+			$kind = $source['kind'];
+
+			if ( CPTDP_Page_Store::is_presentation_kind( $kind ) ) {
+				return array();
+			}
+
+			if ( CPTDP_Page_Store::is_spreadsheet_kind( $kind ) ) {
+				$sheets = CPTDP_Xlsx_Converter::sheet_names( $source['path'], $kind );
+
+				// Trusted only when it matches the pages one to one.
+				if ( count( $sheets ) !== $count ) {
+					return array();
+				}
+
+				$ranges = array();
+
+				foreach ( $sheets as $i => $name ) {
+					if ( '' !== $name ) {
+						$ranges[] = array( $i + 1, $name );
+					}
+				}
+
+				return CPTDP_Page_Outline::sanitize_ranges( $ranges, $count );
+			}
+
+			return CPTDP_Page_Outline::ranges( $pdf_path, $count );
+		} catch ( Throwable $e ) {
+			return array();
+		}
 	}
 
 	/**
@@ -256,6 +315,10 @@ class CPTDP_Page_Converter {
 			$height  = 0;
 			$target  = self::WIDTH_PORTRAIT;
 
+			// Small thumbnails (DPB-031) come from the page already in memory; any failure drops them all.
+			$thumbs_ok = CPTDP_Page_Thumbs::is_available();
+			$thumb_dim = array( 'width' => 0, 'height' => 0 );
+
 			for ( $i = 0; $i < $count; $i++ ) {
 				if ( microtime( true ) - $started > self::SECONDS_TOTAL ) {
 					return new WP_Error( 'cptdp_conversion_failed', __( 'Converting the PDF took too long.', 'custom-post-types-dp' ) );
@@ -278,6 +341,16 @@ class CPTDP_Page_Converter {
 					$page->thumbnailImage( $target, 0 );
 				}
 
+				if ( $thumbs_ok ) {
+					$thumb = CPTDP_Page_Thumbs::write( $page, $folder . '/' . CPTDP_Page_Thumbs::filename( $i + 1, $ext ), $ext );
+
+					if ( null === $thumb ) {
+						$thumbs_ok = false;
+					} elseif ( 0 === $i ) {
+						$thumb_dim = $thumb;
+					}
+				}
+
 				$page->setImageFormat( 'webp' === $ext ? 'webp' : 'jpeg' );
 				$page->setImageCompressionQuality( self::QUALITY );
 				$page->stripImage();
@@ -295,12 +368,23 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_conversion_failed', __( 'The PDF could not be converted.', 'custom-post-types-dp' ) . ' ' . $e->getMessage(), 'engine' );
 		}
 
-		return array(
+		if ( ! $thumbs_ok ) {
+			CPTDP_Page_Thumbs::delete( $folder, $ext, $count );
+		}
+
+		$result = array(
 			'count'  => $count,
 			'width'  => $width,
 			'height' => $height,
 			'ext'    => $ext,
 		);
+
+		if ( $thumbs_ok ) {
+			$result['thumb_width']  = $thumb_dim['width'];
+			$result['thumb_height'] = $thumb_dim['height'];
+		}
+
+		return $result;
 	}
 
 	/**
