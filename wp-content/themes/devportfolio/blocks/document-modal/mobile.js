@@ -102,6 +102,10 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		if ( event.target && event.target.closest && event.target.closest( 'input, textarea, select, [contenteditable]' ) ) {
 			return;
 		}
+		// The native workbook grid (DPD-030) owns the arrow, zoom and 0 keys while it has the focus.
+		if ( event.target && event.target.closest && event.target.closest( '.documents-mobile__grid' ) ) {
+			return;
+		}
 		if ( ! event.shiftKey && ( event.key === 'ArrowLeft' || event.key === 'ArrowRight' ) ) {
 			event.preventDefault();
 			viewer.turn( event.key === 'ArrowRight' ? 1 : -1 );

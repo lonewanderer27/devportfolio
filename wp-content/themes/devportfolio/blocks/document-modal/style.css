@@ -1263,6 +1263,49 @@ html[data-documents-swapping] .documents-shelf__plank {
 	-webkit-touch-callout: default;
 }
 
+/* A .xlsx drawn by the library's own grid on mobile (DPD-030). It fills the stage OUTSIDE the swipe/zoom frame,
+   so the grid keeps its own scroll, pinch and cell selection; it reports one piece, so there is no footer. The
+   library's 30px tab bar (nav, sheet tabs, zoom) sits at the bottom of the grid and must stay clear: the details
+   button is lifted above it (--documents-grid-bar is measured after mount) and the zoom buttons are not built. */
+.documents-mobile__stage--grid {
+	touch-action: auto;
+}
+
+.documents-mobile__grid {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	background: #fff;
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	box-sizing: border-box;
+	overscroll-behavior: contain;
+	touch-action: pan-x pan-y pinch-zoom;
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+.documents-mobile__stage--grid .documents-mobile__fabs {
+	bottom: calc(var(--documents-grid-bar, 30px) + 12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Thumb-sized tab bar: the library sets 30px inline on the bar (the parent of the tab strip), so this needs
+   !important. The details button follows the measured height. */
+@media (pointer: coarse) {
+	.documents-mobile__grid :has( > .xlsx-tab-strip ) {
+		height: 40px !important;
+	}
+}
+
+/* Held sideways there is no header: Close and Download float over the top corners, so the grid starts below them. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.documents-mobile__grid {
+		top: calc(max(12px, env(safe-area-inset-top, 0px)) + 38px + 8px);
+		left: max(0px, env(safe-area-inset-left, 0px));
+		right: max(0px, env(safe-area-inset-right, 0px));
+	}
+}
+
 /* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
 .documents-mobile__zoomfabs {
 	position: absolute;

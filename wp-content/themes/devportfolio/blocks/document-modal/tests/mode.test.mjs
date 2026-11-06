@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf, canShowOnMobile, nativeAllowedOnMobile, hintKeyFor } from '../mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawPresentations, isMobilePdf, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, hintKeyFor } from '../mode.js';
 
 const images = [ 'a.webp', 'b.webp' ];
 
@@ -113,18 +113,29 @@ test( 'isMobilePdf is a strict PDF check', () => {
 	assert.equal( isMobilePdf( null ), false );
 } );
 
-test( 'the mobile body draws PDFs and presentations (DPD-029), not workbooks or word documents yet', () => {
-	[ 'pdf', 'pptx', 'ppt', 'odp' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
-	[ 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt', 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
+test( 'the mobile body draws PDFs, presentations (DPD-029) and workbooks (DPD-030), not word documents yet', () => {
+	[ 'pdf', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
+	[ 'docx', 'doc', 'odt', 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
 	assert.equal( canShowOnMobile( null ), false );
 	assert.equal( hintKeyFor( { kind: 'pptx' } ), 'hintSlide' );
+	assert.equal( hintKeyFor( { kind: 'xlsx' } ), 'hintSheet' );
+	assert.equal( unitOf( { kind: 'xlsx' } ), 'page', 'Converted sheets keep the page wording.' );
 } );
 
-test( 'the native viewer is tried on mobile for a .pptx with a native URL only', () => {
-	assert.equal( nativeAllowedOnMobile( { kind: 'pptx', nativeUrl: 'https://x/a.pptx' } ), true );
-	assert.equal( nativeAllowedOnMobile( { kind: 'pptx', nativeUrl: '' } ), false );
-	assert.equal( nativeAllowedOnMobile( { kind: 'pptx' } ), false );
-	[ 'ppt', 'odp', 'pdf', 'xlsx', 'docx' ].forEach( ( kind ) => assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
+test( 'the native viewer is tried on mobile for a .pptx or .xlsx with a native URL only', () => {
+	[ 'pptx', 'xlsx' ].forEach( ( kind ) => {
+		assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), true, kind );
+		assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: '' } ), false, kind );
+		assert.equal( nativeAllowedOnMobile( { kind } ), false, kind );
+	} );
+	[ 'ppt', 'odp', 'pdf', 'xls', 'ods', 'docx' ].forEach( ( kind ) => assert.equal( nativeAllowedOnMobile( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
 	assert.equal( nativeAllowedOnMobile( null ), false );
 } );
 
+test( 'only a .xlsx with a native URL is drawn as a workbook grid (one piece, no footer)', () => {
+	assert.equal( isNativeGrid( { kind: 'xlsx', nativeUrl: 'https://x/a.xlsx' } ), true );
+	assert.equal( isNativeGrid( { kind: 'xlsx', nativeUrl: '', images: [ 'a' ] } ), false );
+	assert.equal( isNativeGrid( { kind: 'xlsx' } ), false );
+	[ 'pptx', 'xls', 'ods', 'pdf', 'docx' ].forEach( ( kind ) => assert.equal( isNativeGrid( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
+	assert.equal( isNativeGrid( null ), false );
+} );
