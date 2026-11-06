@@ -1,9 +1,37 @@
+/*
+ * The pill group sticks right under the sticky site header on every screen size (theme.json sets
+ * --site-header-height and --site-sticky-top). On large screens the frosted band is a full-width
+ * layer behind the pills; on phones (below) the row scrolls sideways, so the band is the row itself.
+ */
 .wp-block-devportfolio-document-categories {
+	position: sticky;
+	top: calc(var(--site-sticky-top, 0px) + var(--site-header-height, 0px));
+	z-index: 5;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
-	margin: 0 0 30px;
+	margin: 0;
+	padding: 8px 0 10px;
+}
+
+.wp-block-devportfolio-document-categories::before {
+	content: "";
+	position: absolute;
+	inset: 0 -100vw;
+	z-index: -1;
+	border-bottom: 1px solid var(--wp--custom--edge, rgb(0 0 0 / 0.1));
+	background: var(--wp--custom--glass--tint, rgb(255 255 255 / 0.8));
+	-webkit-backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	pointer-events: none;
+}
+
+/* A short screen held sideways: the header already sticks, so the pills scroll away with the page. */
+@media (orientation: landscape) and (max-height: 520px) {
+	.wp-block-devportfolio-document-categories {
+		position: static;
+	}
 }
 
 .documents-categories__pill {
@@ -50,8 +78,12 @@
 	outline-offset: 2px;
 }
 
-/* View Transition: only the pill group fades between states (see view.js); the rest of the page switches instantly. */
-.wp-block-devportfolio-document-categories {
+/*
+ * View Transition: only the pill group fades between states (see view.js); the rest of the page switches instantly.
+ * The name exists only while a change runs (view.js adds the class): a permanent name makes the group a backdrop
+ * root, which switches off the blur of its frosted band (same reason as the site header).
+ */
+.wp-block-devportfolio-document-categories.is-view-transitioning {
 	view-transition-name: documents-categories;
 }
 
@@ -75,10 +107,6 @@
 
 @media (max-width: 820px) {
 	.wp-block-devportfolio-document-categories {
-		position: sticky;
-		/* Sits right under the sticky site header (theme.json sets --site-header-height). */
-		top: calc(var(--site-sticky-top, 0px) + var(--site-header-height, 0px));
-		z-index: 5;
 		flex-wrap: nowrap;
 		overflow-x: auto;
 		white-space: nowrap;
@@ -92,6 +120,11 @@
 		-webkit-overflow-scrolling: touch;
 	}
 
+	/* The row is the band here (a layer inside an overflow container would be clipped). */
+	.wp-block-devportfolio-document-categories::before {
+		display: none;
+	}
+
 	.wp-block-devportfolio-document-categories::-webkit-scrollbar {
 		display: none;
 	}
@@ -100,12 +133,5 @@
 		min-height: 34px;
 		padding: 0 12px;
 		font-size: 13px;
-	}
-
-	/* A phone held sideways is short: the header already sticks, so the strip scrolls away with the page. */
-	@media (orientation: landscape) and (max-height: 520px) {
-		.wp-block-devportfolio-document-categories {
-			position: static;
-		}
 	}
 }

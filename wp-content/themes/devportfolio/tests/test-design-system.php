@@ -190,10 +190,11 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertSame( '', $this->rule( $outside, '.documents-item .software-tags' ), 'Tags show above 480px.' );
 	}
 
-	public function test_only_one_hairline_sits_above_the_shelf_on_tablets_and_phones(): void {
-		$tablet = $this->media( $this->read( 'blocks/document-shelf/style.css' ), '(max-width: 820px)' );
+	public function test_only_the_sticky_strip_draws_the_line_above_the_shelf(): void {
+		$css = $this->read( 'blocks/document-shelf/style.css' );
 
-		$this->assertStringContainsString( 'border-top: 0', $this->rule( $tablet, '.documents-shelf::before' ) );
+		$this->assertStringNotContainsString( 'border-top', $this->rule( $css, '.documents-shelf::before' ), 'A second line under the sticky strip looked doubled.' );
+		$this->assertStringContainsString( 'border-bottom: 1px solid var(--shelf-line)', $this->rule( $css, '.documents-shelf::before' ) );
 	}
 
 	public function test_the_gutter_variable_is_shared_with_the_category_strip(): void {
@@ -234,13 +235,32 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'font-size: 13px', $rule );
 	}
 
-	public function test_phone_strip_bleeds_to_the_screen_edges_and_sticks_under_the_header(): void {
+	public function test_strip_sticks_under_the_header_at_every_size(): void {
+		$rule = $this->rule( $this->read( 'blocks/document-categories/style.css' ), '.wp-block-devportfolio-document-categories' );
+
+		$this->assertStringContainsString( 'position: sticky', $rule );
+		$this->assertStringContainsString( 'top: calc(var(--site-sticky-top, 0px) + var(--site-header-height, 0px))', $rule );
+		$this->assertStringContainsString( 'z-index: 5', $rule );
+		$this->assertStringContainsString( 'margin: 0;', $rule, 'The gap under the strip is gone: its line is the shelf\'s top line.' );
+	}
+
+	public function test_large_screen_strip_has_a_full_width_frosted_layer_behind_the_pills(): void {
+		$layer = $this->rule( $this->read( 'blocks/document-categories/style.css' ), '.wp-block-devportfolio-document-categories::before' );
+
+		$this->assertStringContainsString( 'inset: 0 -100vw', $layer );
+		$this->assertStringContainsString( 'z-index: -1', $layer );
+		$this->assertStringContainsString( 'var(--wp--custom--glass--tint, rgb(255 255 255 / 0.8))', $layer );
+		$this->assertStringContainsString( 'var(--wp--custom--glass--filter, blur(20px) saturate(180%))', $layer );
+		$this->assertStringContainsString( 'border-bottom: 1px solid var(--wp--custom--edge, rgb(0 0 0 / 0.1))', $layer );
+	}
+
+	public function test_phone_strip_bleeds_to_the_screen_edges_and_is_the_band_itself(): void {
 		$phone = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
 		$rule  = $this->rule( $phone, '.wp-block-devportfolio-document-categories' );
 
 		$this->assertStringContainsString( 'margin: 0 calc(-1 * (var(--wp--preset--spacing--40) + var(--documents-gutter, 0px)))', $rule );
-		$this->assertStringContainsString( 'top: calc(var(--site-sticky-top, 0px) + var(--site-header-height, 0px))', $rule );
-		$this->assertStringContainsString( 'z-index: 5', $rule );
+		$this->assertStringContainsString( 'overflow-x: auto', $rule );
+		$this->assertStringContainsString( 'display: none', $this->rule( $phone, '.wp-block-devportfolio-document-categories::before' ), 'A layer inside an overflow container would be clipped.' );
 	}
 
 	public function test_phone_strip_is_frosted_glass_with_a_soft_hairline(): void {
@@ -252,12 +272,12 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-bottom: 1px solid var(--wp--custom--edge, rgb(0 0 0 / 0.1))', $rule );
 	}
 
-	public function test_strip_stops_sticking_on_a_phone_held_sideways_but_not_on_a_short_portrait_screen(): void {
-		$phone = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
-		$land  = $this->media( $phone, '(orientation: landscape) and (max-height: 520px)' );
+	public function test_strip_stops_sticking_on_a_short_screen_held_sideways_but_not_on_a_short_portrait_screen(): void {
+		$css  = $this->read( 'blocks/document-categories/style.css' );
+		$land = $this->media( $css, '(orientation: landscape) and (max-height: 520px)' );
 
 		$this->assertStringContainsString( 'position: static', $this->rule( $land, '.wp-block-devportfolio-document-categories' ) );
-		$this->assertStringNotContainsString( '@media (max-height: 520px)', $phone, 'Height alone would also match a short portrait phone.' );
+		$this->assertStringNotContainsString( '@media (max-height: 520px)', $css, 'Height alone would also match a short portrait phone.' );
 	}
 
 	public function test_category_script_names_the_header_only_while_a_change_runs(): void {
@@ -266,6 +286,8 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertStringContainsString( "classList.add( 'is-view-transitioning' )", $js );
 		$this->assertStringContainsString( "classList.remove( 'is-view-transitioning' )", $js );
 		$this->assertStringContainsString( 'transition.finished.then( clearHeader, clearHeader )', $js, 'The class must also be removed when the transition is skipped.' );
+		$this->assertStringContainsString( "group.classList.add( 'is-view-transitioning' )", $js, 'The pill group is named only while a change runs too.' );
+		$this->assertStringContainsString( "group.classList.remove( 'is-view-transitioning' )", $js );
 	}
 
 	// ----- Header --------------------------------------------------------------------------
@@ -280,11 +302,12 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertSame( 7, substr_count( $header, 'wp:navigation-link' ) );
 	}
 
-	public function test_header_separator_is_the_soft_edge_and_goes_on_portrait_phones_with_the_strip(): void {
+	public function test_header_separator_is_the_soft_edge_and_goes_when_the_strip_sticks(): void {
 		$css = $this->global_css();
 
 		$this->assertStringContainsString( 'header.wp-block-template-part > .wp-block-group { border-bottom: 1px solid var(--wp--custom--edge); }', $css );
-		$this->assertStringContainsString( '@media (max-width: 820px) and (orientation: portrait) { body:has(.wp-block-devportfolio-document-categories) header.wp-block-template-part > .wp-block-group { border-bottom-color: transparent; } }', $css );
+		// Whenever the strip sticks (every size except a short screen held sideways) the header and the strip read as one block with a single line.
+		$this->assertStringContainsString( '@media not ((orientation: landscape) and (max-height: 520px)) { body:has(.wp-block-devportfolio-document-categories) header.wp-block-template-part > .wp-block-group { border-bottom-color: transparent; } }', $css );
 	}
 
 	public function test_glass_tint_is_80_percent_white_with_the_design_system_blur(): void {

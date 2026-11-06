@@ -25,7 +25,7 @@
 	padding: 44px 0 0;
 }
 
-/* Dot grid behind the shelf, full width of the viewport, with a line above and below (hi-fi .shelfzone). */
+/* Dot grid behind the shelf, full width of the viewport, with a line below; the sticky pill strip draws the line above (a second one would look doubled). */
 .documents-shelf::before {
 	content: "";
 	position: absolute;
@@ -34,7 +34,6 @@
 	right: -100vw;
 	bottom: -96px;
 	left: -100vw;
-	border-top: 1px solid var(--shelf-line);
 	border-bottom: 1px solid var(--shelf-line);
 	background-image: radial-gradient(var(--shelf-dot) 1px, transparent 1px);
 	background-size: 22px 22px;
@@ -197,11 +196,6 @@
 }
 
 @media (max-width: 820px) {
-	/* The pill strip above already draws the line; a second hairline 25px lower looked doubled. */
-	.documents-shelf::before {
-		border-top: 0;
-	}
-
 	/* Phones: the books come first. The page padding set inline by the template (48px) is trimmed here. */
 	.documents-page {
 		padding-top: 16px !important;

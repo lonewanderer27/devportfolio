@@ -263,7 +263,9 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 	public function test_pill_group_has_a_view_transition_name_and_a_fade(): void {
 		$css = $this->css();
 
-		$this->assertMatchesRegularExpression( '/\.wp-block-devportfolio-document-categories\s*\{[^}]*view-transition-name: documents-categories/', $css );
+		// Named only while a change runs (view.js adds the class); a permanent name would switch off the strip's blur.
+		$this->assertMatchesRegularExpression( '/\.wp-block-devportfolio-document-categories\.is-view-transitioning\s*\{[^}]*view-transition-name: documents-categories/', $css );
+		$this->assertDoesNotMatchRegularExpression( '/\.wp-block-devportfolio-document-categories\s*\{[^}]*view-transition-name/', $css );
 
 		$this->assertSame( 1, preg_match( '/::view-transition-new\(documents-categories\)\s*\{([^}]*)\}/', $css, $m ), 'Fade rule missing.' );
 		$this->assertStringContainsString( 'animation-duration: 0.2s', $m[1] );
@@ -278,12 +280,15 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', $js );
 	}
 
-	public function test_mobile_group_is_a_sticky_single_scrolling_row(): void {
+	public function test_group_is_sticky_everywhere_and_a_single_scrolling_row_on_mobile(): void {
 		$css = $this->css();
+
+		$base = $this->rule( $css, '.wp-block-devportfolio-document-categories' );
+		$this->assertStringContainsString( 'position: sticky', $base, 'Sticky on large screens too.' );
+
 		$this->assertSame( 1, preg_match( '/@media \(max-width: 820px\)\s*\{(.*)\}\s*$/s', $css, $m ), 'Mobile media query missing.' );
 
 		$rule = $this->rule( $m[1], '.wp-block-devportfolio-document-categories' );
-		$this->assertStringContainsString( 'position: sticky', $rule );
 		$this->assertStringContainsString( 'overflow-x: auto', $rule );
 		$this->assertStringContainsString( 'flex-wrap: nowrap', $rule );
 	}

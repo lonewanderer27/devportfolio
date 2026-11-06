@@ -128,15 +128,20 @@
 			if ( header ) {
 				header.classList.add( 'is-view-transitioning' );
 			}
+			// The pill group is named the same way, so its frosted band keeps blurring the rest of the time.
+			group.classList.add( 'is-view-transitioning' );
 			var transition = document.startViewTransition( function () {
 				apply( slug );
 			} );
-			if ( header && transition && transition.finished ) {
+			if ( transition && transition.finished ) {
 				transition.finished.then( clearHeader, clearHeader );
 			}
 
 			function clearHeader() {
-				header.classList.remove( 'is-view-transitioning' );
+				group.classList.remove( 'is-view-transitioning' );
+				if ( header ) {
+					header.classList.remove( 'is-view-transitioning' );
+				}
 			}
 		}
 
