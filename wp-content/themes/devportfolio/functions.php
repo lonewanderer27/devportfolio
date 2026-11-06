@@ -293,7 +293,55 @@ if ( ! function_exists( 'devportfolio_document_mobile_strings' ) ) :
 			'slideLabel' => _x( 'Slide {n}', 'document modal mobile pages sheet, {n} is a number', 'devportfolio' ),
 			'sheetLabel' => _x( 'Sheet {n}', 'document modal mobile pages sheet, {n} is a number', 'devportfolio' ),
 			'closePages' => _x( 'Close pages', 'document modal mobile pages sheet', 'devportfolio' ),
+			// The Details sheet (DPD-023). Its title is the document's own; "Pages" and "Slides" reuse data-units.
+			'closeDetails' => _x( 'Close details', 'document modal mobile details sheet', 'devportfolio' ),
+			'formatRow' => _x( 'Format', 'document modal mobile details sheet row label', 'devportfolio' ),
+			'download'  => _x( 'Download', 'document modal mobile details sheet button', 'devportfolio' ),
 		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_file_type_label' ) ) :
+	/**
+	 * The upper-cased file type of a document, e.g. "PDF" (DPD-005, DPD-023).
+	 *
+	 * The one place the type is cleaned, so the cover line ("PDF · 24 pp") and the Format row of the mobile
+	 * Details sheet can never disagree. Returns an empty string for a missing or non-scalar value.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param mixed $filetype File type, e.g. "pdf".
+	 * @return string
+	 */
+	function devportfolio_document_file_type_label( $filetype ) {
+		return is_scalar( $filetype ) ? strtoupper( trim( (string) $filetype ) ) : '';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_document_category_name' ) ) :
+	/**
+	 * The category name of a document: its first `document_category` term by name (DPD-005, DPD-023).
+	 *
+	 * Used by the cover and by the mobile Details sheet. Returns an empty string when the document has none.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param int $post_id Document ID.
+	 * @return string Plain text (escape on output).
+	 */
+	function devportfolio_document_category_name( $post_id ) {
+		$terms = get_the_terms( (int) $post_id, 'document_category' );
+		if ( ! is_array( $terms ) || empty( $terms ) ) {
+			return '';
+		}
+		$terms = array_values( $terms );
+		usort(
+			$terms,
+			static function ( $a, $b ) {
+				return strcasecmp( $a->name, $b->name );
+			}
+		);
+		return $terms[0]->name;
 	}
 endif;
 
@@ -318,7 +366,7 @@ if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 	function devportfolio_document_format_label( $filetype, $pages, $kind = '' ) {
 		$parts = array();
 
-		$filetype = is_scalar( $filetype ) ? strtoupper( trim( (string) $filetype ) ) : '';
+		$filetype = devportfolio_document_file_type_label( $filetype );
 		if ( '' !== $filetype ) {
 			$parts[] = $filetype;
 		}
@@ -494,6 +542,9 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			'title'        => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
 			'description'  => devportfolio_document_description( $post_id ),
 			'tools'        => $tools,
+			// The mobile Details sheet (DPD-023): the category pill and the Format row.
+			'category'     => html_entity_decode( devportfolio_document_category_name( $post_id ), ENT_QUOTES, 'UTF-8' ),
+			'fileType'     => devportfolio_document_file_type_label( get_post_meta( $post_id, 'cptdp_filetype', true ) ),
 			'format'       => devportfolio_document_format_label(
 				get_post_meta( $post_id, 'cptdp_filetype', true ),
 				get_post_meta( $post_id, 'cptdp_total_pages', true ),

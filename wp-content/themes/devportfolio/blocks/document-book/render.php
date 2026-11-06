@@ -17,18 +17,7 @@ if ( $devportfolio_post_id <= 0 || 'document' !== get_post_type( $devportfolio_p
 	return;
 }
 
-$devportfolio_terms    = get_the_terms( $devportfolio_post_id, 'document_category' );
-$devportfolio_category = '';
-if ( is_array( $devportfolio_terms ) && ! empty( $devportfolio_terms ) ) {
-	$devportfolio_terms = array_values( $devportfolio_terms );
-	usort(
-		$devportfolio_terms,
-		static function ( $a, $b ) {
-			return strcasecmp( $a->name, $b->name );
-		}
-	);
-	$devportfolio_category = $devportfolio_terms[0]->name;
-}
+$devportfolio_category = devportfolio_document_category_name( $devportfolio_post_id );
 
 $devportfolio_format = devportfolio_document_format_label(
 	get_post_meta( $devportfolio_post_id, 'cptdp_filetype', true ),
