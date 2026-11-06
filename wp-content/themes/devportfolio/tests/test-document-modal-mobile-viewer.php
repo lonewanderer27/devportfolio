@@ -131,6 +131,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( "[ 'documents-mobile__details-title', details.title ]", $js, 'The title lives in the details when the header is gone.' );
 		$this->assertStringContainsString( 'documents-mobile__hint-text', $js );
 		$this->assertStringContainsString( "// Any touch in the body counts as having read the hint.", $js );
+		$this->assertMatchesRegularExpression( "#fab\\.addEventListener\\( 'click', \\(\\) => \\{\\s*dismissHint\\(\\);\\s*toggleDetails\\(\\);#", $js, 'Opening the details counts as an action.' );
 		$this->assertStringContainsString( "'aria-live': 'polite'", $js );
 	}
 

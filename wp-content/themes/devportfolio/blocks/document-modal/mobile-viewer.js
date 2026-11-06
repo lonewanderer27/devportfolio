@@ -322,7 +322,10 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 
 		prev.addEventListener( 'click', () => turn( -1 ) );
 		next.addEventListener( 'click', () => turn( 1 ) );
-		fab.addEventListener( 'click', () => toggleDetails() );
+		fab.addEventListener( 'click', () => {
+			dismissHint();
+			toggleDetails();
+		} );
 		pagesFab.addEventListener( 'click', () => {
 			dismissHint();
 			if ( onPages ) {
