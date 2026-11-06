@@ -25,11 +25,75 @@ if ( ! function_exists( 'cptdp_get_document_pages' ) ) :
 	 * the viewer hides; `ratio` already accounts for it. Both are 0 when Settings >
 	 * Documents "Trim empty space" is off.
 	 *
+	 * Also `names` / `name_ranges` (DPB-030) and `thumbs` / `thumb_width` / `thumb_height` (DPB-031),
+	 * see CPTDP_Page_Store::get_pages().
+	 *
 	 * @param int $post_id Document ID.
-	 * @return array{pages:string[],count:int,width:int,height:int,ratio:float,crop_bottom:float}|null
+	 * @return array{pages:string[],count:int,width:int,height:int,ratio:float,crop_bottom:float,names:string[],name_ranges:array,thumbs:string[],thumb_width:int,thumb_height:int}|null
 	 */
 	function cptdp_get_document_pages( int $post_id ): ?array {
 		return CPTDP_Page_Store::get_pages( $post_id );
+	}
+endif;
+
+if ( ! function_exists( 'cptdp_document_admin_thumb' ) ) :
+	/**
+	 * The picture of a document for the admin (DPB-031): page 1, the same file the Pages sheet draws.
+	 *
+	 * The small thumbnail when the set has them, else (a set made before thumbnails existed) the first
+	 * stored page image, which the caller scales by CSS. Null when there are no valid page images.
+	 *
+	 * @param int $post_id Document ID.
+	 * @return array{url:string,width:int,height:int,small:bool}|null
+	 */
+	function cptdp_document_admin_thumb( int $post_id ): ?array {
+		$pages = CPTDP_Page_Store::get_pages( $post_id );
+
+		if ( null === $pages ) {
+			return null;
+		}
+
+		if ( ! empty( $pages['thumbs'] ) ) {
+			return array(
+				'url'    => (string) $pages['thumbs'][0],
+				'width'  => (int) $pages['thumb_width'],
+				'height' => (int) $pages['thumb_height'],
+				'small'  => true,
+			);
+		}
+
+		return empty( $pages['pages'][0] ) ? null : array(
+			'url'    => (string) $pages['pages'][0],
+			'width'  => (int) $pages['width'],
+			'height' => (int) $pages['height'],
+			'small'  => false,
+		);
+	}
+endif;
+
+if ( ! function_exists( 'cptdp_document_admin_thumb_html' ) ) :
+	/**
+	 * `<img>` of the admin thumbnail at 50px wide, lazy and low priority, or '' when there is none.
+	 *
+	 * @param int $post_id Document ID.
+	 * @param int $width   Width in pixels.
+	 */
+	function cptdp_document_admin_thumb_html( int $post_id, int $width = 50 ): string {
+		$thumb = cptdp_document_admin_thumb( $post_id );
+
+		if ( null === $thumb || '' === $thumb['url'] ) {
+			return '';
+		}
+
+		$height = $thumb['width'] > 0 && $thumb['height'] > 0 ? (int) round( $width * $thumb['height'] / $thumb['width'] ) : 0;
+
+		return sprintf(
+			'<img src="%1$s" alt="" width="%2$d"%3$s loading="lazy" decoding="async" fetchpriority="low" style="width:%2$dpx;height:%4$s;border:1px solid #c3c4c7;background:#fff;display:block">',
+			esc_url( $thumb['url'] ),
+			$width,
+			$height > 0 ? ' height="' . $height . '"' : '',
+			$height > 0 ? $height . 'px' : 'auto'
+		);
 	}
 endif;
 
@@ -198,6 +262,13 @@ function cptdp_document_pages_render_box( WP_Post $post ): void {
 			echo cptdp_office_warning( $kind ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
 		}
 		?>
+		<?php
+		$cptdp_thumb = CPTDP_Page_Store::STATUS_READY === $status ? cptdp_document_admin_thumb_html( $post->ID, 80 ) : '';
+
+		if ( '' !== $cptdp_thumb ) {
+			echo '<p>' . $cptdp_thumb . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by cptdp_document_admin_thumb_html().
+		}
+		?>
 		<p>
 			<strong id="cptdp-pages-status"><?php echo esc_html( cptdp_document_pages_status_label( $status, $count, $kind ) ); ?></strong>
 			<?php if ( CPTDP_Page_Store::STATUS_READY === $status && '' !== $producer ) : ?>
@@ -283,6 +354,7 @@ function cptdp_document_pages_enqueue_admin( string $hook ): void {
 				'landscape' => CPTDP_Page_Converter::WIDTH_LANDSCAPE,
 			),
 			'quality'     => CPTDP_Page_Converter::QUALITY / 100,
+			'thumbWidth'  => CPTDP_Page_Thumbs::WIDTH,
 			'i18n'        => array(
 				'ready'       => __( 'Ready', 'custom-post-types-dp' ),
 				/* translators: %d: number of slides. */

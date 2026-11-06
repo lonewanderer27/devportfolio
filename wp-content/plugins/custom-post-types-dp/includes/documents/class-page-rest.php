@@ -279,6 +279,22 @@ class CPTDP_Page_REST {
 			return $info;
 		}
 
+		// A thumbnail (DPB-031): the same checks, a smaller size, saved as t-NNN beside the page.
+		if ( $request->get_param( 'thumb' ) ) {
+			if ( $info['width'] > CPTDP_Page_Thumbs::WIDTH + 40 || strlen( $body ) > 100 * 1024 || ! is_dir( $folder ) ) {
+				return new WP_Error( 'cptdp_bad_image', __( 'The thumbnail is too large.', 'custom-post-types-dp' ), array( 'status' => 413 ) );
+			}
+
+			$other = 'webp' === $info['ext'] ? 'jpg' : 'webp';
+			wp_delete_file( $folder . '/' . CPTDP_Page_Thumbs::filename( $page, $other ) );
+
+			if ( false === file_put_contents( $folder . '/' . CPTDP_Page_Thumbs::filename( $page, $info['ext'] ), $body ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_put_contents_file_put_contents
+				return new WP_Error( 'cptdp_write_failed', __( 'Could not save the thumbnail.', 'custom-post-types-dp' ), array( 'status' => 500 ) );
+			}
+
+			return rest_ensure_response( array( 'page' => $page, 'thumb' => true ) );
+		}
+
 		if ( ! wp_mkdir_p( $folder ) ) {
 			return new WP_Error( 'cptdp_write_failed', __( 'Could not create the page images folder.', 'custom-post-types-dp' ), array( 'status' => 500 ) );
 		}
@@ -403,20 +419,70 @@ class CPTDP_Page_REST {
 			return rest_ensure_response( self::state( $post_id ) );
 		}
 
-		CPTDP_Page_Store::save_manifest(
-			$post_id,
-			array(
-				'count'       => $count,
-				'width'       => $width,
-				'height'      => $height,
-				'ext'         => $ext,
-				'dir'         => basename( $folder ),
-				'producer'    => 'browser',
-				'crop_bottom' => CPTDP_Page_Store::clamp_crop( $params['cropBottom'] ?? 0 ),
-			)
+		$manifest = array(
+			'count'       => $count,
+			'width'       => $width,
+			'height'      => $height,
+			'ext'         => $ext,
+			'dir'         => basename( $folder ),
+			'producer'    => 'browser',
+			'crop_bottom' => CPTDP_Page_Store::clamp_crop( $params['cropBottom'] ?? 0 ),
 		);
 
+		// Thumbnails the browser uploaded (DPB-031): kept only when the whole set is there and valid.
+		$thumb = self::checked_thumbs( $folder, $count, $ext );
+
+		if ( null === $thumb ) {
+			CPTDP_Page_Thumbs::delete( $folder, $ext, $count );
+			CPTDP_Page_Thumbs::delete( $folder, 'webp' === $ext ? 'jpg' : 'webp', $count );
+			$thumb = CPTDP_Page_Thumbs::make_for_folder( $folder, $ext, $count ); // Only when the server has Imagick.
+		}
+
+		if ( null !== $thumb ) {
+			$manifest['thumb_width']  = $thumb['width'];
+			$manifest['thumb_height'] = $thumb['height'];
+		}
+
+		// Names from the PDF's bookmarks (DPB-030): clean ranges or nothing.
+		$names = CPTDP_Page_Outline::sanitize_ranges( $params['pageNames'] ?? array(), $count );
+
+		if ( $names ) {
+			$manifest['page_names'] = $names;
+		}
+
+		CPTDP_Page_Store::save_manifest( $post_id, $manifest );
+
 		return rest_ensure_response( self::state( $post_id ) );
+	}
+
+	/**
+	 * Check the thumbnails a browser run uploaded.
+	 *
+	 * @param string $folder Set folder.
+	 * @param int    $count  Number of pages.
+	 * @param string $ext    Extension of the set.
+	 * @return array{width:int,height:int}|null The first thumbnail's size, or null when any is missing or invalid.
+	 */
+	private static function checked_thumbs( string $folder, int $count, string $ext ): ?array {
+		$first = null;
+
+		for ( $i = 1; $i <= $count; $i++ ) {
+			$file = $folder . '/' . CPTDP_Page_Thumbs::filename( $i, $ext );
+			$size = is_file( $file ) ? getimagesize( $file ) : false;
+
+			if ( ! $size || self::mime_ext( (string) $size['mime'] ) !== $ext || $size[0] > CPTDP_Page_Thumbs::WIDTH + 40 ) {
+				return null;
+			}
+
+			if ( null === $first ) {
+				$first = array(
+					'width'  => (int) $size[0],
+					'height' => (int) $size[1],
+				);
+			}
+		}
+
+		return $first;
 	}
 
 	/**
@@ -428,12 +494,12 @@ class CPTDP_Page_REST {
 	 * @param string $ext    Extension of the set.
 	 */
 	private static function delete_extra_files( string $folder, int $count, string $ext ): void {
-		foreach ( (array) glob( $folder . '/p-*' ) as $file ) {
+		foreach ( (array) glob( $folder . '/[pt]-*' ) as $file ) {
 			if ( ! is_string( $file ) ) {
 				continue;
 			}
 
-			if ( 1 !== preg_match( '/^p-(\d{3,})\.(webp|jpg)$/', basename( $file ), $m ) || (int) $m[1] > $count || $m[2] !== $ext ) {
+			if ( 1 !== preg_match( '/^[pt]-(\d{3,})\.(webp|jpg)$/', basename( $file ), $m ) || (int) $m[1] > $count || $m[2] !== $ext ) {
 				wp_delete_file( $file );
 			}
 		}

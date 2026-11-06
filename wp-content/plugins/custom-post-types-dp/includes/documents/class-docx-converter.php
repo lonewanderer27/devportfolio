@@ -36,7 +36,8 @@ class CPTDP_Docx_Converter {
 	}
 
 	public static function export_filter(): string {
-		return 'pdf:writer_pdf_Export';
+		// Bookmarks from the headings are what gives the Pages list its names (DPB-030).
+		return 'pdf:writer_pdf_Export:{"ExportBookmarks":{"type":"boolean","value":"true"}}';
 	}
 
 	public static function write_profile( string $profile ): void {

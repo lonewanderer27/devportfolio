@@ -54,3 +54,29 @@ export function urlWithSlug( href, slug ) {
  * @return {string}
  */
 export const urlWithoutSlug = ( href ) => urlWithSlug( href, '' );
+
+/**
+ * History marker of the mobile Pages sheet (DPD-020). Opening the sheet adds one history entry with the
+ * same URL and this flag in its state, so Back closes only the sheet; a second Back closes the viewer.
+ */
+export const SHEET_KEY = 'documentsSheet';
+
+/** The history state with the sheet marker set (other keys are kept). */
+export function withSheetState( state ) {
+	return { ...( state && typeof state === 'object' ? state : {} ), [ SHEET_KEY ]: true };
+}
+
+/** Whether a history state carries the sheet marker. */
+export function hasSheetState( state ) {
+	return !! state && typeof state === 'object' && state[ SHEET_KEY ] === true;
+}
+
+/** The history state without the sheet marker (null when nothing else is left). */
+export function withoutSheetState( state ) {
+	if ( ! state || typeof state !== 'object' ) {
+		return null;
+	}
+	const rest = { ...state };
+	delete rest[ SHEET_KEY ];
+	return Object.keys( rest ).length ? rest : null;
+}

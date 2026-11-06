@@ -93,6 +93,9 @@
 		return url.toString();
 	}
 
+	// Set by init(): what a Back/Forward does for the pills.
+	var onPopState = null;
+
 	function init( group ) {
 		var shelf = document.querySelector( '[data-documents-shelf]' );
 		var resizeTimer;
@@ -142,10 +145,23 @@
 			pill.scrollIntoView( { inline: 'nearest', block: 'nearest' } );
 		} );
 
-		// Back/Forward step through categories without pushing again.
-		window.addEventListener( 'popstate', function () {
-			applyAnimated( slugFromUrl( group ) );
-		} );
+		// The category that is showing now ('' = All).
+		function activeSlug() {
+			var pressed = group.querySelector( '.documents-categories__pill[aria-pressed="true"]' );
+			return pressed ? pressed.getAttribute( 'data-filter' ) || '' : '';
+		}
+
+		// Back/Forward step through categories without pushing again (see the listener at the bottom of this file).
+		onPopState = function ( event ) {
+			var slug = slugFromUrl( group );
+			if ( slug === activeSlug() ) {
+				return;
+			}
+			applyAnimated( slug );
+			if ( ! document.querySelector( 'dialog.documents-modal[open], dialog.documents-mobile[open]' ) && ! new URL( window.location.href ).searchParams.has( 'document_slug' ) ) {
+				event.stopImmediatePropagation();
+			}
+		};
 
 		if ( shelf ) {
 			window.addEventListener( 'resize', function () {
@@ -156,6 +172,22 @@
 			} );
 		}
 	}
+
+	// History moves that do not change the category (the document modal and its Pages sheet add and remove
+	// entries too) must do nothing: a View Transition there would snapshot and re-animate the whole page, modal
+	// included. A real category change is answered by onPopState and kept from WordPress's Interactivity Router,
+	// which would reload the page for a URL it has not cached (Forward). Listeners run in the order they were added,
+	// so this one is added as soon as the script runs, ahead of the router (which is imported later), not at
+	// DOMContentLoaded. While a document modal is open the event is left for the modal's own handler too.
+	window.addEventListener(
+		'popstate',
+		function ( event ) {
+			if ( onPopState ) {
+				onPopState( event );
+			}
+		},
+		true
+	);
 
 	document.addEventListener( 'DOMContentLoaded', function () {
 		document.querySelectorAll( '.wp-block-devportfolio-document-categories' ).forEach( init );
