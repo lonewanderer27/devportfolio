@@ -38,8 +38,6 @@ import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
 import { el, svgIcon } from './dom.js';
 
-let uid = 0;
-
 // The Word scroller's zoom range (the same limits as the desktop zoom buttons in viewer.js).
 const NATIVE_ZOOM_MIN = 0.1;
 const NATIVE_ZOOM_MAX = 4;
@@ -55,8 +53,10 @@ const NATIVE_ZOOM_MAX = 4;
  * @param {boolean}  options.selectableText  Native viewer > PDF: pdf.js with a real text layer.
  * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
  * @param {Function} options.onTurn      ( page ) A page turn made by gesture, button or key.
+ * @param {Function} options.onPages     Called when the round Pages button is tapped.
+ * @param {Function} options.onDetails   Called when the round Info button is tapped (mobile.js opens the Details sheet).
  */
-export function createMobileViewer( { stage, status, pdfjs, limits, units = null, strings = {}, selectableText = false, onGeometry, onTurn, onPages = null } ) {
+export function createMobileViewer( { stage, status, pdfjs, limits, units = null, strings = {}, selectableText = false, onGeometry, onTurn, onPages = null, onDetails = null } ) {
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 	const statusView = createStatus( { stage, status } );
 	const setStatus = ( kind ) => statusView.set( kind );
@@ -71,8 +71,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	// Which round buttons the footer cannot show: the details button when the footer is gone (one page, or
 	// landscape), the Pages button in landscape. Set by mobile.js through setChrome().
 	let chrome = { info: false, pages: false };
-	let hasDetails = false;
-	let details = { title: '', description: '', tools: [], format: '' };
 	let pageEls = [];
 	// The native PowerPoint viewer when it draws the document: { instance, box, canvas, count } (DPD-029).
 	let native = null;
@@ -273,11 +271,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	function syncControls() {
 		if ( ui && scrollView ) {
 			// Only the details button: the footer is gone (one piece) and the library has its own zoom and tabs.
-			ui.fab.hidden = ! ( chrome.info && hasDetails );
+			ui.fab.hidden = ! chrome.info;
 			ui.fabs.hidden = ui.fab.hidden;
-			if ( ui.fab.hidden ) {
-				setDetails( false );
-			}
 			return;
 		}
 		if ( ! ui || ! source ) {
@@ -288,23 +283,12 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		ui.prev.hidden = ! multi || zoomed || ! hasPrev();
 		ui.next.hidden = ! multi || zoomed || ! hasNext();
 		ui.hint.hidden = hintGone || zoomed || ( ! multi && ! landscapeDoc );
-		ui.fab.hidden = ! ( chrome.info && hasDetails );
+		ui.fab.hidden = ! chrome.info;
 		ui.pagesFab.hidden = ! chrome.pages;
 		ui.zoomIn.disabled = touchZoom.get().scale >= ZOOM_MAX;
 		ui.zoomOut.disabled = touchZoom.get().scale <= ZOOM_MIN;
 		ui.fabs.hidden = ui.fab.hidden && ui.pagesFab.hidden;
-		if ( ui.fab.hidden ) {
-			setDetails( false );
-		}
 	}
-
-	const setDetails = ( open ) => {
-		if ( ! ui ) {
-			return;
-		}
-		ui.panel.hidden = ! open;
-		ui.fab.setAttribute( 'aria-expanded', String( open ) );
-	};
 
 	/** One zoom step from a button or a key; false at the limit. */
 	function zoomBy( direction ) {
@@ -319,54 +303,34 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		return true;
 	}
 
-	function toggleDetails() {
-		if ( ui && hasDetails ) {
-			setDetails( ui.panel.hidden );
-		}
-	}
-
 	const setFabAway = ( away ) => {
 		clearFabTimers();
 		ui.fabs.classList.toggle( 'is-away', away );
 		if ( away ) {
-			setDetails( false );
 			// Never stays hidden: it comes back after a quiet moment even without a swipe up.
 			fabTimers.push( window.setTimeout( () => setFabAway( false ), 2000 ) );
 		}
 	};
 
 	/**
-	 * The round details button, the Pages button and the details panel (bottom right: the Pages button on top
-	 * of the details button, with the panel above both). Shared by the page viewer and the native grid.
+	 * The round Info button and the Pages button (bottom right: the Pages button on top of the Info button).
+	 * Shared by the page viewer and the native grid. Neither shows anything itself: they ask mobile.js to open
+	 * the Details or Pages sheet.
 	 */
 	const makeDetails = () => {
-		// The round "i" button opens the document details (what the desktop header shows).
-		const panelId = `documents-mobile-details-${ ++uid }`;
-		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-expanded': 'false', 'aria-controls': panelId } );
+		// The round "i" button opens the Details sheet (what the desktop header shows, plus category and Download).
+		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-haspopup': 'dialog' } );
 		fab.appendChild( svgIcon( 'M12 11v6M12 7.5v.01', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' ) );
-		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
+		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ), 'aria-haspopup': 'dialog' } );
 		pagesFab.appendChild( svgIcon( 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' ) );
-		const panel = el( 'div', 'documents-mobile__details-panel', { id: panelId } );
-		panel.hidden = true;
-		const detailLines = [
-			[ 'documents-mobile__details-title', details.title ],
-			[ 'documents-mobile__details-desc', details.description ],
-			[ 'documents-mobile__details-tools', ( details.tools || [] ).join( ' · ' ) ],
-			[ 'documents-mobile__details-format', details.format ],
-		].filter( ( entry ) => entry[ 1 ] );
-		detailLines.forEach( ( [ className, value ] ) => {
-			const line = el( 'p', className );
-			line.textContent = value;
-			panel.appendChild( line );
-		} );
-		hasDetails = detailLines.length > 0;
 
-		// Bottom right: the Pages button on top of the details button, with the details panel above both.
 		const fabs = el( 'div', 'documents-mobile__fabs' );
-		fabs.append( panel, pagesFab, fab );
+		fabs.append( pagesFab, fab );
 		fab.addEventListener( 'click', () => {
 			dismissHint();
-			toggleDetails();
+			if ( onDetails ) {
+				onDetails();
+			}
 		} );
 		pagesFab.addEventListener( 'click', () => {
 			dismissHint();
@@ -374,7 +338,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 				onPages();
 			}
 		} );
-		return { fab, pagesFab, panel, fabs };
+		return { fab, pagesFab, fabs };
 	};
 
 	const buildUi = () => {
@@ -401,7 +365,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			hint.appendChild( line );
 		}
 
-		const { fab, pagesFab, panel, fabs } = makeDetails();
+		const { fab, pagesFab, fabs } = makeDetails();
 
 		// Round zoom buttons, bottom left: the same steps as the + and - keys, for people who do not pinch.
 		const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
@@ -416,7 +380,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		stage.append( frame, prev, next, hint, fabs, zoomFabs, live );
 		stage.setAttribute( 'role', 'region' );
 		stage.setAttribute( 'aria-label', text( 'region', 'Document pages' ) );
-		ui = { frame, track, prev, next, hint, fab, pagesFab, fabs, panel, live, zoomIn, zoomOut };
+		ui = { frame, track, prev, next, hint, fab, pagesFab, fabs, live, zoomIn, zoomOut };
 
 		prev.addEventListener( 'click', () => turn( -1 ) );
 		next.addEventListener( 'click', () => turn( 1 ) );
@@ -459,7 +423,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	function nativeTurn( target ) {
 		const mine = session;
 		turning = true;
-		setDetails( false );
 		resetZoom( { silent: true } );
 		native.instance.goToSlide( target - 1 ).then(
 			() => {
@@ -488,7 +451,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			return;
 		}
 		turning = true;
-		setDetails( false );
 		if ( reducedMotion.matches ) {
 			finishTurn( target );
 			return;
@@ -519,8 +481,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			if ( ! source || turning ) {
 				return;
 			}
-			setDetails( false );
-			if ( pointers.size === 0 ) {
+				if ( pointers.size === 0 ) {
 				origin = frame.getBoundingClientRect();
 			}
 			const start = point( event );
@@ -845,12 +806,12 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		const box = el( 'div', `documents-mobile__scroll${ isDoc ? ' documents-mobile__scroll--doc' : '' }`, { role: 'group', 'aria-label': doc.title || '' } );
 		box.style.visibility = 'hidden';
 		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
-		const { fab, pagesFab, panel, fabs } = makeDetails();
+		const { fab, pagesFab, fabs } = makeDetails();
 		pagesFab.hidden = true;
 		stage.classList.add( 'documents-mobile__stage--scroll' );
 		stage.classList.toggle( 'documents-mobile__stage--doc', isDoc );
 		stage.append( box, fabs, live );
-		ui = { fab, pagesFab, fabs, panel, live };
+		ui = { fab, pagesFab, fabs, live };
 
 		/** A document: round zoom buttons call the library's zoom (text stays sharp, selection stays aligned). */
 		const buildZoom = () => {
@@ -939,7 +900,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			const mine = ++session;
 			const alive = () => mine === session;
 			const unit = unitOf( doc );
-			details = { title: doc.title || '', description: doc.description || '', tools: Array.isArray( doc.tools ) ? doc.tools : [], format: doc.format || '' };
 			statusView.setHintKey( hintKeyFor( doc ) );
 			words = wording( unit, units );
 			current = page;
@@ -1029,9 +989,6 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			chrome = { info: Boolean( next.info ), pages: Boolean( next.pages ) };
 			syncControls();
 		},
-
-		/** Opens or closes the document details (the round button and the footer's Details button). */
-		toggleDetails,
 
 		/** True while a view is sliding, so callers can ignore a second turn. */
 		isTurning: () => turning,
