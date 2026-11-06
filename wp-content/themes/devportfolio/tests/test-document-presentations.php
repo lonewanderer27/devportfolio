@@ -127,6 +127,10 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	private function read( string $relative ): string {
 		$contents = file_get_contents( $this->theme_dir() . '/' . $relative ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$this->assertNotFalse( $contents, $relative );
+		if ( 'blocks/document-modal/viewer.js' === $relative ) {
+			// The page sources and the status line moved to page-source.js and status.js (DPD-021): the viewer is read as one piece.
+			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		}
 
 		return $contents;
 	}
@@ -333,7 +337,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	public function test_the_native_viewer_loads_only_on_demand_and_is_locked_down(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 
-		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, isSpreadsheet } from './mode.js'", $js );
+		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js'", $js );
 		$this->assertStringContainsString( 'const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ PPTX_VERSION }`, import.meta.url ).href;', $js );
 		$this->assertStringContainsString( 'wasmUrl: PPTX_WASM', $js );
 		$this->assertStringContainsString( 'import( PPTX_LIB )', $js, 'A dynamic import: nothing is downloaded for other documents.' );
@@ -461,7 +465,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
 
 		$this->assertSame( '', devportfolio_document_modal_payload( $id )['viewerUrl'] );
-		$this->assertStringContainsString( 'const pdfFirst = selectableText && Boolean( doc.viewerUrl )', $this->read( 'blocks/document-modal/viewer.js' ) );
+		$this->assertStringContainsString( 'if ( selectableText && Boolean( doc.viewerUrl ) )', $this->read( 'blocks/document-modal/viewer.js' ) );
 	}
 
 	public function test_css_for_the_native_viewer(): void {

@@ -56,6 +56,10 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	private function read( string $relative ): string {
 		$contents = file_get_contents( $this->theme_dir() . '/' . $relative );
+		if ( 'blocks/document-modal/viewer.js' === $relative ) {
+			// The page sources and the status line moved to page-source.js and status.js (DPD-021): the viewer is read as one piece.
+			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' );
+		}
 		$this->assertNotFalse( $contents, $relative );
 		return $contents;
 	}
@@ -324,7 +328,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	public function test_viewer_draws_pdf_pages_with_a_text_layer_first_when_text_is_selectable(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 		$this->assertStringContainsString( 'selectableText = false', $js );
-		$this->assertStringContainsString( 'const pdfFirst = selectableText && Boolean( doc.viewerUrl )', $js );
+		$this->assertStringContainsString( 'if ( selectableText && Boolean( doc.viewerUrl ) )', $js );
 		$this->assertStringContainsString( 'selectableText ? lib.TextLayer : null', $js );
 		$this->assertStringContainsString( "layer.style.setProperty( '--scale-factor'", $js );
 		$this->assertStringContainsString( 'page.streamTextContent()', $js );
@@ -446,9 +450,9 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	public function test_viewer_script_page_markup(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
-		$this->assertStringContainsString( "el.className = 'documents-modal__page'", $js );
-		$this->assertStringContainsString( "sheet.className = 'documents-modal__sheet'", $js );
-		$this->assertStringContainsString( "number.className = 'documents-modal__pn'", $js );
+		$this->assertStringContainsString( "el( 'div', 'documents-modal__page'", $js );
+		$this->assertStringContainsString( "el( 'div', 'documents-modal__sheet' )", $js );
+		$this->assertStringContainsString( "el( 'span', 'documents-modal__pn'", $js );
 		$this->assertStringContainsString( 'number.textContent = String( i + 1 )', $js );
 		$this->assertStringContainsString( "'documents-modal__page--left', step === 2 && i % 2 === 0", $js );
 		$this->assertStringContainsString( "'documents-modal__page--right', step === 2 && i % 2 === 1", $js );
@@ -457,9 +461,9 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	public function test_viewer_script_decision_order(): void {
 		$js = $this->read( 'blocks/document-modal/viewer.js' );
 		// Default order (the else branch of the selectable-text switch): stored images, then pdf.js.
-		$default = (int) strpos( $js, '} else {' . "\n\t\t\t\t\t" . 'next = await tryImages( doc, alive )' );
-		$images  = strpos( $js, 'next = await tryImages( doc, alive )', $default );
-		$pdf     = strpos( $js, 'await tryPdf( doc, alive )', $default );
+		$default = (int) strpos( $js, '} else {' . "\n\t\t" . 'images = await tryImages( doc, alive, limits )' );
+		$images  = strpos( $js, 'images = await tryImages( doc, alive, limits )', $default );
+		$pdf     = strpos( $js, 'pdf = await tryPdf( doc, alive, options )', $default );
 		$this->assertGreaterThan( 0, $default );
 		$this->assertNotFalse( $images );
 		$this->assertNotFalse( $pdf );

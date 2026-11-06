@@ -21,14 +21,16 @@
  * book (drag, corner click), and view.js tells it where to go.
  */
 import { stepFor, normalisePage } from './pager.js';
-import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, isSpreadsheet } from './mode.js';
-import { fitPage, orientationOf, renderWindow, canvasScale } from './layout.js';
-import { clientRenderTier, budgetFor, readEnvironment, markFailure, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
+import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js';
+import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
+import { swipeDirection } from './gestures.js';
+import { createTouchZoom } from './touch-zoom.js';
+import { createStatus } from './status.js';
+import { svgIcon } from './dom.js';
+import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
+import { withTimeout, rememberFailure, acquireSource, buildPageEls, mountWindow } from './page-source.js';
 
 const FLIP_SRC = new URL( './vendor/page-flip.browser.js', import.meta.url ).href;
-
-/** pdf.js errors that mean "this file is bad", not "this browser can't render". */
-const DOCUMENT_ERRORS = [ 'PasswordException', 'InvalidPDFException', 'MissingPDFException', 'UnexpectedResponseException', 'FormatError' ];
 
 /**
  * The bundled PPTX viewer (vendor/ooxml/, @silurus/ooxml); imported lazily, only for a document the native
@@ -92,184 +94,6 @@ function loadFlipLibrary() {
 	return flipLibrary;
 }
 
-function withTimeout( promise, ms, onTimeout ) {
-	return new Promise( ( resolve, reject ) => {
-		const timer = setTimeout( () => {
-			if ( onTimeout ) {
-				onTimeout();
-			}
-			reject( new Error( 'timeout' ) );
-		}, ms );
-		promise.then(
-			( value ) => {
-				clearTimeout( timer );
-				resolve( value );
-			},
-			( error ) => {
-				clearTimeout( timer );
-				reject( error );
-			}
-		);
-	} );
-}
-
-/** Loads one image; resolves with it, or rejects if it cannot be loaded. */
-function loadImage( url ) {
-	return new Promise( ( resolve, reject ) => {
-		const img = new Image();
-		img.decoding = 'async';
-		img.onload = () => resolve( img );
-		img.onerror = () => reject( new Error( 'image failed' ) );
-		img.src = url;
-	} );
-}
-
-const sheetOf = ( pageEl ) => pageEl.querySelector( '.documents-modal__sheet' );
-
-/** Stored page images: one <img> per page, drawn when the page enters the window. */
-function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
-	return {
-		kind: 'images',
-		count: urls.length,
-		ratio,
-		// Share of each image's height hidden at the bottom (empty space, see the plugin's page analysis).
-		crop: crop > 0 ? crop : 0,
-		maxPageW: imageWidth > 0 ? imageWidth : Infinity,
-		mount( index, pageEl ) {
-			const sheet = sheetOf( pageEl );
-			if ( sheet.firstChild ) {
-				return Promise.resolve();
-			}
-			const img = preloaded[ index ] || new Image();
-			img.alt = '';
-			img.decoding = 'async';
-			img.draggable = false;
-			// A page whose image cannot be loaded is marked, instead of staying a silent blank sheet.
-			img.onerror = () => pageEl.classList.add( 'documents-modal__page--broken' );
-			if ( ! img.src ) {
-				img.src = urls[ index - 1 ];
-			}
-			sheet.replaceChildren( img );
-			return Promise.resolve();
-		},
-		// Images are never released and need no redraw on resize (the same interface as the pdf source).
-		mounted: () => [],
-		release() {},
-		destroy() {},
-	};
-}
-
-/** pdf.js pages: a canvas per page, drawn at the page's display size and released when far away. */
-function pdfSource( pdf, ratio, TextLayer ) {
-	const drawn = new Map();
-
-	const release = ( index, pageEl ) => {
-		const entry = drawn.get( index );
-		if ( ! entry ) {
-			return;
-		}
-		entry.cancelled = true;
-		try {
-			if ( entry.task ) {
-				entry.task.cancel();
-			}
-			if ( entry.text ) {
-				entry.text.cancel();
-			}
-		} catch ( e ) {
-			// Already finished.
-		}
-		if ( entry.canvas ) {
-			entry.canvas.width = 0;
-			entry.canvas.height = 0;
-		}
-		if ( pageEl ) {
-			sheetOf( pageEl ).replaceChildren();
-		}
-		drawn.delete( index );
-	};
-
-	/** Draws one page into its sheet. Throws on a real failure; mount() classifies teardown errors. */
-	const draw = async ( index, pageEl, ctx, entry ) => {
-		const page = await pdf.getPage( index );
-		if ( entry.cancelled ) {
-			return;
-		}
-		const base = page.getViewport( { scale: 1 } );
-		const fit = Math.min( ctx.pageW / base.width, ctx.pageH / base.height );
-		const viewport = page.getViewport( { scale: fit * ctx.scale } );
-		const canvas = document.createElement( 'canvas' );
-		canvas.width = Math.max( 1, Math.floor( viewport.width ) );
-		canvas.height = Math.max( 1, Math.floor( viewport.height ) );
-		// Beats StPageFlip's own "canvas fills its parent" rule, so a page whose
-		// shape differs from page 1 is letterboxed instead of stretched.
-		canvas.style.cssText = `position:static;width:${ Math.floor( base.width * fit ) }px;height:${ Math.floor( base.height * fit ) }px`;
-		const context = canvas.getContext( '2d' );
-		if ( ! context ) {
-			throw new Error( 'canvas unavailable' );
-		}
-		entry.canvas = canvas;
-		entry.task = page.render( { canvasContext: context, viewport } );
-		await entry.task.promise;
-		if ( entry.cancelled ) {
-			return;
-		}
-		let content = canvas;
-		if ( TextLayer ) {
-			// Real text over the canvas, at the page's display size (pdf.js sizes it from --scale-factor).
-			content = document.createElement( 'div' );
-			content.className = 'documents-modal__pdf-page';
-			content.style.width = canvas.style.width;
-			content.style.height = canvas.style.height;
-			const layer = document.createElement( 'div' );
-			layer.className = 'documents-modal__text';
-			layer.style.setProperty( '--scale-factor', String( fit ) );
-			content.append( canvas, layer );
-			entry.text = new TextLayer( {
-				textContentSource: page.streamTextContent(),
-				container: layer,
-				viewport: page.getViewport( { scale: fit } ),
-			} );
-			await entry.text.render();
-			if ( entry.cancelled ) {
-				return;
-			}
-		}
-		sheetOf( pageEl ).replaceChildren( content );
-		page.cleanup();
-	};
-
-	return {
-		kind: 'pdf',
-		// True when pages carry a real text layer: the book then leaves the mouse to the text.
-		textLayer: Boolean( TextLayer ),
-		count: pdf.numPages,
-		ratio,
-		maxPageW: Infinity,
-		mount( index, pageEl, ctx ) {
-			if ( drawn.has( index ) ) {
-				return drawn.get( index ).done;
-			}
-			const entry = { cancelled: false, task: null, text: null, canvas: null, done: null };
-			drawn.set( index, entry );
-			entry.done = draw( index, pageEl, ctx, entry ).catch( ( error ) => {
-				// Torn down by us (page released, document closed, pdf.js destroyed mid-render): not a failure.
-				if ( entry.cancelled || isBenignRenderError( error ) ) {
-					return;
-				}
-				throw error;
-			} );
-			return entry.done;
-		},
-		release,
-		has: ( index ) => drawn.has( index ),
-		mounted: () => [ ...drawn.keys() ],
-		destroy() {
-			[ ...drawn.keys() ].forEach( ( index ) => release( index, null ) );
-			pdf.destroy();
-		},
-	};
-}
 
 /**
  * @param {object}   options
@@ -281,13 +105,16 @@ function pdfSource( pdf, ratio, TextLayer ) {
  * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
  * @param {Function} options.onFlip      ( page ) A page turn made on the book itself.
  */
-export function createViewer( { stage, status, pdfjs, limits, units = null, selectableText = false, onGeometry, onFlip } ) {
+export function createViewer( { stage, status, pdfjs, limits, units = null, selectableText = false, onGeometry, onFlip, onSwipe = null } ) {
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
+	// Touch devices wider than 700px (a rotated phone, an unfolded foldable) get the desktop dialog: the book is
+	// then driven by swipe and pinch instead of the mouse, and one or two pages follow the space (DPD-024).
+	const coarse = window.matchMedia( '(pointer: coarse)' );
 	// The book is not a live region: dozens of page labels would be announced at once.
 	// Loading and "can't be previewed" are announced by the status element (role="status").
 	stage.removeAttribute( 'aria-live' );
-	const textEl = status.querySelector( '.documents-modal__state-text' );
-	const hintEl = status.querySelector( '.documents-modal__state-hint' );
+	const statusView = createStatus( { stage, status } );
+	const setStatus = ( kind ) => statusView.set( kind );
 
 	let session = 0;
 	let unit = 'page';
@@ -297,7 +124,6 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	let pptxBusy = false;
 	let pptxCount = 0;
 	let grid = null;
-	let hintKey = 'hint';
 	let source = null;
 	let budget = null;
 	let usedPdf = false;
@@ -324,24 +150,14 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	};
 
 	const showZoomFab = ( viewer ) => {
-		const makeZoomIcon = ( pathData ) => {
-			const svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' );
-			svg.setAttribute( 'class', 'documents-modal__icon' );
-			svg.setAttribute( 'viewBox', '0 0 24 24' );
-			svg.setAttribute( 'aria-hidden', 'true' );
-			svg.setAttribute( 'focusable', 'false' );
-			const path = document.createElementNS( 'http://www.w3.org/2000/svg', 'path' );
-			path.setAttribute( 'd', pathData );
-			svg.appendChild( path );
-			return svg;
-		};
+
 		const zoomIn = document.createElement( 'button' );
 		zoomIn.type = 'button';
 		zoomIn.className = 'documents-modal__zoom-button';
 		zoomIn.dataset.zoom = 'in';
 		zoomIn.setAttribute( 'aria-label', 'Zoom in' );
 		zoomIn.title = 'Zoom in';
-		zoomIn.appendChild( makeZoomIcon( 'M12 5v14M5 12h14' ) );
+		zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
 
 		const zoomOut = document.createElement( 'button' );
 		zoomOut.type = 'button';
@@ -349,7 +165,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		zoomOut.dataset.zoom = 'out';
 		zoomOut.setAttribute( 'aria-label', 'Zoom out' );
 		zoomOut.title = 'Zoom out';
-		zoomOut.appendChild( makeZoomIcon( 'M5 12h14' ) );
+		zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
 
 		zoomFab = document.createElement( 'div' );
 		zoomFab.className = 'documents-modal__zoom-fab';
@@ -376,21 +192,6 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		if ( zoomFab ) {
 			zoomFab.remove();
 			zoomFab = null;
-		}
-	};
-
-	const setStatus = ( kind ) => {
-		if ( ! kind ) {
-			// Hide first, then clear, so nothing is announced as it goes away.
-			status.hidden = true;
-		}
-		status.dataset.kind = kind || '';
-		textEl.textContent = kind === 'loading' ? status.dataset.loading : kind === 'unavailable' ? status.dataset.unavailable : '';
-		hintEl.textContent = kind === 'unavailable' ? ( status.dataset[ hintKey ] || status.dataset.hint ) : '';
-		stage.setAttribute( 'aria-busy', kind === 'loading' ? 'true' : 'false' );
-		if ( kind ) {
-			// The text is in place before the region appears, so a screen reader announces it.
-			status.hidden = false;
 		}
 	};
 
@@ -457,20 +258,10 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 	/** One white page per document page, kept across rebuilds so drawn pages are not lost. */
 	const buildPages = ( count ) => {
-		pageEls = Array.from( { length: count }, ( _, i ) => {
-			const el = document.createElement( 'div' );
-			el.className = 'documents-modal__page';
-			el.setAttribute( 'role', 'img' );
-			el.setAttribute( 'aria-label', pieceLabel( words, i + 1, count ) );
-			el.dataset.density = 'soft';
-			const sheet = document.createElement( 'div' );
-			sheet.className = 'documents-modal__sheet';
-			const number = document.createElement( 'span' );
-			number.className = 'documents-modal__pn';
-			number.setAttribute( 'aria-hidden', 'true' );
-			number.textContent = String( i + 1 );
-			el.append( sheet, number );
-			return el;
+		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ) );
+		// StPageFlip bends a 'soft' page like paper.
+		pageEls.forEach( ( page ) => {
+			page.dataset.density = 'soft';
 		} );
 	};
 
@@ -478,24 +269,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		if ( ! source || ! layout ) {
 			return Promise.resolve();
 		}
-		const { from, to } = renderWindow( page, source.count, step, budget.ahead );
-		const jobs = [];
-		for ( let index = from; index <= to; index++ ) {
-			jobs.push( source.mount( index, pageEls[ index - 1 ], layout ) );
-		}
-		source.mounted().forEach( ( index ) => {
-			if ( index < from || index > to ) {
-				source.release( index, pageEls[ index - 1 ] );
-			}
-		} );
-		return Promise.all( jobs );
-	};
-
-	/** Failure while drawing pages after the book is up. */
-	const rememberFailure = ( error ) => {
-		if ( ! DOCUMENT_ERRORS.includes( error && error.name ) && ! isBenignRenderError( error ) ) {
-			markFailure( safeStorage(), Date.now() );
-		}
+		return mountWindow( { source, layout, pageEls, page, step, ahead: budget.ahead } );
 	};
 
 	/**
@@ -540,6 +314,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		};
 
 		container = document.createElement( 'div' );
+		touchZoom.reset();
 		container.className = 'documents-modal__book';
 		container.classList.toggle( 'documents-modal__book--selectable', Boolean( source.textLayer ) );
 		if ( source.crop > 0 ) {
@@ -572,8 +347,8 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			flippingTime: reducedMotion.matches ? 1 : 600,
 			mobileScrollSupport: false,
 			// With selectable text the mouse belongs to the text: no dragging or corner hints to turn pages.
-			showPageCorners: ! reducedMotion.matches && ! source.textLayer,
-			useMouseEvents: ! source.textLayer,
+			showPageCorners: ! reducedMotion.matches && ! source.textLayer && ! coarse.matches,
+			useMouseEvents: ! source.textLayer && ! coarse.matches,
 			startPage: normalisePage( current, source.count, step ) - 1,
 		} );
 		flip.loadFromHTML( pageEls );
@@ -586,6 +361,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			// a page it already has (see syncFromViewer).
 			const page = normalisePage( Number( event.data ) + 1, source.count, step );
 			current = page;
+			touchZoom.reset();
 			draw( page );
 			onFlip( page );
 		} );
@@ -593,15 +369,131 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		return true;
 	};
 
+	/** One or two pages: by the document alone for a mouse, by the space available on a touch device (DPD-024). */
+	const stepForStage = ( src ) => {
+		const room = measure();
+		if ( coarse.matches && room.w >= 40 && room.h >= 40 ) {
+			return spreadFits( { stageW: room.w, stageH: room.h, ratio: src.ratio, pages: src.count } ) ? 2 : 1;
+		}
+		return stepFor( src.count, orientationOf( src.ratio, 1 ) );
+	};
+
+	// Touch on the book (coarse pointers only): swipe turns, pinch and double-tap zoom, a drag pans a zoomed book.
+	// StPageFlip's own mouse and corner handling is off there (see buildBook), so nothing turns twice.
+	const touchZoom = createTouchZoom( {
+		box: () => ( container ? { w: container.offsetWidth, h: container.offsetHeight } : { w: 1, h: 1 } ),
+		apply: ( zoom ) => {
+			if ( container ) {
+				container.style.transformOrigin = '0 0';
+				container.style.transform = zoom.scale === 1 ? '' : `translate(${ zoom.x }px, ${ zoom.y }px) scale(${ zoom.scale })`;
+			}
+		},
+	} );
+	const bindTouch = () => {
+		const pointers = new Map();
+		let gesture = null; // 'press' | 'pinch' | 'pan'
+		// Position relative to the book's untransformed top left corner (only for pointer positions, never sizes:
+		// the modal's opening animation moves the rect).
+		const local = ( event ) => {
+			const rect = stage.getClientRects()[ 0 ] || { left: 0, top: 0 };
+			return {
+				x: event.clientX - rect.left - ( container ? container.offsetLeft : 0 ),
+				y: event.clientY - rect.top - ( container ? container.offsetTop : 0 ),
+			};
+		};
+		const [ first, second ] = [ () => [ ...pointers.values() ][ 0 ], () => [ ...pointers.values() ][ 1 ] ];
+		stage.addEventListener( 'pointerdown', ( event ) => {
+			if ( ! coarse.matches || ! source || ! flip || event.pointerType === 'mouse' ) {
+				return;
+			}
+			pointers.set( event.pointerId, { ...local( event ), sx: event.clientX, sy: event.clientY, cx: event.clientX, cy: event.clientY, t: event.timeStamp } );
+			if ( pointers.size === 2 ) {
+				gesture = 'pinch';
+				touchZoom.startPinch( first(), second() );
+			} else if ( pointers.size === 1 ) {
+				gesture = 'press';
+				touchZoom.startPan();
+			}
+		} );
+		stage.addEventListener( 'pointermove', ( event ) => {
+			const entry = pointers.get( event.pointerId );
+			if ( ! entry || ! gesture ) {
+				return;
+			}
+			Object.assign( entry, local( event ), { cx: event.clientX, cy: event.clientY } );
+			if ( gesture === 'pinch' && pointers.size === 2 ) {
+				touchZoom.movePinch( first(), second() );
+			} else if ( pointers.size === 1 && touchZoom.isZoomed() ) {
+				gesture = 'pan';
+				touchZoom.movePan( event.clientX - entry.sx, event.clientY - entry.sy );
+			}
+		} );
+		const end = ( event, cancelled ) => {
+			const entry = pointers.get( event.pointerId );
+			if ( ! entry ) {
+				return;
+			}
+			pointers.delete( event.pointerId );
+			const done = gesture;
+			touchZoom.endPinch();
+			if ( pointers.size > 0 ) {
+				// One finger of a pinch lifted: carry on as a pan from where the other one is.
+				const rest = first();
+				rest.sx = rest.cx;
+				rest.sy = rest.cy;
+				gesture = 'press';
+				touchZoom.startPan();
+				return;
+			}
+			gesture = null;
+			if ( cancelled || done !== 'press' ) {
+				return;
+			}
+			const dx = event.clientX - entry.sx;
+			const dy = event.clientY - entry.sy;
+			const direction = touchZoom.isZoomed() ? 0 : swipeDirection( { dx, dy, dt: event.timeStamp - entry.t } );
+			if ( direction !== 0 ) {
+				if ( onSwipe ) {
+					onSwipe( direction );
+				}
+				return;
+			}
+			if ( Math.hypot( dx, dy ) < 10 ) {
+				touchZoom.tap( { t: event.timeStamp, x: entry.sx, y: entry.sy, zx: entry.x, zy: entry.y } );
+			}
+		};
+		stage.addEventListener( 'pointerup', ( event ) => end( event, false ) );
+		stage.addEventListener( 'pointercancel', ( event ) => end( event, true ) );
+	};
+	bindTouch();
+
+	// The book fades out while the screen is turning and back in once it has settled (no fade with reduced motion).
+	let fading = false;
+	const fadeBook = ( hidden ) => {
+		fading = hidden;
+		if ( ! container || reducedMotion.matches ) {
+			return;
+		}
+		container.style.transition = hidden ? 'opacity 120ms ease-out' : 'opacity 260ms ease-in';
+		container.style.opacity = hidden ? '0' : '';
+	};
+
 	const onResize = () => {
 		window.clearTimeout( resizeTimer );
 		const mine = session;
+		if ( source && container ) {
+			const moving = measure();
+			if ( Math.abs( moving.w - builtFor.w ) >= 2 || Math.abs( moving.h - builtFor.h ) >= 2 ) {
+				fadeBook( true );
+			}
+		}
 		resizeTimer = window.setTimeout( async () => {
 			if ( ! source || mine !== session ) {
 				return;
 			}
 			const size = measure();
 			if ( Math.abs( size.w - builtFor.w ) < 2 && Math.abs( size.h - builtFor.h ) < 2 ) {
+				fadeBook( false );
 				return;
 			}
 			try {
@@ -609,86 +501,34 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 				if ( ! source || mine !== session ) {
 					return;
 				}
+				if ( coarse.matches ) {
+					const nextStep = stepForStage( source );
+					if ( nextStep !== step ) {
+						step = nextStep;
+						current = onGeometry( { pages: source.count, step } );
+					}
+				}
 				// Canvases were drawn for the old size: draw them again at the new one.
 				source.mounted().forEach( ( index ) => source.release( index, pageEls[ index - 1 ] ) );
 				if ( buildBook( PageFlip, false ) ) {
-					await ensureWindow( current );
+					// The new book starts invisible and fades in once its pages are drawn.
+					if ( fading && ! reducedMotion.matches ) {
+						container.style.transition = 'none';
+						container.style.opacity = '0';
+					}
+					await Promise.race( [ ensureWindow( current ), new Promise( ( resolve ) => window.setTimeout( resolve, 1500 ) ) ] );
+					if ( mine === session && container ) {
+						// Let the invisible state paint first, so the fade is seen.
+						await new Promise( ( resolve ) => requestAnimationFrame( resolve ) );
+						fadeBook( false );
+					}
 				}
 			} catch ( error ) {
 				fail( error, mine );
+			} finally {
+				fading = false;
 			}
-		}, 150 );
-	};
-
-	/** Stored page images, or null when the first one cannot be loaded (then the PDF is tried). */
-	const tryImages = async ( doc, alive ) => {
-		if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
-			return null;
-		}
-		try {
-			const first = await withTimeout( loadImage( doc.images[ 0 ] ), limits.firstPageTimeoutMs );
-			if ( ! alive() ) {
-				return null;
-			}
-			// The server already limits the crop to 0 to 0.25.
-			const crop = Number( doc.cropBottom ) || 0;
-			// The payload ratio already accounts for the crop; measured from the image it has to be done here.
-			const ratio = doc.ratio > 0 ? doc.ratio : first.naturalWidth / Math.max( 1, first.naturalHeight * ( 1 - crop ) );
-			const preloaded = { 1: first };
-			// The first view must be whole: a spread needs its second page too. A broken one sends us to the PDF fallback.
-			if ( stepFor( doc.images.length, orientationOf( ratio, 1 ) ) === 2 ) {
-				preloaded[ 2 ] = await withTimeout( loadImage( doc.images[ 1 ] ), limits.firstPageTimeoutMs );
-				if ( ! alive() ) {
-					return null;
-				}
-			}
-			return imageSource( doc.images, ratio, Number( doc.imageWidth ) || 0, preloaded, crop );
-		} catch ( e ) {
-			return null;
-		}
-	};
-
-	/** pdf.js in the browser, or null when the gate refuses this device. Throws on a real failure. */
-	const tryPdf = async ( doc, alive ) => {
-		if ( ! doc.viewerUrl || ! pdfjs || ! pdfjs.module || ! pdfjs.worker ) {
-			return null;
-		}
-		const verdict = clientRenderTier( readEnvironment( window, limits.failureTtlDays ), limits, { pdfBytes: doc.pdfBytes, pages: doc.pages } );
-		if ( verdict.tier === 'refused' ) {
-			return null;
-		}
-
-		try {
-			const lib = await import( pdfjs.module );
-			if ( ! alive() ) {
-				return null;
-			}
-			lib.GlobalWorkerOptions.workerSrc = pdfjs.worker;
-			const task = lib.getDocument( { url: doc.viewerUrl, isEvalSupported: false } );
-			let pdf;
-			try {
-				pdf = await withTimeout( task.promise, limits.firstPageTimeoutMs, () => task.destroy() );
-			} catch ( error ) {
-				task.destroy();
-				throw error;
-			}
-			if ( ! alive() ) {
-				pdf.destroy();
-				return null;
-			}
-			let viewport;
-			try {
-				const first = await pdf.getPage( 1 );
-				viewport = first.getViewport( { scale: 1 } );
-			} catch ( error ) {
-				pdf.destroy();
-				throw error;
-			}
-			return { source: pdfSource( pdf, viewport.width / viewport.height, selectableText ? lib.TextLayer : null ), budget: budgetFor( verdict.tier, limits ) };
-		} catch ( error ) {
-			// Tag it, so a failure of the PDF path (not of the stored images) is remembered.
-			throw Object.assign( new Error( String( error && error.message ) ), { name: error && error.name, fromPdf: true } );
-		}
+		}, 250 );
 	};
 
 	/**
@@ -961,7 +801,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			const mine = ++session;
 			const alive = () => mine === session;
 			unit = unitOf( doc );
-			hintKey = unit === 'slide' ? 'hintSlide' : ( isSpreadsheet( doc ) ? 'hintSheet' : ( doc.kind === 'docx' ? 'hintDoc' : 'hint' ) );
+			statusView.setHintKey( hintKeyFor( doc ) );
 			words = wording( unit, units );
 			current = page;
 			usedPdf = false;
@@ -987,39 +827,18 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			let next = null;
 			try {
 				let nextBudget = budget;
-				// Selectable text needs real text, which only pdf.js gives: try it first, and fall back to the
-				// stored images (not selectable) when it is refused or fails. Otherwise images first, pdf.js as the fallback.
-				const pdfFirst = selectableText && Boolean( doc.viewerUrl );
-				let pdf = null;
-
-				if ( pdfFirst ) {
-					try {
-						pdf = await tryPdf( doc, alive );
-					} catch ( error ) {
-						if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
-							throw error;
-						}
-						rememberFailure( error );
-					}
-					if ( alive() && ! pdf ) {
-						next = await tryImages( doc, alive );
-					}
-				} else {
-					next = await tryImages( doc, alive );
-					if ( alive() && ! next ) {
-						pdf = await tryPdf( doc, alive );
-					}
-				}
-
+				const got = await acquireSource( doc, alive, { pdfjs, limits, selectableText } );
 				if ( ! alive() ) {
-					if ( pdf ) {
-						pdf.source.destroy();
+					if ( got ) {
+						got.source.destroy();
 					}
 					return;
 				}
-				if ( pdf ) {
-					next = pdf.source;
-					nextBudget = pdf.budget;
+				if ( got ) {
+					next = got.source;
+					if ( got.budget ) {
+						nextBudget = got.budget;
+					}
 				}
 				if ( ! next ) {
 					unavailable();
@@ -1038,7 +857,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 				usedPdf = next.kind === 'pdf';
 				next = null;
 
-				step = stepFor( source.count, orientationOf( source.ratio, 1 ) );
+				step = stepForStage( source );
 				current = onGeometry( { pages: source.count, step } );
 				buildPages( source.count );
 

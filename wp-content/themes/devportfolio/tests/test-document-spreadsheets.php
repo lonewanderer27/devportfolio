@@ -223,7 +223,8 @@ class Devportfolio_Test_Document_Spreadsheets extends WP_UnitTestCase {
 		$this->assertStringContainsString( '.documents-modal__grid', $this->read( 'blocks/document-modal/view.js' ) );
 		$this->assertStringContainsString( 'data-hint-sheet=', $this->read( 'blocks/document-modal/render.php' ) );
 		$this->assertStringContainsString( 'Download the file to open it in Excel', $this->read( 'blocks/document-modal/render.php' ) );
-		$this->assertStringContainsString( "'hintSheet'",$this->read( 'blocks/document-modal/viewer.js' ) );
+		$this->assertStringContainsString( "'hintSheet'", $this->read( 'blocks/document-modal/mode.js' ) );
+		$this->assertStringContainsString( 'hintKeyFor( doc )', $this->read( 'blocks/document-modal/viewer.js' ) );
 		$this->assertStringContainsString( '.documents-modal__grid {', $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( 'nativeMaxCells', $this->read( 'blocks/document-modal/capability.js' ) );
 	}
