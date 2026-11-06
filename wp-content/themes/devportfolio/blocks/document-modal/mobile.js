@@ -102,8 +102,8 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		if ( event.target && event.target.closest && event.target.closest( 'input, textarea, select, [contenteditable]' ) ) {
 			return;
 		}
-		// The native workbook grid (DPD-030) owns the arrow, zoom and 0 keys while it has the focus.
-		if ( event.target && event.target.closest && event.target.closest( '.documents-mobile__grid' ) ) {
+		// The native workbook grid and Word scroller (DPD-030, DPD-031) own the arrow, zoom and 0 keys while it has the focus.
+		if ( event.target && event.target.closest && event.target.closest( '.documents-mobile__scroll' ) ) {
 			return;
 		}
 		if ( ! event.shiftKey && ( event.key === 'ArrowLeft' || event.key === 'ArrowRight' ) ) {

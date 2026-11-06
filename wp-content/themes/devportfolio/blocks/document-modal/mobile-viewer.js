@@ -10,8 +10,8 @@
  *
  * Touch: swipe, tap the outer 20% of either side, double-tap (centre) or pinch to zoom, drag to pan a
  * zoomed page. Keys: left and right arrows turn (mobile.js), + - 0 zoom (accessibility). PDFs,
- * presentations (DPD-029) and workbooks (DPD-030); word documents show "can't be previewed" until they have
- * their own ticket.
+ * presentations (DPD-029), workbooks (DPD-030) and word documents (DPD-031); only an unknown kind shows
+ * "can't be previewed".
  *
  * A .pptx with Native viewer > PowerPoint on is drawn from the original file on one canvas (native-pptx.js,
  * the same mount as the desktop modal, same limits) with selectable text; the turn is then a redraw in
@@ -22,20 +22,27 @@
  *
  * A .xlsx with Native viewer > Excel on is drawn by the library's own grid (native-xlsx.js, same limits): one
  * piece with its own scrolling, zoom and sheet tabs, so none of the page gestures or the footer apply (DPD-030).
+ * A .docx with Native viewer > Word on is drawn the same way by the library's scrolling page flow
+ * (native-docx.js): one piece, its own scrolling, selection and zoom (DPD-031).
  */
 import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 import { acquireSource, rememberFailure, withTimeout, buildPageEls, mountWindow } from './page-source.js';
 import { normalisePage, turnPage } from './pager.js';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, canDrawOffice, hintKeyFor } from './mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canShowOnMobile, nativeAllowedOnMobile, isNativeScroll, canDrawOffice, hintKeyFor } from './mode.js';
 import { readNativeEnvironment, openPptx } from './native-pptx.js';
 import { openXlsx } from './native-xlsx.js';
+import { openDocx } from './native-docx.js';
 import { classifyTap, swipeDirection, verticalIntent, zoomPercent, ZOOM_MIN, ZOOM_MAX } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
 import { el, svgIcon } from './dom.js';
 
 let uid = 0;
+
+// The Word scroller's zoom range (the same limits as the desktop zoom buttons in viewer.js).
+const NATIVE_ZOOM_MIN = 0.1;
+const NATIVE_ZOOM_MAX = 4;
 
 /**
  * @param {object}   options
@@ -69,9 +76,9 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	let pageEls = [];
 	// The native PowerPoint viewer when it draws the document: { instance, box, canvas, count } (DPD-029).
 	let native = null;
-	// The native Excel grid when it draws the workbook: { instance, box } (DPD-030). It is one piece with its
-	// own scrolling, zoom and sheet tabs, so no frame, gestures, zoom buttons, hints or footer are built for it.
-	let gridView = null;
+	// The native Excel grid or Word scroller when it draws the document: { instance, box } (DPD-030, DPD-031).
+	// It is one piece with its own scrolling and zoom, so no frame, gestures, hints or footer are built for it.
+	let scrollView = null;
 	let step = 1;
 	let current = 1;
 	let layout = null;
@@ -104,15 +111,15 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			source = null;
 		}
 		native = null;
-		if ( gridView ) {
+		if ( scrollView ) {
 			try {
-				gridView.instance.destroy();
+				scrollView.instance.destroy();
 			} catch ( e ) {
 				// Already gone.
 			}
-			gridView = null;
+			scrollView = null;
 		}
-		stage.classList.remove( 'documents-mobile__stage--grid' );
+		stage.classList.remove( 'documents-mobile__stage--scroll', 'documents-mobile__stage--doc' );
 		stage.style.removeProperty( '--documents-grid-bar' );
 		pageEls = [];
 		layout = null;
@@ -264,7 +271,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	}
 
 	function syncControls() {
-		if ( ui && gridView ) {
+		if ( ui && scrollView ) {
 			// Only the details button: the footer is gone (one piece) and the library has its own zoom and tabs.
 			ui.fab.hidden = ! ( chrome.info && hasDetails );
 			ui.fabs.hidden = ui.fab.hidden;
@@ -819,30 +826,60 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	/* ---- native Excel (DPD-030) ----------------------------------------------------------- */
 
 	/**
-	 * Draws a .xlsx from the original file with the library's own grid (the same mount as the desktop modal,
-	 * native-xlsx.js, same limits). The grid brings scrolling, zoom, sheet tabs and cell selection, so it is
-	 * mounted OUTSIDE the swipe/zoom frame: no page gestures, edge taps, zoom buttons or hints are built, and
-	 * it reports one piece, so the footer and progress bar stay hidden, as on desktop (the sheet tabs are the
-	 * navigation). Only the details button is kept, lifted above the library's tab bar (CSS, --documents-grid-bar).
-	 * Returns false when it cannot be drawn: the caller then shows the stored sheets, or "can't be previewed".
+	 * Draws a .xlsx (the library's own grid) or a .docx (its scrolling page flow) from the original file, the
+	 * same mounts as the desktop modal (native-xlsx.js, native-docx.js, same limits). Both bring their own
+	 * scrolling, zoom and selection, so each is mounted OUTSIDE the swipe/zoom frame: no page gestures, edge
+	 * taps or hints are built, and it reports one piece, so the footer and progress bar stay hidden, as on
+	 * desktop. The details button is kept. A workbook's tab bar is lifted clear of it (CSS,
+	 * --documents-grid-bar); a document gets round zoom buttons wired to the library's zoom instead.
+	 * Returns false when it cannot be drawn: the caller then shows the stored pages, or "can't be previewed".
 	 */
-	const showGrid = async ( doc, alive ) => {
+	const showScroll = async ( doc, alive ) => {
 		if ( ! canDrawOffice( readNativeEnvironment() ) ) {
 			return false;
 		}
+		const isDoc = doc.kind === 'docx';
 		const mine = session;
 		let opened = false;
 		let instance = null;
-		const box = el( 'div', 'documents-mobile__grid', { role: 'group', 'aria-label': doc.title || '' } );
+		const box = el( 'div', `documents-mobile__scroll${ isDoc ? ' documents-mobile__scroll--doc' : '' }`, { role: 'group', 'aria-label': doc.title || '' } );
 		box.style.visibility = 'hidden';
 		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
 		const { fab, pagesFab, panel, fabs } = makeDetails();
 		pagesFab.hidden = true;
-		stage.classList.add( 'documents-mobile__stage--grid' );
+		stage.classList.add( 'documents-mobile__stage--scroll' );
+		stage.classList.toggle( 'documents-mobile__stage--doc', isDoc );
 		stage.append( box, fabs, live );
 		ui = { fab, pagesFab, fabs, panel, live };
 
-		/** The library's tab bar is its only chrome at the bottom: keep the buttons clear of it. */
+		/** A document: round zoom buttons call the library's zoom (text stays sharp, selection stays aligned). */
+		const buildZoom = () => {
+			const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
+			zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
+			const zoomOut = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
+			zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
+			const group = el( 'div', 'documents-mobile__zoomfabs', { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
+			group.append( zoomIn, zoomOut );
+			const sync = () => {
+				if ( typeof instance.getScale === 'function' ) {
+					const scale = instance.getScale();
+					zoomOut.disabled = scale <= NATIVE_ZOOM_MIN;
+					zoomIn.disabled = scale >= NATIVE_ZOOM_MAX;
+				}
+			};
+			const stepBy = ( method ) => () => {
+				if ( instance && typeof instance[ method ] === 'function' ) {
+					instance[ method ]();
+					sync();
+				}
+			};
+			zoomIn.addEventListener( 'click', stepBy( 'zoomIn' ) );
+			zoomOut.addEventListener( 'click', stepBy( 'zoomOut' ) );
+			stage.appendChild( group );
+			sync();
+		};
+
+		/** A workbook's library tab bar is its only chrome at the bottom: keep the buttons clear of it. */
 		const syncBar = () => {
 			const strip = box.querySelector( '.xlsx-tab-strip' );
 			const bar = strip && strip.parentElement ? strip.parentElement.offsetHeight : 0;
@@ -852,7 +889,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		};
 
 		try {
-			instance = await openXlsx( {
+			instance = await ( isDoc ? openDocx : openXlsx )( {
 				host: box,
 				doc,
 				limits,
@@ -864,7 +901,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 				},
 				// From here reset() can free it, so closing mid-load cannot leave a worker running.
 				onCreate: ( created ) => {
-					gridView = { instance: created, box };
+					scrollView = { instance: created, box };
 				},
 			} );
 			if ( ! instance || ! alive() ) {
@@ -875,10 +912,14 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			box.style.visibility = '';
 			setStatus( null );
 			syncControls();
-			syncBar();
+			if ( isDoc ) {
+				buildZoom();
+			} else {
+				syncBar();
+				observer = new ResizeObserver( syncBar );
+				observer.observe( box );
+			}
 			opened = true;
-			observer = new ResizeObserver( syncBar );
-			observer.observe( box );
 			return true;
 		} catch ( error ) {
 			if ( alive() ) {
@@ -906,14 +947,14 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			budget = budgetFor( 'full', limits );
 
 			if ( ! canShowOnMobile( doc ) ) {
-				// Word documents (DPD-031) on mobile have their own ticket.
+				// An unknown kind: nothing to draw.
 				unavailable();
 				return;
 			}
 			setStatus( 'loading' );
 
 			if ( nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native' ) {
-				const drawn = await ( isNativeGrid( doc ) ? showGrid( doc, alive ) : showNative( doc, alive ) );
+				const drawn = await ( isNativeScroll( doc ) ? showScroll( doc, alive ) : showNative( doc, alive ) );
 				if ( drawn || ! alive() ) {
 					return;
 				}

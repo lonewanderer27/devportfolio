@@ -3,9 +3,9 @@
  * (DPD-026). No DOM access, so they can be tested with `node --test`.
  *
  * Modes, in the order they win:
- *  - `native`      the plugin's Native viewer setting is on for a .pptx or .xlsx: the bundled viewer draws
- *                  the original file in the visitor's browser (slides on a canvas with selectable text, or a
- *                  scrollable spreadsheet grid). The stored images stay its fallback (viewer.js shows them
+ *  - `native`      the plugin's Native viewer setting is on for a .pptx, .xlsx or .docx: the bundled viewer
+ *                  draws the original file in the visitor's browser (slides on a canvas with selectable text,
+ *                  a scrollable spreadsheet grid, or a scrolling page flow with selectable text). The stored images stay its fallback (viewer.js shows them
  *                  when it cannot draw the file).
  *  - `images`      stored page images exist (a PDF, or converted slides): the open book.
  *  - `pdf`         no images, but the browser can render the PDF itself (pdf.js fallback).
@@ -77,7 +77,7 @@ export function positionText( words, first, last, count ) {
 }
 
 /**
- * Whether this browser can run the bundled Office viewers (PPTX and XLSX): WebAssembly (the parser),
+ * Whether this browser can run the bundled Office viewers (PPTX, XLSX and DOCX): WebAssembly (the parser),
  * workers (it parses off the main thread) and a 2D canvas. `env` is read once by the caller so this
  * stays testable with plain objects.
  */
@@ -85,40 +85,41 @@ export function canDrawOffice( env ) {
 	return !! env && env.webassembly === true && env.worker === true && env.canvas2d === true;
 }
 
-/** The name the presentation viewer used before spreadsheets joined it. */
-export const canDrawPresentations = canDrawOffice;
-
-/** Whether a payload entry is a PDF. */
-export function isMobilePdf( doc ) {
-	return !! doc && doc.kind === 'pdf';
-}
-
 /**
- * Whether the mobile body draws this document: PDFs (DPD-021), presentations (DPD-029, converted slides,
- * and the native viewer for a .pptx) and workbooks (DPD-030, converted sheets, and the native grid for a
- * .xlsx). Word documents (DPD-031) have their own ticket and show "can't be previewed" until then. This
- * is the one gate to widen.
+ * Whether the mobile body draws this document: every kind the modal knows. PDFs (DPD-021), presentations
+ * (DPD-029), workbooks (DPD-030) and word documents (DPD-031) are drawn from their stored pages, or from the
+ * original file when a native viewer applies. Only an unknown kind says "can't be previewed". This is the
+ * one gate to widen.
  */
 export function canShowOnMobile( doc ) {
-	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) );
+	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) || isWord( doc ) );
 }
 
 /**
- * Whether the mobile body may try a native viewer: a .pptx (slides on a canvas) or a .xlsx (the library's
- * grid) that carries a `nativeUrl`. Same limits as desktop (the plugin's size ceiling and the timeout),
- * no mobile-only cap.
+ * Whether the mobile body may try a native viewer: a .pptx (slides on a canvas), a .xlsx (the library's
+ * grid) or a .docx (its scrolling page flow) that carries a `nativeUrl`. Same limits as desktop (the
+ * plugin's size ceiling and the timeout), no mobile-only cap. `.ppt`, `.odp`, `.xls`, `.ods`, `.doc` and
+ * `.odt` never qualify: the library cannot read them.
  */
 export function nativeAllowedOnMobile( doc ) {
-	return !! doc && ( doc.kind === 'pptx' || doc.kind === 'xlsx' ) && typeof doc.nativeUrl === 'string' && doc.nativeUrl !== '';
+	return !! doc && ( doc.kind === 'pptx' || doc.kind === 'xlsx' || doc.kind === 'docx' ) && typeof doc.nativeUrl === 'string' && doc.nativeUrl !== '';
 }
 
 /**
- * Whether the native viewer draws this document as a workbook grid: the grid brings its own scrolling,
- * zoom and sheet tabs, so for the modal it is one piece (no page turner, no footer) and the page gestures
- * are not bound to it.
+ * Whether the native viewer draws this document as a workbook grid: the grid has sheet tabs at the bottom
+ * the round buttons must stay clear of.
  */
 export function isNativeGrid( doc ) {
 	return !! doc && doc.kind === 'xlsx' && nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native';
+}
+
+/**
+ * Whether the native viewer brings its own scrolling, zoom and selection (a workbook grid or a .docx
+ * scroller): for the modal it is one piece (no page turner, no footer) and the page gestures are not bound
+ * to it.
+ */
+export function isNativeScroll( doc ) {
+	return !! doc && ( doc.kind === 'xlsx' || doc.kind === 'docx' ) && nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native';
 }
 
 /**

@@ -1263,15 +1263,15 @@ html[data-documents-swapping] .documents-shelf__plank {
 	-webkit-touch-callout: default;
 }
 
-/* A .xlsx drawn by the library's own grid on mobile (DPD-030). It fills the stage OUTSIDE the swipe/zoom frame,
+/* A .xlsx drawn by the library's own grid, or a .docx by its scrolling page flow, on mobile (DPD-030, DPD-031). It fills the stage OUTSIDE the swipe/zoom frame,
    so the grid keeps its own scroll, pinch and cell selection; it reports one piece, so there is no footer. The
    library's 30px tab bar (nav, sheet tabs, zoom) sits at the bottom of the grid and must stay clear: the details
    button is lifted above it (--documents-grid-bar is measured after mount) and the zoom buttons are not built. */
-.documents-mobile__stage--grid {
+.documents-mobile__stage--scroll {
 	touch-action: auto;
 }
 
-.documents-mobile__grid {
+.documents-mobile__scroll {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
@@ -1285,21 +1285,33 @@ html[data-documents-swapping] .documents-shelf__plank {
 	-webkit-touch-callout: default;
 }
 
-.documents-mobile__stage--grid .documents-mobile__fabs {
+.documents-mobile__stage--scroll .documents-mobile__fabs {
 	bottom: calc(var(--documents-grid-bar, 30px) + 12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* A document has no tab bar: the buttons keep the normal inset, and its zoom buttons sit bottom left. */
+.documents-mobile__stage--doc .documents-mobile__fabs,
+.documents-mobile__stage--doc .documents-mobile__zoomfabs {
+	bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* The scroller's host scrolls (as the desktop wrapper does). */
+.documents-mobile__scroll--doc {
+	overflow: auto;
+	background: var(--dm-stage, #eee);
 }
 
 /* Thumb-sized tab bar: the library sets 30px inline on the bar (the parent of the tab strip), so this needs
    !important. The details button follows the measured height. */
 @media (pointer: coarse) {
-	.documents-mobile__grid :has( > .xlsx-tab-strip ) {
+	.documents-mobile__scroll :has( > .xlsx-tab-strip ) {
 		height: 40px !important;
 	}
 }
 
 /* Held sideways there is no header: Close and Download float over the top corners, so the grid starts below them. */
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
-	.documents-mobile__grid {
+	.documents-mobile__scroll {
 		top: calc(max(12px, env(safe-area-inset-top, 0px)) + 38px + 8px);
 		left: max(0px, env(safe-area-inset-left, 0px));
 		right: max(0px, env(safe-area-inset-right, 0px));
