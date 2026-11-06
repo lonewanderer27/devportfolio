@@ -1281,6 +1281,12 @@ html[data-documents-swapping] .documents-shelf__plank {
 		left: max(0px, env(safe-area-inset-left, 0px));
 		right: max(0px, env(safe-area-inset-right, 0px));
 	}
+
+	/* A Word document has no tab bar to keep clear and scrolls under the round buttons like the page viewer, so it
+	   fills the whole screen: starting below them left a visible bar across the top. */
+	.documents-mobile__scroll--doc {
+		top: 0;
+	}
 }
 
 /* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
