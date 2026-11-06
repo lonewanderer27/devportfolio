@@ -2,7 +2,7 @@
 /**
  * Render callback for the devportfolio/document-modal block (DPD-009 to DPD-012).
  *
- * One shared <dialog> (header, body, footer) plus a JSON payload of every
+ * Desktop and mobile <dialog> shells (header, body, footer) plus a JSON payload of every
  * published document. view.js fills the dialog from the payload when an element
  * with data-document-id is clicked. The body holds the page arrows and the
  * stage where viewer.js builds the open book.
@@ -33,6 +33,7 @@ foreach ( $devportfolio_ids as $devportfolio_id ) {
 }
 
 $devportfolio_title_id = wp_unique_id( 'documents-modal-title-' );
+$devportfolio_mobile_title_id = wp_unique_id( 'documents-mobile-title-' );
 $devportfolio_pdfjs    = devportfolio_document_pdfjs_urls();
 $devportfolio_root     = array(
 	'class'       => 'documents-modal-root',
@@ -94,6 +95,36 @@ $devportfolio_download = '<svg class="documents-modal__icon" viewBox="0 0 24 24"
 				<nav class="documents-modal__pager" aria-label="<?php echo esc_attr_x( 'Pages', 'document modal pager', 'devportfolio' ); ?>" hidden></nav>
 				<div class="documents-modal__indicator" hidden>
 					<div class="documents-modal__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="<?php echo esc_attr_x( 'Reading progress', 'document modal', 'devportfolio' ); ?>"><i></i></div>
+				</div>
+			</footer>
+		</div>
+	</dialog>
+	<dialog class="documents-mobile" aria-labelledby="<?php echo esc_attr( $devportfolio_mobile_title_id ); ?>">
+		<div class="documents-mobile__panel">
+			<header class="documents-mobile__header">
+				<button class="documents-mobile__close documents-mobile__btn" type="button" aria-label="<?php echo esc_attr_x( 'Close viewer', 'document modal', 'devportfolio' ); ?>">
+					<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>
+				</button>
+				<h2 class="documents-mobile__title" id="<?php echo esc_attr( $devportfolio_mobile_title_id ); ?>"></h2>
+				<a class="documents-mobile__download documents-mobile__btn" role="button" aria-label="<?php echo esc_attr_x( 'Download', 'document modal button', 'devportfolio' ); ?>">
+					<?php echo $devportfolio_download; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?>
+				</a>
+			</header>
+			<div class="documents-mobile__body">
+				<div class="documents-mobile__stage"></div>
+				<div class="documents-mobile__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="" aria-label="<?php echo esc_attr_x( 'Reading progress', 'document modal', 'devportfolio' ); ?>" hidden><i></i></div>
+			</div>
+			<footer class="documents-mobile__footer">
+				<div class="documents-mobile__row">
+					<button class="documents-mobile__pages documents-mobile__textbtn" type="button">
+						<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+						<span><?php echo esc_html_x( 'Pages', 'document modal mobile footer', 'devportfolio' ); ?></span>
+					</button>
+					<b class="documents-mobile__position"></b>
+					<button class="documents-mobile__details documents-mobile__textbtn" type="button">
+						<span><?php echo esc_html_x( 'Details', 'document modal mobile footer', 'devportfolio' ); ?></span>
+						<svg class="documents-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+					</button>
 				</div>
 			</footer>
 		</div>
