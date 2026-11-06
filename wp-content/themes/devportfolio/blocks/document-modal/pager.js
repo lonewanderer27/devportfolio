@@ -82,19 +82,19 @@ export function turnPage( page, pages, step, direction ) {
 }
 
 /**
- * What the mobile footer shows: one page at a time and its progress percent.
+ * What the mobile footer shows: one page (or a spread, `step` 2) and its progress percent.
  * An unknown count gives an empty label and zero percent.
  */
-export function mobileFooterParts( page, pages ) {
+export function mobileFooterParts( page, pages, step = 1 ) {
 	const count = Math.max( 0, Math.floor( Number( pages ) ) || 0 );
 	if ( count < 1 ) {
 		return { page: 1, label: '', percent: 0 };
 	}
-	const current = normalisePage( page, count, 1 );
+	const { first, last } = visibleRange( page, count, step === 2 ? 2 : 1 );
 	return {
-		page: current,
-		label: `${ current } / ${ count }`,
-		percent: Math.round( ( current / count ) * 10000 ) / 100,
+		page: first,
+		label: last > first ? `${ first }–${ last } / ${ count }` : `${ first } / ${ count }`,
+		percent: Math.round( ( last / count ) * 10000 ) / 100,
 	};
 }
 

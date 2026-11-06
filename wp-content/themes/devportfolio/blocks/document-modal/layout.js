@@ -52,3 +52,18 @@ export function canvasScale( { pageW, pageH, dpr = 1, dprCap = 2, maxPixels = In
 	// Round down, so the pixel cap is never exceeded by rounding.
 	return Math.floor( scale * 1000 ) / 1000;
 }
+
+/**
+ * Whether a portrait document is shown as a spread (two pages side by side) in a stage of this size
+ * (DPD-024). True when it has 2 or more pages, the page is portrait, and the stage is wide enough that
+ * each page of the spread is as large as one page would be on its own: stageW >= 2 * stageH * ratio.
+ * So a phone in portrait shows one page, a phone in landscape two, and a nearly square foldable screen
+ * one larger page. Landscape documents and one-page documents never spread.
+ */
+export function spreadFits( { stageW, stageH, ratio, pages } ) {
+	const r = Number( ratio );
+	if ( ! ( Number( pages ) >= 2 ) || ! ( r > 0 ) || orientationOf( r, 1 ) !== 'portrait' ) {
+		return false;
+	}
+	return Number( stageW ) >= 2 * Number( stageH ) * r;
+}
