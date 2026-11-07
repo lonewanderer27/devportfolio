@@ -762,6 +762,57 @@ html[data-documents-swapping] .documents-shelf__plank {
 	right: 18px;
 }
 
+/*
+ * Medium and small windows (still the desktop dialog, 701px and up): the document gets the room. The 76px side
+ * gutters only exist to keep the arrows clear of the page on a large screen; here the arrows float over the page
+ * edges (they show on hover or focus, or always on touch) and the padding shrinks, then goes. viewer.js measures
+ * the stage, so the book grows by itself. Short windows also give up their vertical padding.
+ */
+@media (max-width: 1100px) {
+	.documents-modal__body {
+		padding: 12px;
+	}
+
+	.documents-modal__arrow {
+		width: 34px;
+		height: 34px;
+	}
+
+	.documents-modal__arrow--prev {
+		left: 10px;
+	}
+
+	.documents-modal__arrow--next {
+		right: 10px;
+	}
+}
+
+@media (max-width: 900px) {
+	.documents-modal__body {
+		padding: 0;
+	}
+
+	.documents-modal__arrow--prev {
+		left: 8px;
+	}
+
+	.documents-modal__arrow--next {
+		right: 8px;
+	}
+}
+
+@media (max-height: 700px) {
+	.documents-modal__body {
+		padding-block: 10px;
+	}
+}
+
+@media (max-height: 700px) and (max-width: 900px) {
+	.documents-modal__body {
+		padding-block: 0;
+	}
+}
+
 .documents-modal__arrow:hover {
 	background: rgb(255 255 255 / 0.86);
 }

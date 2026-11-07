@@ -335,6 +335,24 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)#', $css );
 	}
 
+	public function test_medium_and_small_windows_give_the_document_the_room_the_arrow_gutters_held(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		// Large screens keep the 76px side gutters that hold the arrows clear of the page.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*padding:\s*30px 76px#', $css );
+
+		// Medium: small even padding and smaller arrows over the page edges. Small: no padding, the page runs edge to edge.
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding:\s*12px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding:\s*0;#', $css );
+
+		// Short windows give up their vertical padding too (all of it when the window is also narrow).
+		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*10px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\) and \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*0;#', $css );
+
+		// The arrows float over the page edges instead of sitting in a gutter.
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev\s*\{\s*left:\s*10px;#', $css );
+	}
+
 	public function test_css_header_pager_rules(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__header\s*\{[^}]*border-bottom: 1px solid#', $css );
