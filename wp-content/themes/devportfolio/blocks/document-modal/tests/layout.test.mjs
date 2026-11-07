@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { orientationOf, fitPage, renderWindow, canvasScale, spreadFits } from '../layout.js';
+import { orientationOf, fitPage, renderWindow, canvasScale, spreadFits, spreadIsWorthIt, SPREAD_MIN_SCALE } from '../layout.js';
 
 test( 'orientation: wider than tall is landscape, everything else portrait', () => {
 	assert.equal( orientationOf( 792, 612 ), 'landscape' );
@@ -99,4 +99,32 @@ test( 'spread: never for one page or a landscape document', () => {
 	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 0.7, pages: 1 } ), false );
 	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 1.4, pages: 8 } ), false );
 	assert.equal( spreadFits( { stageW: 2000, stageH: 200, ratio: 0, pages: 8 } ), false );
+} );
+
+
+test( 'a mouse keeps the book in an ordinary wide window', () => {
+	// 1214 x 596 stage, A4 ratio: both views draw the page at the stage height.
+	assert.equal( spreadIsWorthIt( { stageW: 1214, stageH: 596, ratio: 0.707, pages: 6 } ), true );
+} );
+
+test( 'a tall, narrow window switches to one larger page', () => {
+	// The two reported windows: about 978 x 890 and 1014 x 910 (spread pages are about 78 to 79% of one page).
+	assert.equal( spreadIsWorthIt( { stageW: 978, stageH: 890, ratio: 0.707, pages: 6 } ), false );
+	assert.equal( spreadIsWorthIt( { stageW: 1014, stageH: 910, ratio: 0.707, pages: 6 } ), false );
+} );
+
+test( 'a window only a little too narrow keeps the spread', () => {
+	// 760 x 660: spread pages are about 81% of one page.
+	assert.equal( spreadIsWorthIt( { stageW: 760, stageH: 660, ratio: 0.707, pages: 6 } ), true );
+} );
+
+test( 'the threshold is the exported constant and can be overridden', () => {
+	assert.equal( SPREAD_MIN_SCALE, 0.8 );
+	assert.equal( spreadIsWorthIt( { stageW: 978, stageH: 890, ratio: 0.707, pages: 6, minScale: 0.7 } ), true );
+} );
+
+test( 'landscape and one-page documents never spread, and an unmeasured stage keeps the book', () => {
+	assert.equal( spreadIsWorthIt( { stageW: 1400, stageH: 700, ratio: 1.33, pages: 6 } ), false );
+	assert.equal( spreadIsWorthIt( { stageW: 1400, stageH: 700, ratio: 0.707, pages: 1 } ), false );
+	assert.equal( spreadIsWorthIt( { stageW: 0, stageH: 0, ratio: 0.707, pages: 6 } ), true );
 } );

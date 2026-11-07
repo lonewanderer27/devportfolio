@@ -67,3 +67,33 @@ export function spreadFits( { stageW, stageH, ratio, pages } ) {
 	}
 	return Number( stageW ) >= 2 * Number( stageH ) * r;
 }
+
+/**
+ * Smallest share of a single page's width a spread's pages may shrink to before one larger page is better
+ * (mouse devices, desktop dialog). 0.8 keeps the two-page book in ordinary landscape windows and in a window
+ * that is only a little too narrow, and drops to one page in a tall, narrow window, where the spread leaves
+ * bands of empty grey above and below it.
+ */
+export const SPREAD_MIN_SCALE = 0.8;
+
+/**
+ * Whether a portrait document is worth showing as a spread in this stage on a mouse device. The two views
+ * are compared by the width each page could be drawn at: one page gets min( stageW, stageH * ratio ), a
+ * spread page min( stageW / 2, stageH * ratio ). The spread is kept while its pages are at least
+ * `minScale` of the single page, so the book feel survives a slightly narrow window and only a clearly
+ * tall, narrow one switches to one page. Landscape and one-page documents never spread.
+ */
+export function spreadIsWorthIt( { stageW, stageH, ratio, pages, minScale = SPREAD_MIN_SCALE } ) {
+	const r = Number( ratio );
+	const w = Number( stageW );
+	const h = Number( stageH );
+	if ( ! ( Number( pages ) >= 2 ) || ! ( r > 0 ) || orientationOf( r, 1 ) !== 'portrait' ) {
+		return false;
+	}
+	if ( ! ( w > 0 ) || ! ( h > 0 ) ) {
+		return true;
+	}
+	const single = Math.min( w, h * r );
+	const spread = Math.min( w / 2, h * r );
+	return spread >= single * minScale;
+}
