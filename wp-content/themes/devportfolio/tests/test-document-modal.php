@@ -353,6 +353,32 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev\s*\{\s*left:\s*10px;#', $css );
 	}
 
+	public function test_header_is_a_grid_on_medium_windows_with_the_tools_on_their_own_row(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		$this->assertSame( 1, preg_match( '#@media \(max-width: 1100px\)\s*\{\s*\.documents-modal__header\s*\{([^}]*)\}(.*?)\n\}\n#s', $css, $m ), 'Medium header block missing.' );
+
+		$this->assertStringContainsString( 'display: grid', $m[1] );
+		$this->assertStringContainsString( 'grid-template-columns: minmax(0, 1fr) auto auto auto', $m[1] );
+
+		// The meta wrapper disappears so its children are placed on the header grid.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__meta\s*\{\s*display:\s*contents;#', $m[2] );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__tags\s*\{\s*grid-column:\s*1 / -1;\s*grid-row:\s*2;#', $m[2], 'The tools get their own row.' );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__close\s*\{\s*grid-column:\s*4;\s*grid-row:\s*1;#', $m[2] );
+
+		// The description may use two lines instead of being cut off.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space:\s*normal;[^}]*-webkit-line-clamp:\s*2#s', $m[2] );
+	}
+
+	public function test_viewer_lets_a_mouse_drop_to_one_page_in_a_tall_narrow_window(): void {
+		$js     = $this->read( 'blocks/document-modal/viewer.js' );
+		$layout = $this->read( 'blocks/document-modal/layout.js' );
+
+		$this->assertStringContainsString( 'export function spreadIsWorthIt(', $layout );
+		$this->assertStringContainsString( 'export const SPREAD_MIN_SCALE = 0.8;', $layout );
+		$this->assertStringContainsString( 'coarse.matches ? spreadFits( args ) : spreadIsWorthIt( args )', $js, 'Touch keeps its stricter rule; a mouse uses the 80% rule.' );
+	}
+
 	public function test_css_header_pager_rules(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__header\s*\{[^}]*border-bottom: 1px solid#', $css );

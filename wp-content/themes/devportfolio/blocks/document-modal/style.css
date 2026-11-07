@@ -763,6 +763,61 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 /*
+ * Header on medium windows (the desktop dialog below 1100px): one clean grid instead of a wrapping row. Title and
+ * description take the width and may use two lines (no cut-off "..."), the format pill, Download and Close sit on the
+ * right of the same row, and the software tools get their own row underneath, so nothing is squeezed.
+ */
+@media (max-width: 1100px) {
+	.documents-modal__header {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto auto;
+		gap: 8px 12px;
+		align-items: center;
+		padding: 14px 16px 14px 20px;
+	}
+
+	.documents-modal__meta {
+		display: contents;
+	}
+
+	.documents-modal__titlebox {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.documents-modal__format {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.documents-modal__download {
+		grid-column: 3;
+		grid-row: 1;
+	}
+
+	.documents-modal__close {
+		grid-column: 4;
+		grid-row: 1;
+	}
+
+	.documents-modal__tags {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+
+	.documents-modal__title {
+		font-size: 22px;
+	}
+
+	.documents-modal__desc {
+		display: -webkit-box;
+		white-space: normal;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+	}
+}
+
+/*
  * Medium and small windows (still the desktop dialog, 701px and up): the document gets the room. The 76px side
  * gutters only exist to keep the arrows clear of the page on a large screen; here the arrows float over the page
  * edges (they show on hover or focus, or always on touch) and the padding shrinks, then goes. viewer.js measures
