@@ -109,6 +109,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 		$this->assertIsArray( $rows );
 		$this->assertSame( array( 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' ), wp_list_pluck( $rows, 'title' ) );
 		$this->assertSame( array( 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), wp_list_pluck( $rows, 'slug' ) );
+		$this->assertSame( array( 'Executive Doc', 'Operations Doc', 'Presentation Deck', 'Report' ), wp_list_pluck( $rows, 'singular' ) );
 
 		foreach ( $rows as $row ) {
 			$this->assertSame( sanitize_title( $row['slug'] ), $row['slug'] );
@@ -124,6 +125,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 		$term = get_term_by( 'slug', 'reports', 'document_category' );
 		$this->assertInstanceOf( WP_Term::class, $term );
 		$this->assertSame( 'Reports', $term->name );
+		$this->assertSame( 'Report', get_term_meta( $term->term_id, 'cptdp_singular_name', true ) );
 	}
 
 	public function test_terms_list_in_the_requested_display_order(): void {
@@ -166,10 +168,12 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 
 		$result = $this->run_seeder();
 
-		$this->assertSame( array( 'Executive Docs' ), $result['skipped'] );
+		$this->assertSame( array( 'Executive Docs' ), $result['updated'] );
+		$this->assertSame( array(), $result['skipped'] );
 		$this->assertSame( array( 'Operations Docs', 'Presentation Decks', 'Reports' ), $result['created'] );
 		$this->assertSame( array( 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), $this->slugs() );
 		$this->assertSame( $existing['term_id'], get_term_by( 'slug', 'executive-docs', 'document_category' )->term_id );
+		$this->assertSame( 'Executive Doc', get_term_meta( $existing['term_id'], 'cptdp_singular_name', true ) );
 	}
 
 	public function test_matches_an_existing_term_by_name_when_the_slug_differs(): void {
@@ -177,7 +181,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 
 		$result = $this->run_seeder();
 
-		$this->assertContains( 'Executive Docs', $result['skipped'] );
+		$this->assertContains( 'Executive Docs', $result['updated'] );
 		$this->assertSame( array( 'operations-docs', 'presentation-decks', 'reports', 'shorts' ), $this->slugs() );
 	}
 
@@ -194,6 +198,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 		$this->run_seeder();
 
 		$this->assertSame( 'Custom text', get_term( $existing['term_id'], 'document_category' )->description );
+		$this->assertSame( 'Executive Doc', get_term_meta( $existing['term_id'], 'cptdp_singular_name', true ) );
 	}
 
 	public function test_restores_a_deleted_term_without_touching_the_others(): void {
@@ -223,7 +228,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	}
 
 	public function test_row_with_empty_title_errors(): void {
-		$result = $this->run_seeder( false, $this->temp_csv( "title,slug\n,executive-docs\n" ) );
+		$result = $this->run_seeder( false, $this->temp_csv( "title,slug,singular\n,executive-docs,Executive Doc\n" ) );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'cptdp_seed_csv_row', $result->get_error_code() );
@@ -233,7 +238,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	 * @dataProvider invalid_csvs
 	 */
 	public function test_invalid_row_errors_before_writing( string $rows ): void {
-		$result = $this->run_seeder( false, $this->temp_csv( "title,slug\n" . $rows ) );
+		$result = $this->run_seeder( false, $this->temp_csv( "title,slug,singular\n" . $rows ) );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'cptdp_seed_csv_row', $result->get_error_code() );
@@ -245,10 +250,10 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	 */
 	public function invalid_csvs(): array {
 		return array(
-			'empty slug'         => array( "Executive Docs,executive-docs\nOther,\n" ),
-			'unsanitized slug'   => array( "Executive Docs,executive-docs\nOther,Not A Slug\n" ),
-			'duplicate title'    => array( "Executive Docs,executive-docs\nExecutive Docs,other\n" ),
-			'duplicate slug'     => array( "Executive Docs,executive-docs\nOther,executive-docs\n" ),
+			'empty slug'         => array( "Executive Docs,executive-docs,Executive Doc\nOther,,Other\n" ),
+			'unsanitized slug'   => array( "Executive Docs,executive-docs,Executive Doc\nOther,Not A Slug,Other\n" ),
+			'duplicate title'    => array( "Executive Docs,executive-docs,Executive Doc\nExecutive Docs,other,Other\n" ),
+			'duplicate slug'     => array( "Executive Docs,executive-docs,Executive Doc\nOther,executive-docs,Other\n" ),
 		);
 	}
 }

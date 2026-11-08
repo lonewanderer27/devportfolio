@@ -41,6 +41,26 @@ class CPTDP_Test_Categories extends CPTDP_Test_Case {
 		$this->assertContains( $post_type, $object->object_type );
 	}
 
+	public function test_document_category_has_singular_name_term_meta(): void {
+		$meta = get_registered_meta_keys( 'term', 'document_category' );
+
+		$this->assertArrayHasKey( 'cptdp_singular_name', $meta );
+		$this->assertSame( 'string', $meta['cptdp_singular_name']['type'] );
+		$this->assertTrue( $meta['cptdp_singular_name']['single'] );
+		$this->assertTrue( $meta['cptdp_singular_name']['show_in_rest'] );
+	}
+
+	public function test_term_singular_name_helper_falls_back_to_name(): void {
+		$inserted = wp_insert_term( 'Operations Docs', 'document_category' );
+		$term     = get_term( $inserted['term_id'], 'document_category' );
+
+		$this->assertSame( 'Operations Docs', cptdp_get_term_singular_name( $term ) );
+		update_term_meta( $term->term_id, 'cptdp_singular_name', ' Operations Doc ' );
+		$this->assertSame( 'Operations Doc', cptdp_get_term_singular_name( $term ) );
+		update_term_meta( $term->term_id, 'cptdp_singular_name', '   ' );
+		$this->assertSame( 'Operations Docs', cptdp_get_term_singular_name( $term ) );
+	}
+
 	/**
 	 * @dataProvider taxonomies
 	 */
