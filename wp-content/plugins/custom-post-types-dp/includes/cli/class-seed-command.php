@@ -67,6 +67,7 @@ class CPTDP_Seed_Command {
 
 		$created = 0;
 		$skipped = 0;
+		$updated = 0;
 
 		foreach ( $names as $seeder_name ) {
 			$result = cptdp_run_seeder( $seeder_name, $dry_run );
@@ -81,17 +82,22 @@ class CPTDP_Seed_Command {
 			foreach ( $result['skipped'] as $title ) {
 				WP_CLI::log( sprintf( 'skipped      %s: %s', $seeder_name, $title ) );
 			}
+			foreach ( $result['updated'] ?? array() as $title ) {
+				WP_CLI::log( sprintf( 'updated      %s: %s', $seeder_name, $title ) );
+			}
 
 			$created += count( $result['created'] );
 			$skipped += count( $result['skipped'] );
+			$updated += count( $result['updated'] ?? array() );
 		}
 
 		WP_CLI::success(
 			sprintf(
-				'%1$d %2$s, %3$d skipped%4$s',
+				'%1$d %2$s, %3$d skipped, %4$d updated%5$s',
 				$created,
 				$dry_run ? 'would be created' : 'created',
 				$skipped,
+				$updated,
 				$dry_run ? ' (dry run, nothing written)' : ''
 			)
 		);

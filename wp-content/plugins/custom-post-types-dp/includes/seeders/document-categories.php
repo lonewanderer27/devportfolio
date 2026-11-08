@@ -4,9 +4,8 @@
  *
  * Creates every `document_category` term of data/seeders/document-categories.csv
  * that does not exist yet. An existing term, matched by slug or by name, is
- * skipped and never modified (a hand-made "Executive Docs" is recognised, no
- * duplicate is created). Terms have no Trash, so an explicit run recreates a
- * term deleted in wp-admin.
+ * skipped and never modified except to fill its empty singular name. Terms
+ * have no Trash, so an explicit run recreates a term deleted in wp-admin.
  * Run: wp cptdp seed document-categories [--dry-run]
  *
  * @package CustomPostTypesDP
@@ -25,7 +24,7 @@ function cptdp_register_seeder_document_categories( array $seeders ): array {
 		'callback' => 'cptdp_seed_document_category_terms',
 		'csv'      => CPTDP_PATH . 'data/seeders/document-categories.csv',
 		'taxonomy' => 'document_category',
-		'columns'  => array( 'title', 'slug' ),
+		'columns'  => array( 'title', 'slug', 'singular' ),
 	);
 
 	return $seeders;
@@ -37,14 +36,14 @@ add_filter( 'cptdp_seeders', 'cptdp_register_seeder_document_categories' );
  *
  * @param bool   $dry_run  When true, report what would be created and write nothing.
  * @param string $csv_path Absolute path to the CSV.
- * @return array{created: string[], skipped: string[]}|WP_Error Titles by outcome, or an error.
+ * @return array{created: string[], skipped: string[], updated: string[]}|WP_Error Titles by outcome, or an error.
  */
 function cptdp_seed_document_category_terms( bool $dry_run, string $csv_path ) {
 	if ( ! taxonomy_exists( 'document_category' ) ) {
 		return new WP_Error( 'cptdp_seed_no_taxonomy', 'The document_category taxonomy is not registered.' );
 	}
 
-	$rows = cptdp_seed_read_csv( $csv_path, array( 'title', 'slug' ) );
+	$rows = cptdp_seed_read_csv( $csv_path, array( 'title', 'slug', 'singular' ) );
 	if ( is_wp_error( $rows ) ) {
 		return $rows;
 	}
@@ -74,11 +73,25 @@ function cptdp_seed_document_category_terms( bool $dry_run, string $csv_path ) {
 	$result = array(
 		'created' => array(),
 		'skipped' => array(),
+		'updated' => array(),
 	);
 
 	foreach ( $rows as $row ) {
-		if ( get_term_by( 'slug', $row['slug'], 'document_category' ) || get_term_by( 'name', $row['title'], 'document_category' ) ) {
-			$result['skipped'][] = $row['title'];
+		$term = get_term_by( 'slug', $row['slug'], 'document_category' );
+		if ( ! $term ) {
+			$term = get_term_by( 'name', $row['title'], 'document_category' );
+		}
+
+		if ( $term ) {
+			$current = trim( (string) get_term_meta( $term->term_id, 'cptdp_singular_name', true ) );
+			if ( '' === $current ) {
+				if ( ! $dry_run ) {
+					update_term_meta( $term->term_id, 'cptdp_singular_name', $row['singular'] );
+				}
+				$result['updated'][] = $row['title'];
+			} else {
+				$result['skipped'][] = $row['title'];
+			}
 			continue;
 		}
 
@@ -88,6 +101,7 @@ function cptdp_seed_document_category_terms( bool $dry_run, string $csv_path ) {
 			if ( is_wp_error( $inserted ) ) {
 				return $inserted;
 			}
+			update_term_meta( $inserted['term_id'], 'cptdp_singular_name', $row['singular'] );
 		}
 
 		$result['created'][] = $row['title'];

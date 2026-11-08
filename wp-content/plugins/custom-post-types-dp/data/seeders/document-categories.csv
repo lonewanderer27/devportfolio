@@ -1,5 +1,5 @@
-title,slug
-Executive Docs,executive-docs
-Operations Docs,operations-docs
-Presentation Decks,presentation-decks
-Reports,reports
+title,slug,singular
+Executive Docs,executive-docs,Executive Doc
+Operations Docs,operations-docs,Operations Doc
+Presentation Decks,presentation-decks,Presentation Deck
+Reports,reports,Report

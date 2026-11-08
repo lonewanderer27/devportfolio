@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * Each entry: `label` (string), `callback` (callable( bool $dry_run, string $csv_path )),
  * `csv` (absolute path), `post_type` (string) or, for term seeders, `taxonomy` (string),
  * `columns` (string[], the exact CSV header).
- * A callback returns `array{created: string[], skipped: string[]}` or a WP_Error.
+ * A callback returns `array{created: string[], skipped: string[], updated?: string[]}` or a WP_Error.
  *
  * @return array<string, array<string, mixed>>
  */
