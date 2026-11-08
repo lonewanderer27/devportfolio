@@ -122,9 +122,27 @@
 				apply( slug );
 				return;
 			}
-			document.startViewTransition( function () {
+			// The sticky header takes part only while the change runs: its transition name keeps it above the gliding
+			// books, but a name makes it a backdrop root, which would switch its glass blur off the rest of the time.
+			var header = document.querySelector( 'header.wp-block-template-part' );
+			if ( header ) {
+				header.classList.add( 'is-view-transitioning' );
+			}
+			// The pill group is named the same way, so its frosted band keeps blurring the rest of the time.
+			group.classList.add( 'is-view-transitioning' );
+			var transition = document.startViewTransition( function () {
 				apply( slug );
 			} );
+			if ( transition && transition.finished ) {
+				transition.finished.then( clearHeader, clearHeader );
+			}
+
+			function clearHeader() {
+				group.classList.remove( 'is-view-transitioning' );
+				if ( header ) {
+					header.classList.remove( 'is-view-transitioning' );
+				}
+			}
 		}
 
 		// Initial state from the URL; a bad param is cleaned without adding a history entry.

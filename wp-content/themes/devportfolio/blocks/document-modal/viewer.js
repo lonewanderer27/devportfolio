@@ -22,7 +22,7 @@
  */
 import { stepFor, normalisePage } from './pager.js';
 import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js';
-import { fitPage, orientationOf, canvasScale, spreadFits } from './layout.js';
+import { fitPage, orientationOf, canvasScale, spreadFits, spreadIsWorthIt } from './layout.js';
 import { swipeDirection } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
@@ -340,11 +340,16 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		return true;
 	};
 
-	/** One or two pages: by the document alone for a mouse, by the space available on a touch device (DPD-024). */
+	/**
+	 * One or two pages by the space available. A touch device spreads only when each page is as large as one page
+	 * would be (DPD-024). A mouse keeps the book unless the window is so tall and narrow that one page would be
+	 * clearly larger (`spreadIsWorthIt()`), which would otherwise leave empty bands above and below the spread.
+	 */
 	const stepForStage = ( src ) => {
 		const room = measure();
-		if ( coarse.matches && room.w >= 40 && room.h >= 40 ) {
-			return spreadFits( { stageW: room.w, stageH: room.h, ratio: src.ratio, pages: src.count } ) ? 2 : 1;
+		if ( room.w >= 40 && room.h >= 40 ) {
+			const args = { stageW: room.w, stageH: room.h, ratio: src.ratio, pages: src.count };
+			return ( coarse.matches ? spreadFits( args ) : spreadIsWorthIt( args ) ) ? 2 : 1;
 		}
 		return stepFor( src.count, orientationOf( src.ratio, 1 ) );
 	};

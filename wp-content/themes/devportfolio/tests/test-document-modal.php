@@ -335,10 +335,54 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)#', $css );
 	}
 
+	public function test_medium_and_small_windows_give_the_document_the_room_the_arrow_gutters_held(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		// Large screens keep the 76px side gutters that hold the arrows clear of the page.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*padding:\s*30px 76px#', $css );
+
+		// Medium: small even padding and smaller arrows over the page edges. Small: no padding, the page runs edge to edge.
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding:\s*12px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding:\s*0;#', $css );
+
+		// Short windows give up their vertical padding too (all of it when the window is also narrow).
+		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*10px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\) and \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*0;#', $css );
+
+		// The arrows float over the page edges instead of sitting in a gutter.
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev\s*\{\s*left:\s*10px;#', $css );
+	}
+
+	public function test_header_is_a_grid_on_medium_windows_with_the_tools_on_their_own_row(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+
+		$this->assertSame( 1, preg_match( '#@media \(max-width: 1100px\)\s*\{\s*\.documents-modal__header\s*\{([^}]*)\}(.*?)\n\}\n#s', $css, $m ), 'Medium header block missing.' );
+
+		$this->assertStringContainsString( 'display: grid', $m[1] );
+		$this->assertStringContainsString( 'grid-template-columns: minmax(0, 1fr) auto auto auto', $m[1] );
+
+		// The meta wrapper disappears so its children are placed on the header grid.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__meta\s*\{\s*display:\s*contents;#', $m[2] );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__tags\s*\{\s*grid-column:\s*1 / -1;\s*grid-row:\s*2;#', $m[2], 'The tools get their own row.' );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__close\s*\{\s*grid-column:\s*4;\s*grid-row:\s*1;#', $m[2] );
+
+		// The description may use two lines instead of being cut off.
+		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space:\s*normal;[^}]*-webkit-line-clamp:\s*2#s', $m[2] );
+	}
+
+	public function test_viewer_lets_a_mouse_drop_to_one_page_in_a_tall_narrow_window(): void {
+		$js     = $this->read( 'blocks/document-modal/viewer.js' );
+		$layout = $this->read( 'blocks/document-modal/layout.js' );
+
+		$this->assertStringContainsString( 'export function spreadIsWorthIt(', $layout );
+		$this->assertStringContainsString( 'export const SPREAD_MIN_SCALE = 0.8;', $layout );
+		$this->assertStringContainsString( 'coarse.matches ? spreadFits( args ) : spreadIsWorthIt( args )', $js, 'Touch keeps its stricter rule; a mouse uses the 80% rule.' );
+	}
+
 	public function test_css_header_pager_rules(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__header\s*\{[^}]*border-bottom: 1px solid#', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*Georgia[^}]*font-weight: 700#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*font-family: var\(--wp--preset--font-family--sans\)[^}]*font-weight: 700#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space: nowrap#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\.is-on\s*\{[^}]*background: var\(--dm-ink\)#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\[aria-disabled="true"\]\s*\{[^}]*opacity: 0\.35#', $css );

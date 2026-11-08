@@ -25,7 +25,7 @@
 	padding: 44px 0 0;
 }
 
-/* Dot grid behind the shelf, full width of the viewport, with a line above and below (hi-fi .shelfzone). */
+/* Dot grid behind the shelf, full width of the viewport, with a line below; the sticky pill strip draws the line above (a second one would look doubled). */
 .documents-shelf::before {
 	content: "";
 	position: absolute;
@@ -34,7 +34,6 @@
 	right: -100vw;
 	bottom: -96px;
 	left: -100vw;
-	border-top: 1px solid var(--shelf-line);
 	border-bottom: 1px solid var(--shelf-line);
 	background-image: radial-gradient(var(--shelf-dot) 1px, transparent 1px);
 	background-size: 22px 22px;
@@ -52,8 +51,18 @@
 	/* Core's constrained layout caps every child at this variable (it would otherwise be 1040px). */
 	--wp--style--global--content-size: 1440px;
 
+	--documents-gutter: clamp(0px, 3vw, 32px);
+
 	padding-inline: clamp(0px, 3vw, 32px);
 	overflow-x: clip;
+}
+
+.documents-page .documents-page__title {
+	margin: 0 0 28px;
+	font-size: clamp(44px, 6.4vw, 72px);
+	font-weight: 200;
+	letter-spacing: -0.04em;
+	line-height: 1;
 }
 
 .documents-item {
@@ -187,8 +196,18 @@
 }
 
 @media (max-width: 820px) {
+	/* Phones: the books come first. The page padding set inline by the template (48px) is trimmed here. */
+	.documents-page {
+		padding-top: 16px !important;
+	}
+
+	.documents-page .documents-page__title {
+		margin-bottom: 12px;
+		font-size: clamp(36px, 9vw, 52px);
+	}
+
 	.documents-shelf {
-		grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
 		gap: 28px 16px;
 		padding-top: 28px;
 	}
@@ -211,6 +230,25 @@
 }
 
 @media (max-width: 480px) {
+	/*
+	 * Two books per row on every phone: the column floor is just under half the width, so two
+	 * always fit and three never do (a fixed 150px floor gave 360px and 375px phones one giant cover).
+	 */
+	.documents-shelf {
+		grid-template-columns: repeat(auto-fill, minmax(max(110px, calc(50% - 16px)), 1fr));
+		padding-top: 16px;
+		row-gap: 20px;
+	}
+
+	.documents-item__info {
+		padding-top: 10px;
+	}
+
+	/* Tools are in the modal and the Details sheet; three wrapped lines per book kept the second row off the first screen. */
+	.documents-item .software-tags {
+		display: none;
+	}
+
 	.documents-item__desc {
 		display: -webkit-box;
 		overflow: hidden;

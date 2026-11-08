@@ -110,7 +110,7 @@
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 17px;
 	font-weight: 700;
 	line-height: 1.2;
@@ -297,7 +297,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 .documents-modal__title {
 	margin: 0;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 26px;
 	font-weight: 700;
 	line-height: 1.15;
@@ -742,8 +742,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 	background: rgb(255 255 255 / 0.72);
 	border: 1px solid var(--dm-edge);
 	border-radius: 50%;
-	-webkit-backdrop-filter: blur(20px) saturate(180%);
-	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
 	transform: translateY(-50%);
 	transition: opacity 160ms var(--dm-ease), background 160ms var(--dm-ease);
 }
@@ -760,6 +760,112 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 .documents-modal__arrow--next {
 	right: 18px;
+}
+
+/*
+ * Header on medium windows (the desktop dialog below 1100px): one clean grid instead of a wrapping row. Title and
+ * description take the width and may use two lines (no cut-off "..."), the format pill, Download and Close sit on the
+ * right of the same row, and the software tools get their own row underneath, so nothing is squeezed.
+ */
+@media (max-width: 1100px) {
+	.documents-modal__header {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto auto;
+		gap: 8px 12px;
+		align-items: center;
+		padding: 14px 16px 14px 20px;
+	}
+
+	.documents-modal__meta {
+		display: contents;
+	}
+
+	.documents-modal__titlebox {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.documents-modal__format {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.documents-modal__download {
+		grid-column: 3;
+		grid-row: 1;
+	}
+
+	.documents-modal__close {
+		grid-column: 4;
+		grid-row: 1;
+	}
+
+	.documents-modal__tags {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+
+	.documents-modal__title {
+		font-size: 22px;
+	}
+
+	.documents-modal__desc {
+		display: -webkit-box;
+		white-space: normal;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+	}
+}
+
+/*
+ * Medium and small windows (still the desktop dialog, 701px and up): the document gets the room. The 76px side
+ * gutters only exist to keep the arrows clear of the page on a large screen; here the arrows float over the page
+ * edges (they show on hover or focus, or always on touch) and the padding shrinks, then goes. viewer.js measures
+ * the stage, so the book grows by itself. Short windows also give up their vertical padding.
+ */
+@media (max-width: 1100px) {
+	.documents-modal__body {
+		padding: 12px;
+	}
+
+	.documents-modal__arrow {
+		width: 34px;
+		height: 34px;
+	}
+
+	.documents-modal__arrow--prev {
+		left: 10px;
+	}
+
+	.documents-modal__arrow--next {
+		right: 10px;
+	}
+}
+
+@media (max-width: 900px) {
+	.documents-modal__body {
+		padding: 0;
+	}
+
+	.documents-modal__arrow--prev {
+		left: 8px;
+	}
+
+	.documents-modal__arrow--next {
+		right: 8px;
+	}
+}
+
+@media (max-height: 700px) {
+	.documents-modal__body {
+		padding-block: 10px;
+	}
+}
+
+@media (max-height: 700px) and (max-width: 900px) {
+	.documents-modal__body {
+		padding-block: 0;
+	}
 }
 
 .documents-modal__arrow:hover {
@@ -1281,6 +1387,12 @@ html[data-documents-swapping] .documents-shelf__plank {
 		left: max(0px, env(safe-area-inset-left, 0px));
 		right: max(0px, env(safe-area-inset-right, 0px));
 	}
+
+	/* A Word document has no tab bar to keep clear and scrolls under the round buttons like the page viewer, so it
+	   fills the whole screen: starting below them left a visible bar across the top. */
+	.documents-mobile__scroll--doc {
+		top: 0;
+	}
 }
 
 /* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
@@ -1524,7 +1636,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	bottom: 6px;
 	left: 50%;
 	padding: 1px 8px;
-	font: 600 12px/1.5 system-ui, sans-serif;
+	font: 600 12px/1.5 var(--wp--preset--font-family--sans);
 	color: var(--dm-ink);
 	background: rgb(255 255 255 / 0.92);
 	border-radius: 999px;
@@ -1580,7 +1692,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	box-sizing: border-box;
 	width: 32px;
 	height: 42px;
-	font: 600 12px/1 system-ui, sans-serif;
+	font: 600 12px/1 var(--wp--preset--font-family--sans);
 	color: var(--dm-subtle);
 	background: #fff;
 	border: 1px solid var(--dm-line);
@@ -1631,7 +1743,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: var(--wp--preset--font-family--sans);
 	font-size: 18px;
 	font-weight: 700;
 	line-height: 1.25;
