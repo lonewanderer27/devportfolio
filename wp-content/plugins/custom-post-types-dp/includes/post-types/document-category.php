@@ -52,8 +52,49 @@ function cptdp_register_document_category(): void {
 			),
 		)
 	);
+
+	register_term_meta(
+		'document_category',
+		'cptdp_singular_name',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'sanitize_callback' => 'sanitize_text_field',
+			'show_in_rest'      => true,
+			'auth_callback'     => 'cptdp_document_category_meta_auth',
+		)
+	);
 }
 add_action( 'cptdp_register_post_types', 'cptdp_register_document_category' );
+
+/**
+ * Authorise the document category singular name term meta.
+ *
+ * @return bool
+ */
+function cptdp_document_category_meta_auth(): bool {
+	return current_user_can( 'manage_categories' );
+}
+
+/**
+ * Return the singular display name for a term, falling back to its name.
+ *
+ * @param WP_Term|int $term Term object or ID.
+ * @return string
+ */
+function cptdp_get_term_singular_name( $term ): string {
+	if ( is_numeric( $term ) ) {
+		$term = get_term( (int) $term );
+	}
+
+	if ( ! $term instanceof WP_Term ) {
+		return '';
+	}
+
+	$singular = trim( (string) get_term_meta( $term->term_id, 'cptdp_singular_name', true ) );
+
+	return '' !== $singular ? $singular : $term->name;
+}
 
 /**
  * Add a top-level Document Categories menu item.
