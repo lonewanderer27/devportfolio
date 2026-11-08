@@ -282,6 +282,17 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '>Reports<', $html );
 	}
 
+	public function test_category_cover_uses_the_term_singular_name(): void {
+		$id   = $this->make_document( array( 'categories' => array( 'Operations Docs' ) ) );
+		$term = get_term_by( 'name', 'Operations Docs', 'document_category' );
+		update_term_meta( $term->term_id, 'cptdp_singular_name', 'Operations Doc' );
+
+		$html = $this->render_book( $id );
+
+		$this->assertStringContainsString( '>Operations Doc<', $html );
+		$this->assertStringNotContainsString( '>Operations Docs<', $html );
+	}
+
 	public function test_non_document_and_missing_posts_render_nothing(): void {
 		$post = self::factory()->post->create( array( 'post_title' => 'Plain post' ) );
 		$this->assertSame( '', trim( $this->render_book( $post ) ) );
