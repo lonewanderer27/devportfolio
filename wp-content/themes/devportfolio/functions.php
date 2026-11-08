@@ -341,6 +341,10 @@ if ( ! function_exists( 'devportfolio_document_category_name' ) ) :
 				return strcasecmp( $a->name, $b->name );
 			}
 		);
+		if ( function_exists( 'cptdp_get_term_singular_name' ) ) {
+			return cptdp_get_term_singular_name( $terms[0] );
+		}
+
 		return $terms[0]->name;
 	}
 endif;
