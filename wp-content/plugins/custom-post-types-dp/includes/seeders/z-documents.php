@@ -6,7 +6,8 @@
  * its excerpt (the description), file type, page count, author, one
  * Document Category term and optional Software Tools. The category terms and the
  * software tools must exist (see the `document-categories` and `software-tools`
- * seeders). Uploaded files (`cptdp_document_file`) are not seeded.
+ * seeders). Optional fixture files are copied from data/seeders/files/documents/
+ * into uploads.
  * Run: wp cptdp seed documents [--dry-run]
  *
  * The file name starts with "z-" so the loader requires it, and `--all` runs it,
@@ -28,12 +29,66 @@ function cptdp_register_seeder_documents( array $seeders ): array {
 		'callback'  => 'cptdp_seed_documents',
 		'csv'       => CPTDP_PATH . 'data/seeders/documents.csv',
 		'post_type' => 'document',
-		'columns'   => array( 'order', 'title', 'description', 'category', 'software_tools', 'filetype', 'total_pages', 'author' ),
+		'columns'   => array( 'order', 'title', 'description', 'category', 'software_tools', 'filetype', 'total_pages', 'author', 'file' ),
 	);
 
 	return $seeders;
 }
 add_filter( 'cptdp_seeders', 'cptdp_register_seeder_documents' );
+
+/**
+ * Directory containing document seed fixtures.
+ */
+function cptdp_seed_documents_files_dir(): string {
+	return CPTDP_PATH . 'data/seeders/files/documents/';
+}
+
+/**
+ * Copy and attach a document seed fixture.
+ *
+ * @param int    $post_id       Document ID.
+ * @param string $relative_file Fixture filename.
+ * @return int|WP_Error Attachment ID or an error.
+ */
+function cptdp_seed_attach_document_file( int $post_id, string $relative_file ) {
+	$source = cptdp_seed_documents_files_dir() . $relative_file;
+	$upload = wp_upload_dir();
+
+	if ( ! wp_mkdir_p( $upload['path'] ) ) {
+		return new WP_Error( 'cptdp_seed_file_copy', sprintf( 'Could not create the uploads directory for "%s".', $relative_file ) );
+	}
+
+	$name = wp_unique_filename( $upload['path'], basename( $relative_file ) );
+	$dest = trailingslashit( $upload['path'] ) . $name;
+
+	if ( ! copy( $source, $dest ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions
+		return new WP_Error( 'cptdp_seed_file_copy', sprintf( 'Could not copy fixture "%s" into uploads.', $relative_file ) );
+	}
+
+	$filetype = wp_check_filetype( $name );
+	if ( empty( $filetype['type'] ) ) {
+		return new WP_Error( 'cptdp_seed_file_type', sprintf( 'Could not determine the MIME type for "%s".', $relative_file ) );
+	}
+
+	$attachment_id = wp_insert_attachment(
+		array(
+			'post_mime_type' => $filetype['type'],
+			'post_title'     => pathinfo( $name, PATHINFO_FILENAME ),
+			'post_status'    => 'inherit',
+		),
+		$dest,
+		$post_id,
+		true
+	);
+
+	if ( is_wp_error( $attachment_id ) ) {
+		return $attachment_id;
+	}
+
+	update_post_meta( $post_id, 'cptdp_document_file', $attachment_id );
+
+	return (int) $attachment_id;
+}
 
 /**
  * Create the Documents listed in the CSV.
@@ -47,7 +102,7 @@ function cptdp_seed_documents( bool $dry_run, string $csv_path ) {
 		return new WP_Error( 'cptdp_seed_no_post_type', 'The document post type is not registered.' );
 	}
 
-	$rows = cptdp_seed_read_csv( $csv_path, array( 'order', 'title', 'description', 'category', 'software_tools', 'filetype', 'total_pages', 'author' ) );
+	$rows = cptdp_seed_read_csv( $csv_path, array( 'order', 'title', 'description', 'category', 'software_tools', 'filetype', 'total_pages', 'author', 'file' ) );
 	if ( is_wp_error( $rows ) ) {
 		return $rows;
 	}
@@ -65,6 +120,15 @@ function cptdp_seed_documents( bool $dry_run, string $csv_path ) {
 
 		if ( '' === $row['category'] || sanitize_title( $row['category'] ) !== $row['category'] ) {
 			$errors[] = sprintf( 'Invalid category "%s"', $row['category'] );
+		}
+
+		if ( '' !== $row['file'] ) {
+			$extension = strtolower( pathinfo( $row['file'], PATHINFO_EXTENSION ) );
+			if ( preg_match( '/\.\.|^\/|\\\\|[^A-Za-z0-9._-]/', $row['file'] ) || ! in_array( $extension, array( 'pdf', 'docx', 'doc', 'odt', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods' ), true ) ) {
+				$errors[] = sprintf( 'Invalid file "%s"', $row['file'] );
+			} elseif ( ! is_readable( cptdp_seed_documents_files_dir() . $row['file'] ) ) {
+				$errors[] = sprintf( 'File "%s" for "%s" (row %d) does not exist in data/seeders/files/documents/', $row['file'], $row['title'], $index + 1 );
+			}
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -166,6 +230,13 @@ function cptdp_seed_documents( bool $dry_run, string $csv_path ) {
 			$set = wp_set_object_terms( $post_id, array( $category_ids[ $row['category'] ] ), 'document_category' );
 			if ( is_wp_error( $set ) ) {
 				return $set;
+			}
+
+			if ( '' !== $row['file'] ) {
+				$attachment = cptdp_seed_attach_document_file( $post_id, $row['file'] );
+				if ( is_wp_error( $attachment ) ) {
+					return $attachment;
+				}
 			}
 		}
 
