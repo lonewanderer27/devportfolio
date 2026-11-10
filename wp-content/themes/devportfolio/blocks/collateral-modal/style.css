@@ -18,7 +18,7 @@
 	--cm-on-primary: var(--wp--custom--modal--on-primary);
 	--cm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 	--cm-dur: 260ms;
-	--cm-width: 1280px;
+	--cm-width: 1680px;
 	--cm-sidebar: clamp(300px, 30%, 380px);
 	color: var(--cm-ink);
 	font-family: var(--wp--preset--font-family--sans, inherit);
