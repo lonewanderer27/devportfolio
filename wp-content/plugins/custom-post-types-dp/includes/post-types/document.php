@@ -132,25 +132,7 @@ function cptdp_document_column_content( string $column, int $post_id ): void {
 			break;
 
 		case 'cptdp_pages_status':
-			if ( null === CPTDP_Page_Store::get_source( $post_id ) ) {
-				echo '&mdash;';
-				break;
-			}
-
-			$manifest = CPTDP_Page_Store::get_manifest( $post_id );
-			$label    = cptdp_document_pages_status_label( CPTDP_Page_Store::get_status( $post_id ), null !== $manifest ? (int) $manifest['count'] : 0, CPTDP_Page_Store::source_kind( $post_id ) );
-			$error    = CPTDP_Page_Store::get_error( $post_id );
-
-			if ( in_array( CPTDP_Page_Store::get_status( $post_id ), array( CPTDP_Page_Store::STATUS_NEEDS_BROWSER, CPTDP_Page_Store::STATUS_FAILED ), true ) ) {
-				printf(
-					'<a href="%1$s" title="%2$s">%3$s</a>',
-					esc_url( (string) get_edit_post_link( $post_id ) ),
-					esc_attr( $error ),
-					esc_html( $label )
-				);
-			} else {
-				echo '<span title="' . esc_attr( $error ) . '">' . esc_html( $label ) . '</span>';
-			}
+			echo cptdp_pages_status_cell( $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_pages_status_cell().
 			break;
 
 		case 'cptdp_highlight':

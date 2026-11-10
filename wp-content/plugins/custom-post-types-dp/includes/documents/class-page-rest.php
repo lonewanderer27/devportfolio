@@ -2,7 +2,8 @@
 /**
  * Authenticated REST routes used by the admin browser to upload page images.
  *
- * Routes (all require edit rights on the document, cookie nonce):
+ * Routes (all require edit rights on the post, cookie nonce), under `documents/<id>` for a document and
+ * `collaterals/<id>` for a collateral (DPC-023; a route only answers for its own type):
  *
  * - GET  cptdp/v1/documents/<id>/pages         current status (the edit screen polls it)
  * - POST cptdp/v1/documents/<id>/pages/start   clear and begin a browser run (returns the run token;
@@ -11,8 +12,8 @@
  * - POST cptdp/v1/documents/<id>/pages/finish  validate everything and write the manifest (header `X-CPTDP-Run`)
  * - POST cptdp/v1/documents/<id>/pages/retry   queue the server conversion again (the only way to redo a presentation)
  *
- * Presentations (PPTX, PPT, ODP) are converted by the server only: `start`, `<n>` and `finish`
- * answer 400 `cptdp_pptx_server_only` for them.
+ * Office files are converted by the server only: `start`, `<n>` and `finish` answer 400
+ * `cptdp_pptx_server_only` for them, and 400 `cptdp_server_only` for a collateral's image.
  *
  * There is no unauthenticated route: visitors never trigger conversion.
  *
@@ -27,6 +28,14 @@ defined( 'ABSPATH' ) || exit;
 class CPTDP_Page_REST {
 
 	const NAMESPACE_ID   = 'cptdp/v1';
+
+	/**
+	 * Route base of each post type with page images.
+	 */
+	const ROUTE_BASES = array(
+		'document'   => 'documents',
+		'collateral' => 'collaterals',
+	);
 
 	/**
 	 * Seconds a browser run keeps its claim on a document without uploading anything.
@@ -49,16 +58,41 @@ class CPTDP_Page_REST {
 	}
 
 	/**
-	 * Register the routes.
+	 * REST path (no namespace) of a post's pages route, e.g. `collaterals/12/pages`, or '' when unsupported.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function route_for( int $post_id ): string {
+		$type = (string) get_post_type( $post_id );
+
+		return isset( self::ROUTE_BASES[ $type ] ) ? self::ROUTE_BASES[ $type ] . '/' . $post_id . '/pages' : '';
+	}
+
+	/**
+	 * Register the routes, the same five for every post type with page images.
 	 */
 	public static function register_routes(): void {
-		$base = '/documents/(?P<id>\d+)/pages';
-		$args = array(
+		foreach ( self::ROUTE_BASES as $type => $route_base ) {
+			self::register_routes_for( $type, '/' . $route_base . '/(?P<id>\d+)/pages' );
+		}
+	}
+
+	/**
+	 * Register the routes of one post type.
+	 *
+	 * @param string $type Post type.
+	 * @param string $base Route pattern.
+	 */
+	private static function register_routes_for( string $type, string $base ): void {
+		$args       = array(
 			'id' => array(
 				'type'              => 'integer',
 				'sanitize_callback' => 'absint',
 			),
 		);
+		$permission = static function ( WP_REST_Request $request ) use ( $type ) {
+			return self::can_edit( $request, $type );
+		};
 
 		register_rest_route(
 			self::NAMESPACE_ID,
@@ -68,43 +102,23 @@ class CPTDP_Page_REST {
 				'callback'            => static function ( WP_REST_Request $request ) {
 					return rest_ensure_response( self::state( (int) $request['id'] ) );
 				},
-				'permission_callback' => array( __CLASS__, 'can_edit' ),
+				'permission_callback' => $permission,
 				'args'                => $args,
 			)
 		);
 
-		register_rest_route(
-			self::NAMESPACE_ID,
-			$base . '/start',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'start' ),
-				'permission_callback' => array( __CLASS__, 'can_edit' ),
-				'args'                => $args,
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE_ID,
-			$base . '/retry',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'retry' ),
-				'permission_callback' => array( __CLASS__, 'can_edit' ),
-				'args'                => $args,
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE_ID,
-			$base . '/finish',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'finish' ),
-				'permission_callback' => array( __CLASS__, 'can_edit' ),
-				'args'                => $args,
-			)
-		);
+		foreach ( array( 'start', 'retry', 'finish' ) as $action ) {
+			register_rest_route(
+				self::NAMESPACE_ID,
+				$base . '/' . $action,
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( __CLASS__, $action ),
+					'permission_callback' => $permission,
+					'args'                => $args,
+				)
+			);
+		}
 
 		register_rest_route(
 			self::NAMESPACE_ID,
@@ -112,7 +126,7 @@ class CPTDP_Page_REST {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'upload' ),
-				'permission_callback' => array( __CLASS__, 'can_edit' ),
+				'permission_callback' => $permission,
 				'args'                => array_merge(
 					$args,
 					array(
@@ -127,22 +141,23 @@ class CPTDP_Page_REST {
 	}
 
 	/**
-	 * Permission: a logged-in user who can edit this document.
+	 * Permission: a logged-in user who can edit this post, which must be of the route's type.
 	 *
 	 * @param WP_REST_Request $request Request.
+	 * @param string          $type    Post type the route serves.
 	 * @return bool|WP_Error
 	 */
-	public static function can_edit( WP_REST_Request $request ) {
+	public static function can_edit( WP_REST_Request $request, string $type = 'document' ) {
 		$post_id = (int) $request['id'];
 
-		if ( 'document' !== get_post_type( $post_id ) ) {
-			return new WP_Error( 'cptdp_not_found', __( 'Document not found.', 'custom-post-types-dp' ), array( 'status' => 404 ) );
+		if ( ! isset( self::ROUTE_BASES[ $type ] ) || get_post_type( $post_id ) !== $type ) {
+			return new WP_Error( 'cptdp_not_found', __( 'Not found.', 'custom-post-types-dp' ), array( 'status' => 404 ) );
 		}
 
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return new WP_Error(
 				'cptdp_forbidden',
-				__( 'You are not allowed to edit this document.', 'custom-post-types-dp' ),
+				__( 'You are not allowed to edit this item.', 'custom-post-types-dp' ),
 				array( 'status' => is_user_logged_in() ? 403 : 401 )
 			);
 		}
@@ -164,8 +179,8 @@ class CPTDP_Page_REST {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
 		}
 
-		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
-			return self::server_only();
+		if ( CPTDP_Page_Store::is_server_only_kind( $source['kind'] ) ) {
+			return self::server_only( $source['kind'] );
 		}
 
 		// Another tab is already generating these pages: do not clear its folder from under it.
@@ -249,8 +264,10 @@ class CPTDP_Page_REST {
 		$page    = (int) $request['n'];
 		$folder  = CPTDP_Page_Store::folder_for( $post_id );
 
-		if ( CPTDP_Page_Store::is_office_kind( CPTDP_Page_Store::source_kind( $post_id ) ) ) {
-			return self::server_only();
+		$kind = CPTDP_Page_Store::source_kind( $post_id );
+
+		if ( CPTDP_Page_Store::is_server_only_kind( $kind ) ) {
+			return self::server_only( $kind );
 		}
 
 		$stale = self::check_run( $request, $post_id );
@@ -336,8 +353,8 @@ class CPTDP_Page_REST {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ), array( 'status' => 400 ) );
 		}
 
-		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
-			return self::server_only();
+		if ( CPTDP_Page_Store::is_server_only_kind( $source['kind'] ) ) {
+			return self::server_only( $source['kind'] );
 		}
 
 		$stale = self::check_run( $request, $post_id );
@@ -524,9 +541,22 @@ class CPTDP_Page_REST {
 	}
 
 	/**
-	 * The error for the browser-upload routes on a presentation.
+	 * The error for the browser-upload routes on a file only the server converts.
+	 *
+	 * Office files keep the code `cptdp_pptx_server_only` they have always had; a collateral's image
+	 * answers `cptdp_server_only`.
+	 *
+	 * @param string $kind Source kind.
 	 */
-	private static function server_only(): WP_Error {
+	private static function server_only( string $kind ): WP_Error {
+		if ( CPTDP_Page_Store::is_image_kind( $kind ) ) {
+			return new WP_Error(
+				'cptdp_server_only',
+				__( 'Images are turned into a page by the server only. Use Regenerate.', 'custom-post-types-dp' ),
+				array( 'status' => 400 )
+			);
+		}
+
 		return new WP_Error(
 			'cptdp_pptx_server_only',
 			__( 'Presentations and spreadsheets are converted by the server only. Use Regenerate, or upload a PDF.', 'custom-post-types-dp' ),

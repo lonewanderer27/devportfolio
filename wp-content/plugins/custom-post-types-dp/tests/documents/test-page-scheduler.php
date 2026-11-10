@@ -234,12 +234,12 @@ class CPTDP_Test_Page_Scheduler extends CPTDP_Pages_Test_Case {
 		$this->assertTrue( $this->cron_scheduled( $id ) );
 	}
 
-	public function test_documents_with_pdf_lists_only_documents_with_a_pdf(): void {
+	public function test_posts_with_source_lists_only_documents_with_a_pdf(): void {
 		$with    = $this->make_document( $this->make_pdf_attachment( 2 ) );
 		$without = $this->make_document();
 		$image   = $this->make_document( $this->make_attachment( 'image/png' ) );
 
-		$ids = CPTDP_Page_Scheduler::documents_with_pdf();
+		$ids = CPTDP_Page_Scheduler::posts_with_source();
 
 		$this->assertContains( $with, $ids );
 		$this->assertNotContains( $without, $ids );

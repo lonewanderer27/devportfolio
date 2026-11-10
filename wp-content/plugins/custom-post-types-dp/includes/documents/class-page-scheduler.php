@@ -30,7 +30,9 @@ class CPTDP_Page_Scheduler {
 		add_action( 'added_post_meta', array( __CLASS__, 'on_file_meta' ), 10, 4 );
 		add_action( 'updated_post_meta', array( __CLASS__, 'on_file_meta' ), 10, 4 );
 		add_action( 'deleted_post_meta', array( __CLASS__, 'on_file_meta' ), 10, 4 );
-		add_action( 'save_post_document', array( __CLASS__, 'on_save_post' ), 99, 3 );
+		foreach ( CPTDP_Page_Store::post_types() as $type ) {
+			add_action( 'save_post_' . $type, array( __CLASS__, 'on_save_post' ), 99, 3 );
+		}
 		add_action( 'edit_attachment', array( __CLASS__, 'on_attachment_changed' ) );
 		add_action( 'attachment_updated', array( __CLASS__, 'on_attachment_changed' ) );
 		add_action( 'updated_post_meta', array( __CLASS__, 'on_attached_file_meta' ), 10, 3 );
@@ -47,7 +49,7 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * `cptdp_document_file` meta added, updated or deleted.
+	 * The file meta of a supported post (`cptdp_document_file`, `cptdp_collateral_file`) added, updated or deleted.
 	 *
 	 * @param int|int[] $meta_id   Meta ID(s).
 	 * @param int       $post_id   Post ID.
@@ -57,7 +59,7 @@ class CPTDP_Page_Scheduler {
 	public static function on_file_meta( $meta_id, $post_id, $meta_key, $meta_value = null ): void {
 		unset( $meta_id, $meta_value );
 
-		if ( 'cptdp_document_file' !== $meta_key || 'document' !== get_post_type( (int) $post_id ) ) {
+		if ( ! CPTDP_Page_Store::supports( (int) $post_id ) || CPTDP_Page_Store::file_meta_key( (int) $post_id ) !== $meta_key ) {
 			return;
 		}
 
@@ -65,7 +67,7 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * A document was saved (runs after the plugin's own meta box save).
+	 * A document or collateral was saved (runs after the plugin's own meta box save).
 	 *
 	 * @param int          $post_id Post ID.
 	 * @param WP_Post|null $post    Post.
@@ -79,12 +81,12 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * An attachment was edited: re-check the documents that use it.
+	 * An attachment was edited: re-check the posts that use it.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public static function on_attachment_changed( $attachment_id ): void {
-		foreach ( CPTDP_Page_Store::documents_using( (int) $attachment_id ) as $post_id ) {
+		foreach ( CPTDP_Page_Store::posts_using( (int) $attachment_id ) as $post_id ) {
 			self::ensure( $post_id );
 		}
 	}
@@ -110,15 +112,16 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * A document is being deleted for good: remove its images.
+	 * A document or collateral is being deleted for good: remove its images and its generated featured image.
 	 *
 	 * @param int $post_id Post ID.
 	 */
 	public static function on_before_delete_post( $post_id ): void {
-		if ( 'document' !== get_post_type( (int) $post_id ) ) {
+		if ( ! CPTDP_Page_Store::supports( (int) $post_id ) ) {
 			return;
 		}
 
+		CPTDP_Page_Featured::remove( (int) $post_id, true );
 		CPTDP_Page_Store::clear( (int) $post_id, true );
 		wp_clear_scheduled_hook( self::CRON_HOOK, array( (int) $post_id ) );
 	}
@@ -129,7 +132,7 @@ class CPTDP_Page_Scheduler {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public static function on_delete_attachment( $attachment_id ): void {
-		foreach ( CPTDP_Page_Store::documents_using( (int) $attachment_id ) as $post_id ) {
+		foreach ( CPTDP_Page_Store::posts_using( (int) $attachment_id ) as $post_id ) {
 			CPTDP_Page_Store::clear( $post_id, true );
 		}
 
@@ -148,13 +151,14 @@ class CPTDP_Page_Scheduler {
 	public static function ensure( int $post_id, bool $force = false ): string {
 		$post = get_post( $post_id );
 
-		if ( ! $post instanceof WP_Post || 'document' !== $post->post_type || in_array( $post->post_status, array( 'auto-draft', 'trash', 'inherit' ), true ) ) {
+		if ( ! $post instanceof WP_Post || ! CPTDP_Page_Store::supports( $post_id ) || in_array( $post->post_status, array( 'auto-draft', 'trash', 'inherit' ), true ) ) {
 			return CPTDP_Page_Store::STATUS_NONE;
 		}
 
 		$source = CPTDP_Page_Store::get_source( $post_id );
 
 		if ( null === $source ) {
+			CPTDP_Page_Featured::remove( $post_id );
 			CPTDP_Page_Store::clear( $post_id, true );
 			wp_clear_scheduled_hook( self::CRON_HOOK, array( $post_id ) );
 
@@ -197,6 +201,20 @@ class CPTDP_Page_Scheduler {
 				}
 
 				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, CPTDP_Pptx_Converter::unavailable_reason( $source['kind'] ) );
+
+				return CPTDP_Page_Store::STATUS_FAILED;
+			}
+
+			CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_PENDING );
+			self::schedule( $post_id );
+
+			return CPTDP_Page_Store::STATUS_PENDING;
+		}
+
+		// A collateral's image is resized by the server's image editor only (DPC-023), whatever the mode.
+		if ( CPTDP_Page_Store::is_image_kind( $source['kind'] ) ) {
+			if ( ! CPTDP_Image_Page_Converter::is_available() ) {
+				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, CPTDP_Image_Page_Converter::unavailable_reason() );
 
 				return CPTDP_Page_Store::STATUS_FAILED;
 			}
@@ -273,7 +291,7 @@ class CPTDP_Page_Scheduler {
 	 * @return string The resulting status.
 	 */
 	public static function convert_now( int $post_id ): string {
-		$source = 'document' === get_post_type( $post_id ) ? CPTDP_Page_Store::get_source( $post_id ) : null;
+		$source = CPTDP_Page_Store::supports( $post_id ) ? CPTDP_Page_Store::get_source( $post_id ) : null;
 
 		if ( null === $source ) {
 			return CPTDP_Page_Store::STATUS_NONE;
@@ -338,8 +356,8 @@ class CPTDP_Page_Scheduler {
 		if ( is_wp_error( $result ) ) {
 			$message = $result->get_error_message();
 
-			// A presentation can only be converted by the server, so a failure is final (never the browser).
-			if ( 'auto' === self::mode() && ! CPTDP_Page_Store::is_office_kind( $current['kind'] ) ) {
+			// Office files and images can only be converted by the server, so a failure is final (never the browser).
+			if ( 'auto' === self::mode() && ! CPTDP_Page_Store::is_server_only_kind( $current['kind'] ) ) {
 				CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message );
 
 				return CPTDP_Page_Store::STATUS_NEEDS_BROWSER;
@@ -368,7 +386,7 @@ class CPTDP_Page_Scheduler {
 		if ( $tries >= self::MAX_LOCK_RETRIES ) {
 			delete_transient( $key );
 			$message = __( 'The server did not finish converting the file.', 'custom-post-types-dp' );
-			'auto' === self::mode() && ! CPTDP_Page_Store::is_office_kind( CPTDP_Page_Store::source_kind( $post_id ) )
+			'auto' === self::mode() && ! CPTDP_Page_Store::is_server_only_kind( CPTDP_Page_Store::source_kind( $post_id ) )
 				? CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, $message )
 				: CPTDP_Page_Store::set_status( $post_id, CPTDP_Page_Store::STATUS_FAILED, $message );
 
@@ -415,14 +433,15 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * Documents (any status except trash) that have a PDF.
+	 * Posts (any status except trash) that have a file that can become page images.
 	 *
+	 * @param string[] $types Post types to include; empty for every supported type.
 	 * @return int[]
 	 */
-	public static function documents_with_pdf(): array {
+	public static function posts_with_source( array $types = array() ): array {
 		return array_values(
 			array_filter(
-				self::document_ids( array( 'publish', 'draft', 'pending', 'private', 'future' ) ),
+				self::post_ids( array( 'publish', 'draft', 'pending', 'private', 'future' ), $types ),
 				static function ( int $id ): bool {
 					return null !== CPTDP_Page_Store::get_source( $id );
 				}
@@ -431,17 +450,24 @@ class CPTDP_Page_Scheduler {
 	}
 
 	/**
-	 * IDs of documents with the given post status, oldest first.
+	 * IDs of supported posts with the given post status, oldest first.
 	 *
 	 * @param string|string[] $status Post status or statuses (`any` includes drafts, not trash).
+	 * @param string[]        $types  Post types to include; empty for every supported type.
 	 * @return int[]
 	 */
-	public static function document_ids( $status = 'any' ): array {
+	public static function post_ids( $status = 'any', array $types = array() ): array {
+		$types = array() === $types ? CPTDP_Page_Store::post_types() : array_values( array_intersect( $types, CPTDP_Page_Store::post_types() ) );
+
+		if ( array() === $types ) {
+			return array();
+		}
+
 		return array_map(
 			'intval',
 			get_posts(
 				array(
-					'post_type'      => 'document',
+					'post_type'      => $types,
 					'post_status'    => $status,
 					'posts_per_page' => -1,
 					'fields'         => 'ids',

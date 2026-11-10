@@ -120,6 +120,11 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ) );
 		}
 
+		// A collateral's image is one page, resized by the WordPress image editor (DPC-023).
+		if ( CPTDP_Page_Store::is_image_kind( $source['kind'] ) ) {
+			return self::convert_image_file( $post_id, $source );
+		}
+
 		// A presentation is turned into a temporary PDF first (LibreOffice); everything after
 		// that is the same code as for an uploaded PDF. The temporary files are always removed.
 		if ( CPTDP_Page_Store::is_office_kind( $source['kind'] ) ) {
@@ -173,16 +178,10 @@ class CPTDP_Page_Converter {
 			return new WP_Error( 'cptdp_unavailable', self::unavailable_reason() );
 		}
 
-		$folder = CPTDP_Page_Store::folder_for( $post_id );
+		$folder = self::prepare_folder( $post_id );
 
-		if ( '' === $folder ) {
-			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ) );
-		}
-
-		CPTDP_Page_Store::delete_dir( $folder );
-
-		if ( ! wp_mkdir_p( $folder ) ) {
-			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not create the page images folder.', 'custom-post-types-dp' ) );
+		if ( is_wp_error( $folder ) ) {
+			return $folder;
 		}
 
 		$uniform = CPTDP_Page_Store::is_spreadsheet_kind( $source['kind'] );
@@ -228,6 +227,60 @@ class CPTDP_Page_Converter {
 		$result['crop_bottom'] = CPTDP_Page_Store::is_office_kind( $source['kind'] )
 			? 0.0
 			: CPTDP_Page_Analyzer::analyze_folder( $folder, (string) $result['ext'], (int) $result['count'] );
+
+		return $result;
+	}
+
+	/**
+	 * The post's set folder, emptied and created.
+	 *
+	 * @param int $post_id Document or collateral ID.
+	 * @return string|WP_Error Absolute folder path.
+	 */
+	private static function prepare_folder( int $post_id ) {
+		$folder = CPTDP_Page_Store::folder_for( $post_id );
+
+		if ( '' === $folder ) {
+			return new WP_Error( 'cptdp_no_pdf', __( 'The document has no PDF file.', 'custom-post-types-dp' ) );
+		}
+
+		CPTDP_Page_Store::delete_dir( $folder );
+
+		if ( ! wp_mkdir_p( $folder ) ) {
+			return new WP_Error( 'cptdp_conversion_failed', __( 'Could not create the page images folder.', 'custom-post-types-dp' ) );
+		}
+
+		return $folder;
+	}
+
+	/**
+	 * Turn a collateral's image into a one-page set.
+	 *
+	 * @param int                                                                $post_id Collateral ID.
+	 * @param array{id:int,path:string,fingerprint:string,token:string,kind:string} $source  Its source.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function convert_image_file( int $post_id, array $source ) {
+		if ( ! CPTDP_Image_Page_Converter::is_available() ) {
+			return new WP_Error( 'cptdp_unavailable', CPTDP_Image_Page_Converter::unavailable_reason() );
+		}
+
+		$folder = self::prepare_folder( $post_id );
+
+		if ( is_wp_error( $folder ) ) {
+			return $folder;
+		}
+
+		$result = CPTDP_Image_Page_Converter::convert( $source, $folder );
+
+		if ( is_wp_error( $result ) ) {
+			CPTDP_Page_Store::delete_dir( $folder );
+
+			return $result;
+		}
+
+		$result['source_token'] = $source['token'];
+		$result['dir']          = basename( $folder );
 
 		return $result;
 	}
