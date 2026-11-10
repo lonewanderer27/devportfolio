@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/collateral-grid",
+	"title": "Collateral Grid",
+	"category": "widgets",
+	"description": "The Brand Collaterals masonry: one preview per collateral at its own ratio, with the title and details at the bottom.",
+	"textdomain": "devportfolio",
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}

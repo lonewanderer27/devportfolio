@@ -58,6 +58,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/document-modal' );
 		register_block_type( __DIR__ . '/blocks/software-tags' );
 		register_block_type( __DIR__ . '/blocks/document-shelf' );
+		register_block_type( __DIR__ . '/blocks/collateral-grid' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -341,15 +342,17 @@ if ( ! function_exists( 'devportfolio_document_category_name' ) ) :
 	/**
 	 * The category name of a document: its first `document_category` term by name (DPD-005, DPD-023).
 	 *
-	 * Used by the cover and by the mobile Details sheet. Returns an empty string when the document has none.
+	 * Used by the cover and by the mobile Details sheet. Returns an empty string when the post has none.
+	 * Collaterals pass their own taxonomy (DPC-006).
 	 *
 	 * @since 0.8.0
 	 *
-	 * @param int $post_id Document ID.
+	 * @param int    $post_id  Post ID.
+	 * @param string $taxonomy Category taxonomy.
 	 * @return string Plain text (escape on output).
 	 */
-	function devportfolio_document_category_name( $post_id ) {
-		$terms = get_the_terms( (int) $post_id, 'document_category' );
+	function devportfolio_document_category_name( $post_id, $taxonomy = 'document_category' ) {
+		$terms = get_the_terms( (int) $post_id, $taxonomy );
 		if ( ! is_array( $terms ) || empty( $terms ) ) {
 			return '';
 		}
@@ -942,5 +945,140 @@ if ( ! function_exists( 'devportfolio_document_title_length' ) ) :
 			return 'xlong';
 		}
 		return $length > 40 ? 'long' : 'short';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_meta_line' ) ) :
+	/**
+	 * The detail line of a collateral item (DPC-006): category, paper size and page count, joined by " · ".
+	 *
+	 * A missing part is left out ("1 p" for one page), and the line is '' when all three are missing.
+	 * Plain text (escape on output).
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return string
+	 */
+	function devportfolio_collateral_meta_line( $post_id ) {
+		$post_id = (int) $post_id;
+		$parts   = array_filter(
+			array(
+				devportfolio_document_category_name( $post_id, 'collateral_category' ),
+				trim( (string) get_post_meta( $post_id, 'cptdp_paper_size', true ) ),
+				devportfolio_document_format_label( '', get_post_meta( $post_id, 'cptdp_total_pages', true ) ),
+			),
+			'strlen'
+		);
+
+		return implode( ' · ', $parts );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_preview_from' ) ) :
+	/**
+	 * Chooses what a collateral tile shows, from already-read data (DPC-006).
+	 *
+	 * In order: page 1 of a valid page set (its thumbnail, with page 1 as the larger candidate), the featured
+	 * image, then a numbered blank page. The tile ratio is the uncropped page ratio (DPC-014 D7); the blank
+	 * is A4 (portrait), or landscape when the paper size says so.
+	 *
+	 * Pure except for wp_get_attachment_image_src() when a featured image is given.
+	 *
+	 * @param array|null $stored     Result of cptdp_get_collateral_pages(), or null.
+	 * @param int        $featured_id Featured image attachment ID, 0 for none.
+	 * @param string     $paper_size  Paper size, e.g. "A4 Landscape".
+	 * @return array{kind:string,src:string,srcset:string,width:int,height:int,ratio:float,featured_id:int}
+	 */
+	function devportfolio_collateral_preview_from( $stored, int $featured_id, string $paper_size ) {
+		if ( is_array( $stored ) ) {
+			$page   = $stored['pages'][0] ?? '';
+			$width  = (int) ( $stored['width'] ?? 0 );
+			$height = (int) ( $stored['height'] ?? 0 );
+
+			if ( is_string( $page ) && '' !== $page && $width > 0 && $height > 0 ) {
+				$thumb     = ( isset( $stored['thumbs'] ) && is_array( $stored['thumbs'] ) ) ? ( $stored['thumbs'][0] ?? '' ) : '';
+				$thumb_w   = (int) ( $stored['thumb_width'] ?? 0 );
+				$has_thumb = is_string( $thumb ) && '' !== $thumb && $thumb_w > 0;
+
+				return array(
+					'kind'        => 'page',
+					'src'         => $has_thumb ? $thumb : $page,
+					'srcset'      => $has_thumb ? $thumb . ' ' . $thumb_w . 'w, ' . $page . ' ' . $width . 'w' : $page . ' ' . $width . 'w',
+					'width'       => $width,
+					'height'      => $height,
+					'ratio'       => round( $width / $height, 4 ),
+					'featured_id' => 0,
+				);
+			}
+		}
+
+		if ( $featured_id > 0 ) {
+			$image = wp_get_attachment_image_src( $featured_id, 'full' );
+			if ( is_array( $image ) && (int) $image[1] > 0 && (int) $image[2] > 0 ) {
+				return array(
+					'kind'        => 'featured',
+					'src'         => '',
+					'srcset'      => '',
+					'width'       => (int) $image[1],
+					'height'      => (int) $image[2],
+					'ratio'       => round( (int) $image[1] / (int) $image[2], 4 ),
+					'featured_id' => $featured_id,
+				);
+			}
+		}
+
+		$landscape = false !== stripos( $paper_size, 'landscape' );
+
+		return array(
+			'kind'        => 'blank',
+			'src'         => '',
+			'srcset'      => '',
+			'width'       => 0,
+			'height'      => 0,
+			'ratio'       => round( $landscape ? M_SQRT2 : 1 / M_SQRT2, 4 ),
+			'featured_id' => 0,
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_preview' ) ) :
+	/**
+	 * The preview of a collateral, read from its stored page images, featured image and paper size.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array{kind:string,src:string,srcset:string,width:int,height:int,ratio:float,featured_id:int}
+	 */
+	function devportfolio_collateral_preview( $post_id ) {
+		$post_id = (int) $post_id;
+		$stored  = function_exists( 'cptdp_get_collateral_pages' ) ? cptdp_get_collateral_pages( $post_id ) : null;
+
+		return devportfolio_collateral_preview_from(
+			$stored,
+			(int) get_post_thumbnail_id( $post_id ),
+			(string) get_post_meta( $post_id, 'cptdp_paper_size', true )
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_item' ) ) :
+	/**
+	 * Everything the collateral grid shows for one collateral (DPC-006).
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array{title:string,meta:string,categories:string[],preview:array}|null Null when the post is not a collateral.
+	 */
+	function devportfolio_collateral_item( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'collateral' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$slugs = wp_get_object_terms( $post_id, 'collateral_category', array( 'fields' => 'slugs' ) );
+
+		return array(
+			'title'      => get_the_title( $post_id ),
+			'meta'       => devportfolio_collateral_meta_line( $post_id ),
+			'categories' => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
+			'preview'    => devportfolio_collateral_preview( $post_id ),
+		);
 	}
 endif;

@@ -5,6 +5,9 @@
  * `data-document-categories` (space-separated term slugs); planks are
  * `[data-shelf-plank]` elements owned by this script. A pill's `data-filter` is
  * a term slug, or empty for "All".
+ *
+ * Other grids listen for `devportfolio:category-change` (detail `{ slug }`), dispatched synchronously on every
+ * change, including the first apply.
  */
 ( function () {
 	'use strict';
@@ -118,6 +121,7 @@
 				filterShelf( shelf, slug );
 			}
 			syncTrigger( slug );
+			group.dispatchEvent( new CustomEvent( 'devportfolio:category-change', { bubbles: true, detail: { slug: slug } } ) );
 		}
 
 		function syncTrigger( slug ) {

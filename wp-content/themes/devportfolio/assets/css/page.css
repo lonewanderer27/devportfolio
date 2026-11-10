@@ -20,6 +20,23 @@
 	line-height: 1;
 }
 
+/*
+ * The Brand Collaterals page (DPC-014): the content stops growing at 1400px including the padding
+ * (1328 + 2 x 36), and phones get the 16px gutter. <main> stays full width (the sticky band is a
+ * full-width ::before), so the limit is the content size, not a max-width on <main>.
+ */
+.documents-page.collaterals-page {
+	--wp--style--global--content-size: 1328px;
+
+	padding-inline: 36px;
+}
+
+@media (max-width: 700px) {
+	.documents-page.collaterals-page {
+		padding-inline: 16px;
+	}
+}
+
 @media (max-width: 820px) {
 	/* Phones: the page padding set inline by the template is trimmed here. */
 	.documents-page {

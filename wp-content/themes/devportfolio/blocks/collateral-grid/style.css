@@ -1,0 +1,199 @@
+/*
+ * Brand Collaterals masonry (DPC-006, DPC-014). view.js places the items (masonry.js);
+ * the multi-column rules below are the no-JS fallback and stop applying once
+ * `data-masonry` is set on the grid.
+ *
+ * The info band shares the preview's grid cell (it is drawn over the bottom of the preview).
+ * It must not be a containing block: a transform, backdrop-filter or other positioned box there would
+ * make the title button's ::after cover only the band instead of the whole item. So the hover reveal
+ * fades (opacity) and the band has no blur (its tint is 80% white).
+ */
+
+.collaterals-grid {
+	--collaterals-gap: 12px;
+
+	column-width: 220px;
+	column-gap: var(--collaterals-gap);
+}
+
+@media (max-width: 700px) {
+	.collaterals-grid {
+		--collaterals-gap: 8px;
+		column-width: 150px;
+	}
+}
+
+.collaterals-grid[data-masonry] {
+	columns: auto;
+	position: relative;
+}
+
+.collaterals-item {
+	position: relative;
+	display: grid;
+	min-width: 0;
+	break-inside: avoid;
+	margin-bottom: var(--collaterals-gap);
+	view-transition-class: collaterals-item;
+}
+
+.collaterals-grid[data-masonry] > .collaterals-item {
+	position: absolute;
+	top: 0;
+	left: 0;
+	margin: 0;
+}
+
+.collaterals-item[hidden],
+.collaterals-item__img[hidden] {
+	display: none;
+}
+
+.collaterals-item__preview {
+	grid-area: 1 / 1;
+	align-self: start;
+	position: relative;
+	aspect-ratio: var(--collaterals-ratio);
+	overflow: hidden;
+	border-radius: 6px;
+	background: var(--wp--preset--color--fill);
+	outline: 1px solid var(--wp--preset--color--line);
+}
+
+.collaterals-item__img,
+.collaterals-item__blank {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.collaterals-item__img {
+	object-fit: cover;
+}
+
+/* The numbered blank page: the placeholder for a collateral without pages, and what shows when an image fails. */
+.collaterals-item__blank {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--wp--preset--color--mid);
+	font-size: 44px;
+	font-weight: 300;
+	line-height: 1;
+}
+
+.collaterals-item__info {
+	grid-area: 1 / 1;
+	align-self: end;
+	/* A grid item honours z-index while static: keeps the band above the positioned preview once the reveal ends (opacity 1 is no stacking context) without making it a containing block. */
+	z-index: 1;
+	min-width: 0;
+	padding: 8px 10px;
+	border-radius: 0 0 6px 6px;
+	background: var(--wp--custom--glass--tint);
+	color: var(--wp--preset--color--contrast);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+	.collaterals-item__info {
+		background: var(--wp--preset--color--base);
+	}
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	.collaterals-item__info {
+		background: var(--wp--preset--color--base);
+	}
+}
+
+.collaterals-item__title {
+	margin: 0;
+	font-size: 13.5px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+}
+
+/* The one real control of the item. Its ::after covers the whole item, so a click anywhere opens it. */
+.collaterals-item__open {
+	all: unset;
+	display: block;
+	max-width: 100%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: inherit;
+	cursor: pointer;
+}
+
+.collaterals-item__open::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
+.collaterals-item:has(.collaterals-item__open:focus-visible) {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: 2px;
+}
+
+.collaterals-item__meta {
+	margin: 0;
+	overflow: hidden;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--wp--preset--color--mid);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+@media (max-width: 700px) {
+	.collaterals-item__title {
+		font-size: 12.5px;
+	}
+
+	.collaterals-item__meta {
+		font-size: 11.5px;
+	}
+}
+
+/* Hover and focus reveal the info on mouse devices. Touch screens have no hover, so the info stays. */
+@media (hover: hover) {
+	.collaterals-item__info {
+		opacity: 0;
+		transition: opacity 160ms ease;
+	}
+
+	.collaterals-item:hover .collaterals-item__info,
+	.collaterals-item:focus-within .collaterals-item__info {
+		opacity: 1;
+	}
+}
+
+/*
+ * Category change (document-categories/view.js runs the filter inside document.startViewTransition): each
+ * tile has its own transition name, so a tile that stays glides to its new place, a new one fades in and a
+ * removed one fades out.
+ */
+::view-transition-group(*.collaterals-item) {
+	animation-duration: 0.4s;
+	animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(*.collaterals-item),
+::view-transition-new(*.collaterals-item) {
+	animation-duration: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.collaterals-item__info {
+		transition: none;
+	}
+
+	::view-transition-group(*.collaterals-item),
+	::view-transition-old(*.collaterals-item),
+	::view-transition-new(*.collaterals-item) {
+		animation: none;
+	}
+}
