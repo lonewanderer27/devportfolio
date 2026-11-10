@@ -80,8 +80,8 @@
 	width: 36px;
 	height: 36px;
 	padding: 0;
-	color: var( --cm-on-primary );
-	background: var( --cm-ink );
+	color: var( --cm-ink );
+	background: transparent;
 	border: 1px solid var( --cm-ink );
 	border-radius: 999px;
 	cursor: pointer;

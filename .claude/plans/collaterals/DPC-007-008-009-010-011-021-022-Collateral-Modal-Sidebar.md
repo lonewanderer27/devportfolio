@@ -37,7 +37,7 @@ Related plans (history only): `collaterals/DPC-006-014-Collateral-Item-Masonry.m
 
 ### DPC-007 sidebar header (top to bottom)
 
-12. Top bar: **Close** (filled, X). Then line 1 pills: **category** (filled, singular name) and **paper size and page count** (outline, `A4 · 2 pp`). Then the **title** (bold) and the **description** (wraps).
+12. Top bar: **Close** (outline, X). Then line 1 pills: **category** (filled, singular name) and **paper size and page count** (outline, `A4 · 2 pp`). Then the **title** (bold) and the **description** (wraps).
 13. A missing paper size or page count is left out of the pill (`A4`, `2 pp`, none); the pill is not drawn when both are missing; a missing category leaves no filled pill; a missing description leaves no empty line.
 14. Admin text is escaped: it is written with `textContent`, so markup shows as text.
 
@@ -233,6 +233,7 @@ The mobile dialog is the same `open()` with a different shell; its content in th
 - `.collaterals-modal`: D11 size and look; `::backdrop` dimmed (`rgb( 0 0 0 / 0.4 )`, light blur only without `prefers-reduced-transparency`); `[open]` fade-up (200ms) and none with reduced motion.
 - `.collaterals-mobile`: `inset: 0`, `width: 100%`, `height: 100dvh`, `border-radius: 0`, `::backdrop { background: transparent }`, safe-area padding; slides up like `documents-mobile-up` unless reduced motion.
 - Sidebar: `position`-free flex column; `.collaterals-modal__scroll { overflow: auto; min-height: 0; flex: 1 }`; `.collaterals-modal__actions { border-top; padding; display: grid; gap: 8px }` pinned by being outside the scroller. The sidebar and the body share grid row 1 (`grid-row: 1` on both, `grid-template-rows: minmax( 0, 1fr )` on the panel), so the sidebar runs the full dialog height and the footer buttons sit on its bottom edge.
+- Close (desktop and mobile): 36px round outline, 1px ink ring, ink X on the surface (no fill).
 - Pills: 28px tall, 12.5px/600; filled uses ink background with white text, outline uses 1px ink border. Statistic box: 1px line border, 10px radius, value `font-weight: 800`, label `text-transform: uppercase; font-size: 11px; letter-spacing: .06em; overflow-wrap: anywhere`. Tool pill: square (radius 6px), 1px line, name; the icon slot is a future `::before`.
 - Next thumbnail: the image at its own ratio, `max-height` 160px, `object-fit: contain` on a `--cm-surface-alt` tile, focus ring 2px ink offset 2px.
 - Both breakpoints exactly as D3. `@media ( max-width: 900px )` narrows the sidebar token to 280px.
@@ -392,6 +393,7 @@ Built on `feat/DPC-006-014-Collateral-Item-Masonry` (not yet merged to `main`; t
 **Not done:** no commits (none asked for); AGENTS.md was updated in the working tree only.
 
 **Changed after build:**
+- Close button changed from a filled to an outline button (same size, ink ring and X), on request (DPC-007 item 12 now says outline).
 - Footer buttons pinned to the bottom of the sidebar. Placing the sidebar on the right (explicit `grid-column`) had put the body in a second grid row, so the sidebar stopped short of the dialog's bottom edge. Both now share row 1 (see 5.5). Measured in headless Chrome at 1440x900 and 1440x560: the actions end on the sidebar's bottom edge.
 
 ## Open questions (each has a default that this plan already follows)
