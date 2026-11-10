@@ -62,6 +62,25 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
 
+if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
+	/**
+	 * Enqueue styles shared by the Documents and Collaterals archives.
+	 */
+	function devportfolio_enqueue_page_styles() {
+		if ( ! is_post_type_archive( array( 'document', 'collateral' ) ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'devportfolio-page',
+			get_theme_file_uri( 'assets/css/page.css' ),
+			array(),
+			(string) filemtime( __DIR__ . '/assets/css/page.css' )
+		);
+	}
+endif;
+add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
+
 if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
 	/**
 	 * URL for redirecting a published document single to its modal deeplink.
