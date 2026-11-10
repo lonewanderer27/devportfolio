@@ -9,6 +9,16 @@
 	"supports": {
 		"html": false
 	},
+	"attributes": {
+		"taxonomy": {
+			"type": "string",
+			"default": "document_category"
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		}
+	},
 	"render": "file:./render.php",
 	"style": "file:./style.css",
 	"viewScript": "file:./view.js"

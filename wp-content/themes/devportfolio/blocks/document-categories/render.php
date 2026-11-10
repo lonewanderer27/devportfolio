@@ -3,7 +3,7 @@
  * Render callback for the devportfolio/document-categories block (DPD-002).
  *
  * "All" is synthetic: always first, never stored, and always present. The other
- * pills are the document_category terms in name order (the DPD-007 seeded order),
+ * pills are the selected taxonomy's terms in name order,
  * empty terms included. `data-filter` is the term slug; "All" uses an empty value
  * so a real term can never collide with it.
  *
@@ -14,9 +14,14 @@
  * @var WP_Block $block      Block instance.
  */
 
+$devportfolio_taxonomy = sanitize_key( $attributes['taxonomy'] ?? 'document_category' );
+if ( ! taxonomy_exists( $devportfolio_taxonomy ) ) {
+	return;
+}
+
 $devportfolio_terms = get_terms(
 	array(
-		'taxonomy'   => 'document_category',
+		'taxonomy'   => $devportfolio_taxonomy,
 		'hide_empty' => false,
 		'orderby'    => 'name',
 		'order'      => 'ASC',
@@ -37,7 +42,11 @@ if ( ! in_array( $devportfolio_active, wp_list_pluck( $devportfolio_terms, 'slug
 $devportfolio_wrapper = get_block_wrapper_attributes(
 	array(
 		'role'       => 'group',
-		'aria-label' => esc_attr__( 'Document categories', 'devportfolio' ),
+		'aria-label' => esc_attr(
+			'' !== trim( (string) ( $attributes['label'] ?? '' ) )
+				? $attributes['label']
+				: __( 'Document categories', 'devportfolio' )
+		),
 	)
 );
 $devportfolio_list_id = wp_unique_id( 'documents-categories-list-' );

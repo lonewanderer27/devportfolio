@@ -100,8 +100,20 @@ class Devportfolio_Test_Document_Shelf extends WP_UnitTestCase {
 		return trim( preg_replace( '/\s+/', ' ', $css ) );
 	}
 
+	private function page_css(): string {
+		$css = preg_replace( '#/\*.*?\*/#s', '', $this->read( 'assets/css/page.css' ) );
+		return trim( preg_replace( '/\s+/', ' ', $css ) );
+	}
+
 	private function rule( string $selector ): string {
 		if ( preg_match( '/(?:^|[{}] )' . preg_quote( $selector, '/' ) . ' \{([^{}]*)\}/', $this->css(), $m ) ) {
+			return $m[1];
+		}
+		return '';
+	}
+
+	private function page_rule( string $selector ): string {
+		if ( preg_match( '/(?:^|[{}] )' . preg_quote( $selector, '/' ) . ' \{([^{}]*)\}/', $this->page_css(), $m ) ) {
 			return $m[1];
 		}
 		return '';
@@ -248,8 +260,8 @@ class Devportfolio_Test_Document_Shelf extends WP_UnitTestCase {
 	}
 
 	public function test_page_is_wider_than_the_content_width_with_side_margins(): void {
-		$this->assertStringContainsString( 'padding-inline: clamp(0px, 3vw, 32px)', $this->rule( '.documents-page' ) );
-		$this->assertStringContainsString( '--wp--style--global--content-size: 1440px', $this->rule( '.documents-page' ) );
+		$this->assertStringContainsString( 'padding-inline: clamp(0px, 3vw, 32px)', $this->page_rule( '.documents-page' ) );
+		$this->assertStringContainsString( '--wp--style--global--content-size: 1440px', $this->page_rule( '.documents-page' ) );
 	}
 
 	public function test_no_fixed_column_counts_remain(): void {
@@ -263,7 +275,7 @@ class Devportfolio_Test_Document_Shelf extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'z-index: -1', $before );
 		$this->assertStringContainsString( 'left: -100vw', $before );
 		$this->assertStringContainsString( 'pointer-events: none', $before );
-		$this->assertStringContainsString( 'overflow-x: clip', $this->rule( '.documents-page' ) );
+		$this->assertStringContainsString( 'overflow-x: clip', $this->page_rule( '.documents-page' ) );
 	}
 
 	public function test_hover_and_pressed_lift_the_cover_from_the_item(): void {

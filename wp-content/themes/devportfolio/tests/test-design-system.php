@@ -171,7 +171,7 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	}
 
 	public function test_title_is_light_and_fluid_like_the_hifi(): void {
-		$css  = $this->read( 'blocks/document-shelf/style.css' );
+		$css  = $this->read( 'assets/css/page.css' );
 		$rule = $this->rule( $css, '.documents-page .documents-page__title' );
 
 		$this->assertStringContainsString( 'font-size: clamp(44px, 6.4vw, 72px)', $rule );
@@ -181,7 +181,7 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	}
 
 	public function test_phone_title_and_page_padding_leave_room_for_the_books(): void {
-		$tablet = $this->media( $this->read( 'blocks/document-shelf/style.css' ), '(max-width: 820px)' );
+		$tablet = $this->media( $this->read( 'assets/css/page.css' ), '(max-width: 820px)' );
 
 		$this->assertStringContainsString( 'padding-top: 16px !important', $this->rule( $tablet, '.documents-page' ), 'Overrides the 48px set inline by the template.' );
 
@@ -219,7 +219,7 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	}
 
 	public function test_the_gutter_variable_is_shared_with_the_category_strip(): void {
-		$page = $this->rule( $this->read( 'blocks/document-shelf/style.css' ), '.documents-page' );
+		$page = $this->rule( $this->read( 'assets/css/page.css' ), '.documents-page' );
 		$this->assertStringContainsString( '--documents-gutter: clamp(0px, 3vw, 32px)', $page );
 
 		$strip = $this->last_media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
