@@ -193,7 +193,7 @@ Register after `collateral-grid` in `devportfolio_register_blocks()`. In `archiv
 </div>
 ```
 - Query: `get_posts()` as the grid (`collateral`, `publish`, `-1`, `fields ids`, `menu_order` ASC then `title` ASC, `no_found_rows`); `order` is that id list, `items` the payload per id. No collaterals still renders the shells (cheap) with an empty payload, and `view.js` does nothing.
-- Every empty region is `hidden` in the markup and shown by the script, so the no-JS page is clean. The *Copied* text goes in the `role="status"` span, the label of the button only changes visually (so the accessible name never changes mid-announcement).
+- Every empty region is `hidden` in the markup and shown by the script, so the no-JS page is clean. The *Copied* text goes in the `role="status"` span, which is visually hidden (it is a grid item, so a visible span would take a row under the buttons); the button label shows *Copied* for 2s, and in the fallback it shows the *Press Ctrl/⌘ + C* hint, so the hint is visible as well as announced.
 - Strings with `esc_html_x()` / `esc_attr_x()` and context `collateral modal`; the Close label is `Close viewer`.
 - Unique ids with `wp_unique_id()`.
 
@@ -394,6 +394,7 @@ Built on `feat/DPC-006-014-Collateral-Item-Masonry` (not yet merged to `main`; t
 
 **Changed after build:**
 - Close button changed from a filled to an outline button (same size, ink ring and X), on request (DPC-007 item 12 now says outline).
+- Empty gap under Copy link removed: the status span was a grid item and took its own row. It is now visually hidden, and the fallback hint is shown on the Copy link button.
 - Footer buttons pinned to the bottom of the sidebar. Placing the sidebar on the right (explicit `grid-column`) had put the body in a second grid row, so the sidebar stopped short of the dialog's bottom edge. Both now share row 1 (see 5.5). Measured in headless Chrome at 1440x900 and 1440x560: the actions end on the sidebar's bottom edge.
 
 ## Open questions (each has a default that this plan already follows)

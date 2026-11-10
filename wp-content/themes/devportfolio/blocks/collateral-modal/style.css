@@ -353,10 +353,14 @@
 	position: relative;
 }
 
+/* Screen-reader status only: it is a grid item, so it must not take a visible row under the buttons. */
 .collaterals-modal__live {
-	font-size: 12px;
-	color: var( --cm-subtle );
-	min-height: 1em;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect( 0 0 0 0 );
+	white-space: nowrap;
 }
 
 .collaterals-modal__main {

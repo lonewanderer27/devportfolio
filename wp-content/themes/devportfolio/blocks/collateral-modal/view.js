@@ -343,6 +343,8 @@ if ( dialog && mobileDialog && dataEl ) {
 				els.copyField.classList.add( 'is-shown' );
 				els.copyField.focus();
 				els.copyField.select();
+				// The hint is shown on the button (the status line is screen-reader only) and announced too.
+				els.copy.textContent = strings.copyHint || copyLabel;
 				els.live.textContent = strings.copyHint || '';
 			},
 		} );
