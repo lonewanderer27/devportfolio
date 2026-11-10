@@ -67,7 +67,7 @@
 	border-left: 1px solid var( --cm-line );
 }
 
-.collaterals-modal__bar {
+.collaterals-modal__sidebar-bar {
 	display: flex;
 	justify-content: flex-end;
 	padding: 12px 12px 0;
@@ -374,9 +374,33 @@
 
 .collaterals-modal__body {
 	display: flex;
+	position: relative;
 	min-height: 0;
 	min-width: 0;
 	background: var( --cm-surface-alt );
+}
+
+/* Tap to Flip (DPC-012, D7): a hint under the spread on touch screens; the script shows it, never a tap target. */
+.collaterals-modal__tap {
+	position: absolute;
+	left: 50%;
+	bottom: 14px;
+	z-index: 2;
+	margin: 0;
+	padding: 6px 14px;
+	transform: translateX( -50% );
+	border-radius: 999px;
+	background: var( --dm-ink );
+	color: var( --dm-on-primary );
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.collaterals-modal__tap[hidden] {
+	display: none;
 }
 
 .collaterals-modal__stage {
@@ -426,52 +450,6 @@
 	background: transparent;
 }
 
-.collaterals-mobile__panel {
-	display: flex;
-	flex-direction: column;
-	flex: 1 1 auto;
-	min-height: 0;
-	padding-top: env( safe-area-inset-top );
-	padding-bottom: env( safe-area-inset-bottom );
-}
-
-.collaterals-mobile__header {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex: none;
-	padding: 10px 16px;
-	border-bottom: 1px solid var( --cm-line );
-}
-
-.collaterals-mobile__title {
-	min-width: 0;
-	margin: 0;
-	font-size: 17px;
-	font-weight: 800;
-	overflow-wrap: anywhere;
-}
-
-.collaterals-mobile__title:focus {
-	outline: none;
-}
-
-.collaterals-mobile__body {
-	display: flex;
-	flex: 1 1 auto;
-	min-height: 0;
-	background: var( --cm-surface-alt );
-}
-
-.collaterals-mobile__stage {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.collaterals-mobile__footer:empty {
-	display: none;
-}
-
 @keyframes collaterals-mobile-up {
 	from {
 		transform: translateY( 100% );
@@ -479,6 +457,94 @@
 	to {
 		transform: none;
 	}
+}
+
+/* ---- Mobile Details sheet (DPC-018): the shared sheet chrome comes from document-modal/style.css ---------- */
+
+.collaterals-mobile__details-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+}
+
+.collaterals-mobile__details-category {
+	padding: 4px 10px;
+	color: var( --cm-on-primary );
+	font-size: 12px;
+	font-weight: 700;
+	background: var( --cm-ink );
+	border-radius: 999px;
+}
+
+.collaterals-mobile__details-size {
+	padding: 3px 9px;
+	font-size: 12px;
+	border: 1px solid var( --cm-ink );
+	border-radius: 999px;
+}
+
+.collaterals-mobile__details-caption {
+	margin: 0 0 6px;
+	color: var( --cm-subtle );
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.collaterals-mobile__details-made {
+	margin-top: 12px;
+}
+
+.collaterals-mobile__details-results {
+	margin-top: 14px;
+}
+
+.collaterals-mobile__details-results .collaterals-mobile__details-row dt {
+	color: var( --cm-subtle );
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.collaterals-mobile__details-results .collaterals-mobile__details-row dd {
+	margin: 0;
+	font-weight: 800;
+}
+
+.collaterals-mobile__details-copy {
+	width: 100%;
+	min-height: 44px;
+	margin-top: 8px;
+	color: var( --cm-ink );
+	font: inherit;
+	font-weight: 700;
+	background: transparent;
+	border: 1px solid var( --cm-ink );
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+.collaterals-mobile__details-field {
+	box-sizing: border-box;
+	width: 100%;
+	margin-top: 8px;
+	padding: 8px 10px;
+	font: inherit;
+	font-size: 13px;
+	color: var( --cm-ink );
+	border: 1px solid var( --cm-line-strong );
+	border-radius: 8px;
+}
+
+.collaterals-mobile__details-live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect( 0 0 0 0 );
+	white-space: nowrap;
 }
 
 /* ---- Breakpoints: the same queries as routing.js (WIDE_QUERY, SIDEWAYS_QUERY) --------- */
