@@ -6,9 +6,6 @@
  * Every other argument and the hash are kept.
  */
 
-// `document` is reserved by WordPress as the document CPT query var.
-export const PARAM = 'document_slug';
-
 const BASE = 'https://example.invalid';
 
 const parse = ( href ) => new URL( href, BASE );
@@ -17,43 +14,62 @@ const parse = ( href ) => new URL( href, BASE );
 const format = ( url, href ) => ( /^[a-z][a-z0-9+.-]*:/i.test( href ) ? url.toString() : url.pathname + url.search + url.hash );
 
 /**
- * The slug in the URL, or '' when there is none.
+ * The URL helpers for one query parameter. Documents use `document_slug` (`document` is reserved by
+ * WordPress as the document CPT query var); Brand Collaterals use `collateral_slug` (DPC-020).
  *
- * @param {string} href URL or path.
- * @return {string}
+ * @param {string} param Query parameter name.
  */
-export function slugFromUrl( href ) {
-	try {
-		return parse( href ).searchParams.get( PARAM ) || '';
-	} catch ( e ) {
-		return '';
-	}
+export function createDeeplink( param ) {
+	const api = {
+		/**
+		 * The slug in the URL, or '' when there is none.
+		 *
+		 * @param {string} href URL or path.
+		 * @return {string}
+		 */
+		slugFromUrl( href ) {
+			try {
+				return parse( href ).searchParams.get( param ) || '';
+			} catch ( e ) {
+				return '';
+			}
+		},
+
+		/**
+		 * The URL with the parameter set; an empty slug removes it.
+		 *
+		 * @param {string} href URL or path.
+		 * @param {string} slug Slug.
+		 * @return {string}
+		 */
+		urlWithSlug( href, slug ) {
+			const url = parse( href );
+			if ( slug ) {
+				url.searchParams.set( param, slug );
+			} else {
+				url.searchParams.delete( param );
+			}
+			return format( url, href );
+		},
+
+		/**
+		 * The URL without the parameter.
+		 *
+		 * @param {string} href URL or path.
+		 * @return {string}
+		 */
+		urlWithoutSlug: ( href ) => api.urlWithSlug( href, '' ),
+	};
+	return api;
 }
 
-/**
- * The URL with `?document_slug=<slug>` set; an empty slug removes it.
- *
- * @param {string} href URL or path.
- * @param {string} slug Document slug.
- * @return {string}
- */
-export function urlWithSlug( href, slug ) {
-	const url = parse( href );
-	if ( slug ) {
-		url.searchParams.set( PARAM, slug );
-	} else {
-		url.searchParams.delete( PARAM );
-	}
-	return format( url, href );
-}
+const documents = createDeeplink( 'document_slug' );
 
-/**
- * The URL without `?document_slug`.
- *
- * @param {string} href URL or path.
- * @return {string}
- */
-export const urlWithoutSlug = ( href ) => urlWithSlug( href, '' );
+/** Documents: `?document_slug=<slug>` (DPD-032). */
+export const PARAM = 'document_slug';
+export const slugFromUrl = documents.slugFromUrl;
+export const urlWithSlug = documents.urlWithSlug;
+export const urlWithoutSlug = documents.urlWithoutSlug;
 
 /**
  * History marker of the mobile Pages sheet (DPD-020). Opening the sheet adds one history entry with the

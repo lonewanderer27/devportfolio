@@ -59,6 +59,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/software-tags' );
 		register_block_type( __DIR__ . '/blocks/document-shelf' );
 		register_block_type( __DIR__ . '/blocks/collateral-grid' );
+		register_block_type( __DIR__ . '/blocks/collateral-modal' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -82,6 +83,35 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
 
+if ( ! function_exists( 'devportfolio_modal_single_redirect_url' ) ) :
+	/**
+	 * URL for redirecting a published single of a modal post type to its archive deeplink (DPD-032, DPC-020).
+	 *
+	 * @since 0.9.0
+	 *
+	 * @param string $post_type Post type, e.g. "document".
+	 * @param string $param     Query parameter that holds the slug, e.g. "document_slug".
+	 * @return string Empty when the current request is not a published single of that type.
+	 */
+	function devportfolio_modal_single_redirect_url( $post_type, $param ) {
+		if ( ! is_singular( $post_type ) ) {
+			return '';
+		}
+
+		$devportfolio_post = get_queried_object();
+		if ( ! $devportfolio_post instanceof WP_Post || 'publish' !== $devportfolio_post->post_status ) {
+			return '';
+		}
+
+		$devportfolio_archive = get_post_type_archive_link( $post_type );
+		if ( ! $devportfolio_archive ) {
+			return '';
+		}
+
+		return add_query_arg( $param, $devportfolio_post->post_name, $devportfolio_archive );
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
 	/**
 	 * URL for redirecting a published document single to its modal deeplink.
@@ -91,38 +121,39 @@ if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
 	 * @return string Empty when the current request is not a published document single.
 	 */
 	function devportfolio_document_single_redirect_url() {
-		if ( ! is_singular( 'document' ) ) {
-			return '';
-		}
+		return devportfolio_modal_single_redirect_url( 'document', 'document_slug' );
+	}
+endif;
 
-		$devportfolio_post = get_queried_object();
-		if ( ! $devportfolio_post instanceof WP_Post || 'publish' !== $devportfolio_post->post_status ) {
-			return '';
-		}
-
-		$devportfolio_archive = get_post_type_archive_link( 'document' );
-		if ( ! $devportfolio_archive ) {
-			return '';
-		}
-
-		return add_query_arg( 'document_slug', $devportfolio_post->post_name, $devportfolio_archive );
+if ( ! function_exists( 'devportfolio_collateral_single_redirect_url' ) ) :
+	/**
+	 * URL for redirecting a published collateral single to its modal deeplink (DPC-020).
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string Empty when the current request is not a published collateral single.
+	 */
+	function devportfolio_collateral_single_redirect_url() {
+		return devportfolio_modal_single_redirect_url( 'collateral', 'collateral_slug' );
 	}
 endif;
 
 if ( ! function_exists( 'devportfolio_redirect_document_single' ) ) :
 	/**
-	 * Redirect published document singles to the document modal deeplink.
+	 * Redirects published document and collateral singles to their modal deeplinks (DPD-032, DPC-020).
+	 *
+	 * Hooked on template_redirect; the name is kept from DPD-032 so existing references still resolve.
 	 *
 	 * @since 0.6.0
 	 */
 	function devportfolio_redirect_document_single() {
-		$devportfolio_url = devportfolio_document_single_redirect_url();
-		if ( '' === $devportfolio_url ) {
-			return;
+		foreach ( array( 'devportfolio_document_single_redirect_url', 'devportfolio_collateral_single_redirect_url' ) as $devportfolio_resolver ) {
+			$devportfolio_url = $devportfolio_resolver();
+			if ( '' !== $devportfolio_url ) {
+				wp_safe_redirect( $devportfolio_url, 302 );
+				exit;
+			}
 		}
-
-		wp_safe_redirect( $devportfolio_url, 302 );
-		exit;
 	}
 endif;
 add_action( 'template_redirect', 'devportfolio_redirect_document_single', 1 );
@@ -423,13 +454,14 @@ if ( ! function_exists( 'devportfolio_document_download_target' ) ) :
 	 *
 	 * @since 0.4.0
 	 *
-	 * @param int $post_id Document ID.
+	 * @param int    $post_id   Document or collateral ID.
+	 * @param string $file_meta Meta key of the attachment ID (`cptdp_collateral_file` for collaterals).
 	 * @return array{mode:string,url:string}
 	 */
-	function devportfolio_document_download_target( $post_id ) {
+	function devportfolio_document_download_target( $post_id, $file_meta = 'cptdp_document_file' ) {
 		$post_id = (int) $post_id;
 
-		$file_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		$file_id = (int) get_post_meta( $post_id, $file_meta, true );
 		if ( $file_id > 0 ) {
 			$url = wp_get_attachment_url( $file_id );
 			if ( $url ) {
@@ -1079,6 +1111,150 @@ if ( ! function_exists( 'devportfolio_collateral_item' ) ) :
 			'meta'       => devportfolio_collateral_meta_line( $post_id ),
 			'categories' => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
 			'preview'    => devportfolio_collateral_preview( $post_id ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_pill' ) ) :
+	/**
+	 * The paper size and page count pill of the collateral sidebar, e.g. "A4 · 2 pp" (DPC-007).
+	 *
+	 * A missing part is left out ("A4", "2 pp"); '' when both are missing. Plain text.
+	 *
+	 * @param mixed $paper_size Paper size, e.g. "A4".
+	 * @param mixed $pages      Page count.
+	 * @return string
+	 */
+	function devportfolio_collateral_pill( $paper_size, $pages ) {
+		$parts = array_filter(
+			array(
+				is_scalar( $paper_size ) ? trim( (string) $paper_size ) : '',
+				devportfolio_document_format_label( '', $pages ),
+			),
+			'strlen'
+		);
+
+		return implode( ' · ', $parts );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_stats' ) ) :
+	/**
+	 * The Results rows of a collateral: `cptdp_post_statistics`, in saved order (DPC-008).
+	 *
+	 * Only well-formed rows are kept; a row with both label and value empty is dropped. Plain text.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array<int,array{label:string,value:string}>
+	 */
+	function devportfolio_collateral_stats( $post_id ) {
+		$rows = get_post_meta( (int) $post_id, 'cptdp_post_statistics', true );
+		$text = static function ( $row, $key ) {
+			return isset( $row[ $key ] ) && is_scalar( $row[ $key ] ) ? trim( wp_strip_all_tags( (string) $row[ $key ] ) ) : '';
+		};
+
+		$stats = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$label = $text( $row, 'label' );
+			$value = $text( $row, 'value' );
+			if ( '' === $label && '' === $value ) {
+				continue;
+			}
+			$stats[] = array(
+				'label' => $label,
+				'value' => $value,
+			);
+		}
+
+		return $stats;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_thumb' ) ) :
+	/**
+	 * The thumbnail of a Next collaterals item, from a collateral preview (DPC-010).
+	 *
+	 * A stored page uses its thumbnail set; a featured image its medium size (the full size when there is none);
+	 * a blank page has no `src`, so the script draws the numbered blank.
+	 *
+	 * @param array $preview Result of devportfolio_collateral_preview().
+	 * @return array{src:string,srcset:string,ratio:float}
+	 */
+	function devportfolio_collateral_thumb( array $preview ) {
+		$kind   = $preview['kind'] ?? 'blank';
+		$src    = '';
+		$srcset = '';
+
+		if ( 'page' === $kind ) {
+			$src    = (string) $preview['src'];
+			$srcset = (string) $preview['srcset'];
+		} elseif ( 'featured' === $kind ) {
+			$src = (string) wp_get_attachment_image_url( (int) $preview['featured_id'], 'medium' );
+		}
+
+		return array(
+			'src'    => $src,
+			'srcset' => $srcset,
+			'ratio'  => (float) ( $preview['ratio'] ?? 0 ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_modal_payload' ) ) :
+	/**
+	 * Everything the collateral modal sidebar and Next list need for one collateral (DPC-007 to DPC-011, D5).
+	 *
+	 * Plain text and URLs only, written with textContent by the script. Null when the post is not a collateral.
+	 * The render passes published collaterals only.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array<string,mixed>|null
+	 */
+	function devportfolio_collateral_modal_payload( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'collateral' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$slugs    = wp_get_object_terms( $post_id, 'collateral_category', array( 'fields' => 'slugs' ) );
+		$download = devportfolio_document_download_target( $post_id, 'cptdp_collateral_file' );
+
+		return array(
+			'id'           => $post_id,
+			'slug'         => (string) get_post_field( 'post_name', $post_id ),
+			// The raw title: get_the_title() runs wptexturize, which would curl the quotes in the payload.
+			'title'        => html_entity_decode( (string) get_post_field( 'post_title', $post_id ), ENT_QUOTES, 'UTF-8' ),
+			'description'  => devportfolio_document_description( $post_id ),
+			'category'     => html_entity_decode( devportfolio_document_category_name( $post_id, 'collateral_category' ), ENT_QUOTES, 'UTF-8' ),
+			'categories'   => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
+			'pill'         => devportfolio_collateral_pill(
+				get_post_meta( $post_id, 'cptdp_paper_size', true ),
+				get_post_meta( $post_id, 'cptdp_total_pages', true )
+			),
+			'stats'        => devportfolio_collateral_stats( $post_id ),
+			'tools'        => devportfolio_software_tool_names( $post_id ),
+			'downloadMode' => $download['mode'],
+			'downloadUrl'  => $download['url'],
+			'thumb'        => devportfolio_collateral_thumb( devportfolio_collateral_preview( $post_id ) ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_modal_strings' ) ) :
+	/**
+	 * The few strings the collateral modal script writes, as `data-strings` on its root (no English in JS).
+	 *
+	 * @return array<string,string>
+	 */
+	function devportfolio_collateral_modal_strings() {
+		return array(
+			/* translators: %s: collateral title. */
+			'open'     => _x( 'Open %s', 'collateral modal', 'devportfolio' ),
+			'copied'   => _x( 'Copied', 'collateral modal', 'devportfolio' ),
+			'copyHint' => _x( 'Press Ctrl/⌘ + C', 'collateral modal', 'devportfolio' ),
 		);
 	}
 endif;

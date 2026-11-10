@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/collateral-modal",
+	"title": "Collateral Modal",
+	"category": "widgets",
+	"description": "The Brand Collaterals modals opened from a collateral item: the desktop dialog with sidebar, body and footer, and the full-screen mobile dialog.",
+	"textdomain": "devportfolio",
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}
