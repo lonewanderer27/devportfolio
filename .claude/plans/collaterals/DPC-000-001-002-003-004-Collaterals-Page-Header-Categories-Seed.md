@@ -313,3 +313,5 @@ PR (target `main`): title `feat(theme): add the Brand Collaterals page and categ
 
 ## 10. As-built notes
 Implemented without the deferred collateral grid or modal. Added the archive template, shared archive stylesheet, taxonomy-aware category block, navigation coverage, and the `Flyer`/`Logo` term seeder. The plugin suite passes 742 tests with 12 skipped; the theme suite passes 358 tests; the modal Node suite passes 153 tests. Existing Documents CSS assertions now read the moved shared stylesheet; no behavior or selectors were renamed.
+
+The implementation was split into the 12 commits in section 6A on `feat/DPC-000-004-Collaterals-Page`; no seeded database rows or unrelated plan files were committed.
