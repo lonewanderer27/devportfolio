@@ -69,6 +69,9 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$doc->loadHTML( '<?xml encoding="utf-8"?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING );
 		$out = array();
 		foreach ( $doc->getElementsByTagName( 'button' ) as $button ) {
+			if ( ! str_contains( ' ' . $button->getAttribute( 'class' ) . ' ', ' documents-categories__pill ' ) ) {
+				continue;
+			}
 			$out[] = array(
 				'label'   => $button->textContent,
 				'filter'  => $button->getAttribute( 'data-filter' ),
@@ -280,7 +283,7 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', $js );
 	}
 
-	public function test_group_is_sticky_everywhere_and_a_single_scrolling_row_on_mobile(): void {
+	public function test_group_is_sticky_everywhere_and_a_dropdown_on_mobile(): void {
 		$css = $this->css();
 
 		$base = $this->rule( $css, '.wp-block-devportfolio-document-categories' );
@@ -289,7 +292,7 @@ class Devportfolio_Test_Document_Categories extends WP_UnitTestCase {
 		$this->assertSame( 1, preg_match( '/@media \(max-width: 820px\)\s*\{(.*)\}\s*$/s', $css, $m ), 'Mobile media query missing.' );
 
 		$rule = $this->rule( $m[1], '.wp-block-devportfolio-document-categories' );
-		$this->assertStringContainsString( 'overflow-x: auto', $rule );
+		$this->assertStringNotContainsString( 'overflow-x', $rule );
 		$this->assertStringContainsString( 'flex-wrap: nowrap', $rule );
 	}
 
