@@ -1113,3 +1113,147 @@ if ( ! function_exists( 'devportfolio_collateral_item' ) ) :
 		);
 	}
 endif;
+
+if ( ! function_exists( 'devportfolio_collateral_pill' ) ) :
+	/**
+	 * The paper size and page count pill of the collateral sidebar, e.g. "A4 · 2 pp" (DPC-007).
+	 *
+	 * A missing part is left out ("A4", "2 pp"); '' when both are missing. Plain text.
+	 *
+	 * @param mixed $paper_size Paper size, e.g. "A4".
+	 * @param mixed $pages      Page count.
+	 * @return string
+	 */
+	function devportfolio_collateral_pill( $paper_size, $pages ) {
+		$parts = array_filter(
+			array(
+				is_scalar( $paper_size ) ? trim( (string) $paper_size ) : '',
+				devportfolio_document_format_label( '', $pages ),
+			),
+			'strlen'
+		);
+
+		return implode( ' · ', $parts );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_stats' ) ) :
+	/**
+	 * The Results rows of a collateral: `cptdp_post_statistics`, in saved order (DPC-008).
+	 *
+	 * Only well-formed rows are kept; a row with both label and value empty is dropped. Plain text.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array<int,array{label:string,value:string}>
+	 */
+	function devportfolio_collateral_stats( $post_id ) {
+		$rows = get_post_meta( (int) $post_id, 'cptdp_post_statistics', true );
+		$text = static function ( $row, $key ) {
+			return isset( $row[ $key ] ) && is_scalar( $row[ $key ] ) ? trim( wp_strip_all_tags( (string) $row[ $key ] ) ) : '';
+		};
+
+		$stats = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$label = $text( $row, 'label' );
+			$value = $text( $row, 'value' );
+			if ( '' === $label && '' === $value ) {
+				continue;
+			}
+			$stats[] = array(
+				'label' => $label,
+				'value' => $value,
+			);
+		}
+
+		return $stats;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_thumb' ) ) :
+	/**
+	 * The thumbnail of a Next collaterals item, from a collateral preview (DPC-010).
+	 *
+	 * A stored page uses its thumbnail set; a featured image its medium size (the full size when there is none);
+	 * a blank page has no `src`, so the script draws the numbered blank.
+	 *
+	 * @param array $preview Result of devportfolio_collateral_preview().
+	 * @return array{src:string,srcset:string,ratio:float}
+	 */
+	function devportfolio_collateral_thumb( array $preview ) {
+		$kind   = $preview['kind'] ?? 'blank';
+		$src    = '';
+		$srcset = '';
+
+		if ( 'page' === $kind ) {
+			$src    = (string) $preview['src'];
+			$srcset = (string) $preview['srcset'];
+		} elseif ( 'featured' === $kind ) {
+			$src = (string) wp_get_attachment_image_url( (int) $preview['featured_id'], 'medium' );
+		}
+
+		return array(
+			'src'    => $src,
+			'srcset' => $srcset,
+			'ratio'  => (float) ( $preview['ratio'] ?? 0 ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_modal_payload' ) ) :
+	/**
+	 * Everything the collateral modal sidebar and Next list need for one collateral (DPC-007 to DPC-011, D5).
+	 *
+	 * Plain text and URLs only, written with textContent by the script. Null when the post is not a collateral.
+	 * The render passes published collaterals only.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array<string,mixed>|null
+	 */
+	function devportfolio_collateral_modal_payload( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'collateral' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$slugs    = wp_get_object_terms( $post_id, 'collateral_category', array( 'fields' => 'slugs' ) );
+		$download = devportfolio_document_download_target( $post_id, 'cptdp_collateral_file' );
+
+		return array(
+			'id'           => $post_id,
+			'slug'         => (string) get_post_field( 'post_name', $post_id ),
+			// The raw title: get_the_title() runs wptexturize, which would curl the quotes in the payload.
+			'title'        => html_entity_decode( (string) get_post_field( 'post_title', $post_id ), ENT_QUOTES, 'UTF-8' ),
+			'description'  => devportfolio_document_description( $post_id ),
+			'category'     => html_entity_decode( devportfolio_document_category_name( $post_id, 'collateral_category' ), ENT_QUOTES, 'UTF-8' ),
+			'categories'   => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
+			'pill'         => devportfolio_collateral_pill(
+				get_post_meta( $post_id, 'cptdp_paper_size', true ),
+				get_post_meta( $post_id, 'cptdp_total_pages', true )
+			),
+			'stats'        => devportfolio_collateral_stats( $post_id ),
+			'tools'        => devportfolio_software_tool_names( $post_id ),
+			'downloadMode' => $download['mode'],
+			'downloadUrl'  => $download['url'],
+			'thumb'        => devportfolio_collateral_thumb( devportfolio_collateral_preview( $post_id ) ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_collateral_modal_strings' ) ) :
+	/**
+	 * The few strings the collateral modal script writes, as `data-strings` on its root (no English in JS).
+	 *
+	 * @return array<string,string>
+	 */
+	function devportfolio_collateral_modal_strings() {
+		return array(
+			/* translators: %s: collateral title. */
+			'open'     => _x( 'Open %s', 'collateral modal', 'devportfolio' ),
+			'copied'   => _x( 'Copied', 'collateral modal', 'devportfolio' ),
+			'copyHint' => _x( 'Press Ctrl/⌘ + C', 'collateral modal', 'devportfolio' ),
+		);
+	}
+endif;
