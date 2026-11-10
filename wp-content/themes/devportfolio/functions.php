@@ -158,6 +158,121 @@ if ( ! function_exists( 'devportfolio_redirect_document_single' ) ) :
 endif;
 add_action( 'template_redirect', 'devportfolio_redirect_document_single', 1 );
 
+if ( ! function_exists( 'devportfolio_memo_store' ) ) :
+	/**
+	 * The per-request store behind devportfolio_memo(). Static, not the object cache: a persistent cache
+	 * (Redis) would serve stale tool names across requests.
+	 *
+	 * @return array<string,mixed>
+	 */
+	function &devportfolio_memo_store() {
+		static $store = array();
+
+		return $store;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_memo' ) ) :
+	/**
+	 * Runs $build once per request for a group and post ID, then returns the same value (DPC-024, O2).
+	 *
+	 * Every block that reads the same tools, category, preview or term list of a post goes through here, so
+	 * each read happens once however many blocks ask for it. The store is cleared by devportfolio_memo_flush()
+	 * whenever a post, term or post meta changes.
+	 *
+	 * @param string   $group   Group name, e.g. 'software_tools'.
+	 * @param int      $post_id Post ID, or 0 when the value is not per post.
+	 * @param callable $build   Returns the value.
+	 * @return mixed
+	 */
+	function devportfolio_memo( $group, $post_id, $build ) {
+		$store = &devportfolio_memo_store();
+		$key   = $group . '|' . (int) $post_id;
+		if ( ! array_key_exists( $key, $store ) ) {
+			$store[ $key ] = $build();
+		}
+
+		return $store[ $key ];
+	}
+
+	/**
+	 * Empties the per-request store. Hooked to every change a memoised value can depend on.
+	 */
+	function devportfolio_memo_flush() {
+		$store = &devportfolio_memo_store();
+		$store = array();
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_memo_add_hooks' ) ) :
+	/**
+	 * Clears the memo store whenever a post, its terms or its meta change. Adding a hook twice is a no-op, so
+	 * tests may call it again after WordPress restores the hooks between tests.
+	 */
+	function devportfolio_memo_add_hooks() {
+		foreach ( array( 'save_post', 'transition_post_status', 'delete_post', 'set_object_terms', 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
+			add_action( $hook, 'devportfolio_memo_flush' );
+		}
+	}
+endif;
+
+devportfolio_memo_add_hooks();
+
+if ( ! function_exists( 'devportfolio_published_ids' ) ) :
+	/**
+	 * IDs of the published posts of one type, in the order asked for, memoised per request (DPC-024, O1).
+	 *
+	 * The shelf, the grid and both modals list the same posts; each list is read once per request.
+	 *
+	 * @param string $post_type Post type.
+	 * @param array  $args      Extra get_posts() arguments, e.g. orderby. Merged over the defaults.
+	 * @return int[]
+	 */
+	function devportfolio_published_ids( $post_type, $args = array() ) {
+		return devportfolio_memo(
+			'published:' . $post_type . ':' . md5( serialize( $args ) ),
+			0,
+			static function () use ( $post_type, $args ) {
+				return get_posts(
+					array_merge(
+						array(
+							'post_type'      => $post_type,
+							'post_status'    => 'publish',
+							'posts_per_page' => -1,
+							'fields'         => 'ids',
+							'no_found_rows'  => true,
+						),
+						$args
+					)
+				);
+			}
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_term_slugs' ) ) :
+	/**
+	 * Slugs of a post's terms in one taxonomy, memoised per request (DPC-024, O2).
+	 *
+	 * Returns what wp_get_object_terms() returns, WP_Error included, so callers keep their is_wp_error() check.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $taxonomy Taxonomy.
+	 * @return string[]|WP_Error
+	 */
+	function devportfolio_term_slugs( $post_id, $taxonomy ) {
+		$post_id = (int) $post_id;
+
+		return devportfolio_memo(
+			'term_slugs:' . $taxonomy,
+			$post_id,
+			static function () use ( $post_id, $taxonomy ) {
+				return wp_get_object_terms( $post_id, $taxonomy, array( 'fields' => 'slugs' ) );
+			}
+		);
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_cover_styles' ) ) :
 	/**
 	 * Cover styles of a document book (DPD-006), slug => label.
@@ -383,22 +498,30 @@ if ( ! function_exists( 'devportfolio_document_category_name' ) ) :
 	 * @return string Plain text (escape on output).
 	 */
 	function devportfolio_document_category_name( $post_id, $taxonomy = 'document_category' ) {
-		$terms = get_the_terms( (int) $post_id, $taxonomy );
-		if ( ! is_array( $terms ) || empty( $terms ) ) {
-			return '';
-		}
-		$terms = array_values( $terms );
-		usort(
-			$terms,
-			static function ( $a, $b ) {
-				return strcasecmp( $a->name, $b->name );
+		$post_id = (int) $post_id;
+
+		return devportfolio_memo(
+			'category_name:' . $taxonomy,
+			$post_id,
+			static function () use ( $post_id, $taxonomy ) {
+				$terms = get_the_terms( $post_id, $taxonomy );
+				if ( ! is_array( $terms ) || empty( $terms ) ) {
+					return '';
+				}
+				$terms = array_values( $terms );
+				usort(
+					$terms,
+					static function ( $a, $b ) {
+						return strcasecmp( $a->name, $b->name );
+					}
+				);
+				if ( function_exists( 'cptdp_get_term_singular_name' ) ) {
+					return cptdp_get_term_singular_name( $terms[0] );
+				}
+
+				return $terms[0]->name;
 			}
 		);
-		if ( function_exists( 'cptdp_get_term_singular_name' ) ) {
-			return cptdp_get_term_singular_name( $terms[0] );
-		}
-
-		return $terms[0]->name;
 	}
 endif;
 
@@ -428,20 +551,42 @@ if ( ! function_exists( 'devportfolio_document_format_label' ) ) :
 			$parts[] = $filetype;
 		}
 
-		$pages = ( is_int( $pages ) || ( is_string( $pages ) && ctype_digit( trim( $pages ) ) ) ) ? (int) $pages : 0;
-		if ( 'slide' === devportfolio_document_unit( $kind ) ) {
-			if ( 1 === $pages ) {
-				$parts[] = '1 ' . _x( 'slide', 'slide count, singular', 'devportfolio' );
-			} elseif ( $pages > 1 ) {
-				$parts[] = $pages . ' ' . _x( 'slides', 'slide count, plural', 'devportfolio' );
-			}
-		} elseif ( 1 === $pages ) {
-			$parts[] = '1 ' . _x( 'p', 'page count abbreviation, singular', 'devportfolio' );
-		} elseif ( $pages > 1 ) {
-			$parts[] = $pages . ' ' . _x( 'pp', 'page count abbreviation, plural', 'devportfolio' );
+		$count = devportfolio_page_count_label( $pages, $kind );
+		if ( '' !== $count ) {
+			$parts[] = $count;
 		}
 
 		return implode( ' · ', $parts );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_page_count_label' ) ) :
+	/**
+	 * The page count of a file, e.g. "24 pp" or "1 p" (DPD-005), or "12 slides" / "1 slide" for a presentation (DPD-026).
+	 *
+	 * Shared by the document cover and modal and by the collateral pill and meta line (DPC-007, DPC-006).
+	 * Zero, negative and non-numeric counts give ''. Plain text.
+	 *
+	 * @param mixed  $pages Page count.
+	 * @param string $kind  Optional file kind from devportfolio_document_file_kind(). Presentations count slides.
+	 * @return string
+	 */
+	function devportfolio_page_count_label( $pages, $kind = '' ) {
+		$pages = ( is_int( $pages ) || ( is_string( $pages ) && ctype_digit( trim( $pages ) ) ) ) ? (int) $pages : 0;
+
+		if ( 'slide' === devportfolio_document_unit( $kind ) ) {
+			if ( 1 === $pages ) {
+				return '1 ' . _x( 'slide', 'slide count, singular', 'devportfolio' );
+			}
+
+			return $pages > 1 ? $pages . ' ' . _x( 'slides', 'slide count, plural', 'devportfolio' ) : '';
+		}
+
+		if ( 1 === $pages ) {
+			return '1 ' . _x( 'p', 'page count abbreviation, singular', 'devportfolio' );
+		}
+
+		return $pages > 1 ? $pages . ' ' . _x( 'pp', 'page count abbreviation, plural', 'devportfolio' ) : '';
 	}
 endif;
 
@@ -526,15 +671,23 @@ if ( ! function_exists( 'devportfolio_software_tool_names' ) ) :
 	 * @return string[]
 	 */
 	function devportfolio_software_tool_names( $post_id ) {
-		$tools    = array();
-		$tool_ids = get_post_meta( (int) $post_id, 'cptdp_software_tools', true );
-		foreach ( is_array( $tool_ids ) ? $tool_ids : array() as $tool_id ) {
-			if ( 'software_tool' === get_post_type( (int) $tool_id ) && 'publish' === get_post_status( (int) $tool_id ) ) {
-				$tools[] = get_the_title( (int) $tool_id );
-			}
-		}
+		$post_id = (int) $post_id;
 
-		return $tools;
+		return devportfolio_memo(
+			'software_tools',
+			$post_id,
+			static function () use ( $post_id ) {
+				$tools    = array();
+				$tool_ids = get_post_meta( $post_id, 'cptdp_software_tools', true );
+				foreach ( is_array( $tool_ids ) ? $tool_ids : array() as $tool_id ) {
+					if ( 'software_tool' === get_post_type( (int) $tool_id ) && 'publish' === get_post_status( (int) $tool_id ) ) {
+						$tools[] = get_the_title( (int) $tool_id );
+					}
+				}
+
+				return $tools;
+			}
+		);
 	}
 endif;
 
@@ -553,7 +706,7 @@ if ( ! function_exists( 'devportfolio_document_shelf_item' ) ) :
 			return null;
 		}
 
-		$slugs = wp_get_object_terms( $post_id, 'document_category', array( 'fields' => 'slugs' ) );
+		$slugs = devportfolio_term_slugs( $post_id, 'document_category' );
 
 		return array(
 			'title'       => get_the_title( $post_id ),
@@ -585,23 +738,18 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			return null;
 		}
 
-		$tools = devportfolio_software_tool_names( $post_id );
-
 		$pages    = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 		$download = devportfolio_document_download_target( $post_id );
 		$viewer   = devportfolio_document_viewer_data( $post_id );
 
-		return array(
-			'id'           => $post_id,
-			// The slug is the deeplink key: /documents/?document_slug=<slug> opens this document (DPD-032).
-			'slug'         => (string) get_post_field( 'post_name', $post_id ),
+		return devportfolio_media_payload_base(
+			$post_id,
+			'document_category',
 			// The script writes the title with textContent, so it must be plain text: get_the_title() returns
 			// HTML entities ("&#038;" for "&").
-			'title'        => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
-			'description'  => devportfolio_document_description( $post_id ),
-			'tools'        => $tools,
-			// The mobile Details sheet (DPD-023): the category pill and the Format row.
-			'category'     => html_entity_decode( devportfolio_document_category_name( $post_id ), ENT_QUOTES, 'UTF-8' ),
+			html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' )
+		) + array(
+			// The mobile Details sheet (DPD-023): the Format row.
 			'fileType'     => devportfolio_document_file_type_label( get_post_meta( $post_id, 'cptdp_filetype', true ) ),
 			'format'       => devportfolio_document_format_label(
 				get_post_meta( $post_id, 'cptdp_filetype', true ),
@@ -620,6 +768,34 @@ if ( ! function_exists( 'devportfolio_document_modal_payload' ) ) :
 			'nativeUrl'   => $viewer['nativeUrl'],
 			'pdfBytes'     => $viewer['pdfBytes'],
 		) + devportfolio_document_pages_extras( $post_id );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_media_payload_base' ) ) :
+	/**
+	 * The keys every media payload shares, in the order the Documents modal already writes them (DPD-009, DPC-007, DPC-024).
+	 *
+	 * `id`, `slug` (the deeplink key: /documents/?document_slug=<slug>, DPD-032), `title`, `description`, `tools`,
+	 * `category`. The download keys are not here: the Documents payload writes its own file keys (fileType, format,
+	 * kind, pages) between `category` and `downloadMode`, so each payload appends its own keys after this base.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $taxonomy Category taxonomy: document_category or collateral_category.
+	 * @param string $title    Plain-text title, decided by the caller: Documents pass the decoded get_the_title(),
+	 *                         Collaterals the raw post title (wptexturize would curl its quotes).
+	 * @return array<string,mixed>
+	 */
+	function devportfolio_media_payload_base( $post_id, $taxonomy, $title ) {
+		$post_id = (int) $post_id;
+
+		return array(
+			'id'          => $post_id,
+			'slug'        => (string) get_post_field( 'post_name', $post_id ),
+			'title'       => $title,
+			'description' => devportfolio_document_description( $post_id ),
+			'tools'       => devportfolio_software_tool_names( $post_id ),
+			'category'    => html_entity_decode( devportfolio_document_category_name( $post_id, $taxonomy ), ENT_QUOTES, 'UTF-8' ),
+		);
 	}
 endif;
 
@@ -996,7 +1172,7 @@ if ( ! function_exists( 'devportfolio_collateral_meta_line' ) ) :
 			array(
 				devportfolio_document_category_name( $post_id, 'collateral_category' ),
 				trim( (string) get_post_meta( $post_id, 'cptdp_paper_size', true ) ),
-				devportfolio_document_format_label( '', get_post_meta( $post_id, 'cptdp_total_pages', true ) ),
+				devportfolio_page_count_label( get_post_meta( $post_id, 'cptdp_total_pages', true ) ),
 			),
 			'strlen'
 		);
@@ -1081,12 +1257,19 @@ if ( ! function_exists( 'devportfolio_collateral_preview' ) ) :
 	 */
 	function devportfolio_collateral_preview( $post_id ) {
 		$post_id = (int) $post_id;
-		$stored  = function_exists( 'cptdp_get_collateral_pages' ) ? cptdp_get_collateral_pages( $post_id ) : null;
 
-		return devportfolio_collateral_preview_from(
-			$stored,
-			(int) get_post_thumbnail_id( $post_id ),
-			(string) get_post_meta( $post_id, 'cptdp_paper_size', true )
+		return devportfolio_memo(
+			'collateral_preview',
+			$post_id,
+			static function () use ( $post_id ) {
+				$stored = function_exists( 'cptdp_get_collateral_pages' ) ? cptdp_get_collateral_pages( $post_id ) : null;
+
+				return devportfolio_collateral_preview_from(
+					$stored,
+					(int) get_post_thumbnail_id( $post_id ),
+					(string) get_post_meta( $post_id, 'cptdp_paper_size', true )
+				);
+			}
 		);
 	}
 endif;
@@ -1104,7 +1287,7 @@ if ( ! function_exists( 'devportfolio_collateral_item' ) ) :
 			return null;
 		}
 
-		$slugs = wp_get_object_terms( $post_id, 'collateral_category', array( 'fields' => 'slugs' ) );
+		$slugs = devportfolio_term_slugs( $post_id, 'collateral_category' );
 
 		return array(
 			'title'      => get_the_title( $post_id ),
@@ -1129,7 +1312,7 @@ if ( ! function_exists( 'devportfolio_collateral_pill' ) ) :
 		$parts = array_filter(
 			array(
 				is_scalar( $paper_size ) ? trim( (string) $paper_size ) : '',
-				devportfolio_document_format_label( '', $pages ),
+				devportfolio_page_count_label( $pages ),
 			),
 			'strlen'
 		);
@@ -1219,23 +1402,21 @@ if ( ! function_exists( 'devportfolio_collateral_modal_payload' ) ) :
 			return null;
 		}
 
-		$slugs    = wp_get_object_terms( $post_id, 'collateral_category', array( 'fields' => 'slugs' ) );
+		$slugs    = devportfolio_term_slugs( $post_id, 'collateral_category' );
 		$download = devportfolio_document_download_target( $post_id, 'cptdp_collateral_file' );
 
-		return array(
-			'id'           => $post_id,
-			'slug'         => (string) get_post_field( 'post_name', $post_id ),
+		return devportfolio_media_payload_base(
+			$post_id,
+			'collateral_category',
 			// The raw title: get_the_title() runs wptexturize, which would curl the quotes in the payload.
-			'title'        => html_entity_decode( (string) get_post_field( 'post_title', $post_id ), ENT_QUOTES, 'UTF-8' ),
-			'description'  => devportfolio_document_description( $post_id ),
-			'category'     => html_entity_decode( devportfolio_document_category_name( $post_id, 'collateral_category' ), ENT_QUOTES, 'UTF-8' ),
+			html_entity_decode( (string) get_post_field( 'post_title', $post_id ), ENT_QUOTES, 'UTF-8' )
+		) + array(
 			'categories'   => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
 			'pill'         => devportfolio_collateral_pill(
 				get_post_meta( $post_id, 'cptdp_paper_size', true ),
 				get_post_meta( $post_id, 'cptdp_total_pages', true )
 			),
 			'stats'        => devportfolio_collateral_stats( $post_id ),
-			'tools'        => devportfolio_software_tool_names( $post_id ),
 			'downloadMode' => $download['mode'],
 			'downloadUrl'  => $download['url'],
 			'thumb'        => devportfolio_collateral_thumb( devportfolio_collateral_preview( $post_id ) ),

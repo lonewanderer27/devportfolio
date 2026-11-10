@@ -17,6 +17,11 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// The per-request memo store (DPC-024) starts empty in every test.
+		if ( function_exists( 'devportfolio_memo_flush' ) ) {
+			devportfolio_memo_flush();
+		}
+
 		// Meta is unregistered and terms wiped between tests; make sure the plugin's types exist.
 		do_action( 'cptdp_register_post_types' );
 

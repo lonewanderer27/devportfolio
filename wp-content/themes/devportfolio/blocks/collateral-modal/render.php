@@ -14,17 +14,13 @@
  * @var WP_Block $block      Block instance.
  */
 
-$devportfolio_ids = get_posts(
+$devportfolio_ids = devportfolio_published_ids(
+	'collateral',
 	array(
-		'post_type'      => 'collateral',
-		'post_status'    => 'publish',
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-		'orderby'        => array(
+		'orderby' => array(
 			'menu_order' => 'ASC',
 			'title'      => 'ASC',
 		),
-		'no_found_rows'  => true,
 	)
 );
 
