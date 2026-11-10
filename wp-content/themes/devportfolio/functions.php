@@ -82,6 +82,35 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
 
+if ( ! function_exists( 'devportfolio_modal_single_redirect_url' ) ) :
+	/**
+	 * URL for redirecting a published single of a modal post type to its archive deeplink (DPD-032, DPC-020).
+	 *
+	 * @since 0.9.0
+	 *
+	 * @param string $post_type Post type, e.g. "document".
+	 * @param string $param     Query parameter that holds the slug, e.g. "document_slug".
+	 * @return string Empty when the current request is not a published single of that type.
+	 */
+	function devportfolio_modal_single_redirect_url( $post_type, $param ) {
+		if ( ! is_singular( $post_type ) ) {
+			return '';
+		}
+
+		$devportfolio_post = get_queried_object();
+		if ( ! $devportfolio_post instanceof WP_Post || 'publish' !== $devportfolio_post->post_status ) {
+			return '';
+		}
+
+		$devportfolio_archive = get_post_type_archive_link( $post_type );
+		if ( ! $devportfolio_archive ) {
+			return '';
+		}
+
+		return add_query_arg( $param, $devportfolio_post->post_name, $devportfolio_archive );
+	}
+endif;
+
 if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
 	/**
 	 * URL for redirecting a published document single to its modal deeplink.
@@ -91,38 +120,39 @@ if ( ! function_exists( 'devportfolio_document_single_redirect_url' ) ) :
 	 * @return string Empty when the current request is not a published document single.
 	 */
 	function devportfolio_document_single_redirect_url() {
-		if ( ! is_singular( 'document' ) ) {
-			return '';
-		}
+		return devportfolio_modal_single_redirect_url( 'document', 'document_slug' );
+	}
+endif;
 
-		$devportfolio_post = get_queried_object();
-		if ( ! $devportfolio_post instanceof WP_Post || 'publish' !== $devportfolio_post->post_status ) {
-			return '';
-		}
-
-		$devportfolio_archive = get_post_type_archive_link( 'document' );
-		if ( ! $devportfolio_archive ) {
-			return '';
-		}
-
-		return add_query_arg( 'document_slug', $devportfolio_post->post_name, $devportfolio_archive );
+if ( ! function_exists( 'devportfolio_collateral_single_redirect_url' ) ) :
+	/**
+	 * URL for redirecting a published collateral single to its modal deeplink (DPC-020).
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string Empty when the current request is not a published collateral single.
+	 */
+	function devportfolio_collateral_single_redirect_url() {
+		return devportfolio_modal_single_redirect_url( 'collateral', 'collateral_slug' );
 	}
 endif;
 
 if ( ! function_exists( 'devportfolio_redirect_document_single' ) ) :
 	/**
-	 * Redirect published document singles to the document modal deeplink.
+	 * Redirects published document and collateral singles to their modal deeplinks (DPD-032, DPC-020).
+	 *
+	 * Hooked on template_redirect; the name is kept from DPD-032 so existing references still resolve.
 	 *
 	 * @since 0.6.0
 	 */
 	function devportfolio_redirect_document_single() {
-		$devportfolio_url = devportfolio_document_single_redirect_url();
-		if ( '' === $devportfolio_url ) {
-			return;
+		foreach ( array( 'devportfolio_document_single_redirect_url', 'devportfolio_collateral_single_redirect_url' ) as $devportfolio_resolver ) {
+			$devportfolio_url = $devportfolio_resolver();
+			if ( '' !== $devportfolio_url ) {
+				wp_safe_redirect( $devportfolio_url, 302 );
+				exit;
+			}
 		}
-
-		wp_safe_redirect( $devportfolio_url, 302 );
-		exit;
 	}
 endif;
 add_action( 'template_redirect', 'devportfolio_redirect_document_single', 1 );
