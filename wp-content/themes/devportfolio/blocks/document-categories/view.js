@@ -99,6 +99,10 @@
 	function init( group ) {
 		var shelf = document.querySelector( '[data-documents-shelf]' );
 		var resizeTimer;
+		var trigger = group.querySelector( '.documents-categories__trigger' );
+		var list = group.querySelector( '.documents-categories__list' );
+		var label = trigger && trigger.querySelector( '.documents-categories__trigger-label' );
+		var mobile = window.matchMedia( '(max-width: 820px)' );
 
 		// Tells the shelf CSS that the browser animates the books (it then skips the entrance animation).
 		if ( shelf && document.startViewTransition ) {
@@ -113,10 +117,30 @@
 			if ( shelf ) {
 				filterShelf( shelf, slug );
 			}
+			syncTrigger( slug );
+		}
+
+		function syncTrigger( slug ) {
+			if ( ! label ) {
+				return;
+			}
+			var active = Array.prototype.find.call(
+				group.querySelectorAll( '.documents-categories__pill' ),
+				function ( pill ) {
+					return ( pill.getAttribute( 'data-filter' ) || '' ) === slug;
+				}
+			);
+			if ( active ) {
+				label.textContent = active.textContent.trim();
+			}
+			trigger.classList.toggle( 'is-active', '' !== slug );
 		}
 
 		// Fade the pills between states with a View Transition where supported; otherwise (or with reduced motion) apply instantly.
 		function applyAnimated( slug ) {
+			if ( trigger ) {
+				setOpen( false );
+			}
 			var reduce = window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
 			if ( ! document.startViewTransition || reduce ) {
 				apply( slug );
@@ -152,15 +176,109 @@
 		}
 		apply( initial );
 
+		function setOpen( open, focusTrigger ) {
+			if ( ! trigger || ! list ) {
+				return;
+			}
+			trigger.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			if ( ! open && focusTrigger ) {
+				trigger.focus();
+			}
+		}
+
+		function focusRow( row ) {
+			if ( row ) {
+				row.focus();
+			}
+		}
+
+		if ( trigger && list ) {
+			trigger.addEventListener( 'click', function ( event ) {
+				var open = 'true' !== trigger.getAttribute( 'aria-expanded' );
+				setOpen( open );
+				if ( open && 0 === event.detail ) {
+					focusRow( list.querySelector( '[aria-pressed="true"]' ) || list.querySelector( '.documents-categories__pill' ) );
+				}
+			} );
+
+			trigger.addEventListener( 'keydown', function ( event ) {
+				if ( 'ArrowDown' !== event.key && 'ArrowUp' !== event.key && 'Escape' !== event.key ) {
+					return;
+				}
+				event.preventDefault();
+				if ( 'Escape' === event.key ) {
+					setOpen( false, true );
+					return;
+				}
+				setOpen( true );
+				var rows = list.querySelectorAll( '.documents-categories__pill' );
+				focusRow( rows[ 'ArrowUp' === event.key ? rows.length - 1 : 0 ] );
+			} );
+
+			list.addEventListener( 'keydown', function ( event ) {
+				var rows = Array.prototype.slice.call( list.querySelectorAll( '.documents-categories__pill' ) );
+				var index = rows.indexOf( event.target );
+				if ( -1 === index ) {
+					return;
+				}
+				if ( 'Escape' === event.key ) {
+					event.preventDefault();
+					event.stopPropagation();
+					setOpen( false, true );
+					return;
+				}
+				var next = -1;
+				if ( 'ArrowDown' === event.key ) {
+					next = Math.min( index + 1, rows.length - 1 );
+				} else if ( 'ArrowUp' === event.key ) {
+					next = Math.max( index - 1, 0 );
+				} else if ( 'Home' === event.key ) {
+					next = 0;
+				} else if ( 'End' === event.key ) {
+					next = rows.length - 1;
+				}
+				if ( -1 !== next ) {
+					event.preventDefault();
+					focusRow( rows[ next ] );
+				}
+			} );
+
+			document.addEventListener( 'pointerdown', function ( event ) {
+				if ( 'true' === trigger.getAttribute( 'aria-expanded' ) && ! group.contains( event.target ) ) {
+					setOpen( false );
+				}
+			} );
+
+			group.addEventListener( 'focusout', function ( event ) {
+				if ( 'true' === trigger.getAttribute( 'aria-expanded' ) && event.relatedTarget && ! group.contains( event.relatedTarget ) ) {
+					setOpen( false );
+				}
+			} );
+
+			mobile.addEventListener( 'change', function ( event ) {
+				if ( ! event.matches ) {
+					setOpen( false );
+				}
+			} );
+		}
+
 		group.addEventListener( 'click', function ( event ) {
 			var pill = event.target.closest( '.documents-categories__pill' );
-			if ( ! pill || 'true' === pill.getAttribute( 'aria-pressed' ) ) {
+			if ( ! pill ) {
+				return;
+			}
+			if ( mobile.matches ) {
+				setOpen( false, true );
+			}
+			if ( 'true' === pill.getAttribute( 'aria-pressed' ) ) {
 				return;
 			}
 			var slug = pill.getAttribute( 'data-filter' ) || '';
 			applyAnimated( slug );
 			window.history.pushState( { category: slug }, '', urlForSlug( slug ) );
-			pill.scrollIntoView( { inline: 'nearest', block: 'nearest' } );
+			if ( ! mobile.matches ) {
+				pill.scrollIntoView( { inline: 'nearest', block: 'nearest' } );
+			}
 		} );
 
 		// The category that is showing now ('' = All).

@@ -99,6 +99,27 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->fail( "Media query {$query} is not closed." );
 	}
 
+	private function last_media( string $css, string $query ): string {
+		$start = strrpos( $css, '@media ' . $query );
+		$this->assertNotFalse( $start, "Media query {$query} missing." );
+
+		$open  = strpos( $css, '{', (int) $start );
+		$depth = 0;
+		$len   = strlen( $css );
+		for ( $i = (int) $open; $i < $len; $i++ ) {
+			if ( '{' === $css[ $i ] ) {
+				++$depth;
+			} elseif ( '}' === $css[ $i ] ) {
+				--$depth;
+				if ( 0 === $depth ) {
+					return substr( $css, (int) $open + 1, $i - (int) $open - 1 );
+				}
+			}
+		}
+
+		$this->fail( "Media query {$query} is not closed." );
+	}
+
 	// ----- Font ----------------------------------------------------------------------------
 
 	public function test_sans_preset_is_self_hosted_hanken_grotesk_in_seven_weights(): void {
@@ -201,7 +222,7 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$page = $this->rule( $this->read( 'blocks/document-shelf/style.css' ), '.documents-page' );
 		$this->assertStringContainsString( '--documents-gutter: clamp(0px, 3vw, 32px)', $page );
 
-		$strip = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
+		$strip = $this->last_media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
 		$this->assertStringContainsString( 'var(--documents-gutter, 0px)', $strip );
 	}
 
@@ -228,11 +249,13 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	}
 
 	public function test_phone_pills_are_a_little_smaller(): void {
-		$phone = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
-		$rule  = $this->rule( $phone, '.documents-categories__pill' );
+		$phone = $this->last_media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
+		$trigger = $this->rule( $phone, '.documents-categories__trigger' );
+		$rule    = $this->rule( $phone, '.documents-categories__list .documents-categories__pill' );
 
-		$this->assertStringContainsString( 'min-height: 34px', $rule );
-		$this->assertStringContainsString( 'font-size: 13px', $rule );
+		$this->assertStringContainsString( 'min-height: 34px', $trigger );
+		$this->assertStringContainsString( 'font-size: 13px', $trigger );
+		$this->assertStringContainsString( 'min-height: 44px', $rule );
 	}
 
 	public function test_strip_sticks_under_the_header_at_every_size(): void {
@@ -255,16 +278,16 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	}
 
 	public function test_phone_strip_bleeds_to_the_screen_edges_and_is_the_band_itself(): void {
-		$phone = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
+		$phone = $this->last_media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
 		$rule  = $this->rule( $phone, '.wp-block-devportfolio-document-categories' );
 
 		$this->assertStringContainsString( 'margin: 0 calc(-1 * (var(--wp--preset--spacing--40) + var(--documents-gutter, 0px)))', $rule );
-		$this->assertStringContainsString( 'overflow-x: auto', $rule );
+		$this->assertStringNotContainsString( 'overflow-x', $rule );
 		$this->assertStringContainsString( 'display: none', $this->rule( $phone, '.wp-block-devportfolio-document-categories::before' ), 'A layer inside an overflow container would be clipped.' );
 	}
 
 	public function test_phone_strip_is_frosted_glass_with_a_soft_hairline(): void {
-		$phone = $this->media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
+		$phone = $this->last_media( $this->read( 'blocks/document-categories/style.css' ), '(max-width: 820px)' );
 		$rule  = $this->rule( $phone, '.wp-block-devportfolio-document-categories' );
 
 		$this->assertStringContainsString( 'background: var(--wp--custom--glass--tint, rgb(255 255 255 / 0.8))', $rule );
@@ -276,7 +299,9 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$css  = $this->read( 'blocks/document-categories/style.css' );
 		$land = $this->media( $css, '(orientation: landscape) and (max-height: 520px)' );
 
-		$this->assertStringContainsString( 'position: static', $this->rule( $land, '.wp-block-devportfolio-document-categories' ) );
+		$rule = $this->rule( $land, '.wp-block-devportfolio-document-categories' );
+		$this->assertStringContainsString( 'position: relative', $rule );
+		$this->assertStringContainsString( 'top: auto', $rule );
 		$this->assertStringNotContainsString( '@media (max-height: 520px)', $css, 'Height alone would also match a short portrait phone.' );
 	}
 
