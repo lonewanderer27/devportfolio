@@ -28,12 +28,10 @@ class Devportfolio_Test_Page_Styles extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'font-size: clamp(36px, 9vw, 52px)', $css );
 	}
 
-	public function test_collaterals_page_is_1328px_with_a_36px_gutter_and_16px_on_phones(): void {
+	public function test_collaterals_page_shares_the_documents_page_margins(): void {
 		$css = $this->css();
-		$this->assertMatchesRegularExpression( '/\.documents-page\.collaterals-page\s*\{[^}]*--wp--style--global--content-size:\s*1328px/', $css );
-		$this->assertMatchesRegularExpression( '/\.documents-page\.collaterals-page\s*\{[^}]*padding-inline:\s*36px/', $css );
-		$this->assertStringContainsString( '.documents-page.collaterals-page {' . "\n\t\tpadding-inline: 16px;", $css );
-		$this->assertStringContainsString( 'max-width: 700px', $css );
+		$this->assertStringNotContainsString( 'collaterals-page {', $css );
+		$this->assertStringNotContainsString( '1328px', $css );
 	}
 
 	public function test_shelf_css_no_longer_holds_page_rules(): void {
