@@ -947,11 +947,13 @@ html[data-documents-swapping] .documents-shelf__plank {
 	}
 
 	.documents-modal__body:hover .documents-modal__arrow,
+	.collaterals-modal__body:hover .collaterals-modal__arrow,
 	.documents-modal__arrow:focus-visible,
 .collaterals-modal__arrow:focus-visible {
 		opacity: 1;
 	}
 
+	.collaterals-modal__body:hover .collaterals-modal__arrow[aria-disabled="true"],
 	.documents-modal__body:hover .documents-modal__arrow[aria-disabled="true"] {
 		opacity: 0.3;
 	}

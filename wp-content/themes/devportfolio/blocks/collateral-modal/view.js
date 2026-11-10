@@ -62,7 +62,7 @@ if ( dialog && mobileDialog && dataEl ) {
 		stats: $( '.collaterals-modal__stats' ),
 		tools: $( '.collaterals-modal__tools' ),
 		toolList: $( '.collaterals-modal__toollist' ),
-		next: $( '.collaterals-modal__next' ),
+		nextSection: $( '.collaterals-modal__next' ),
 		nextList: $( '.collaterals-modal__nextlist' ),
 		download: $( '.collaterals-modal__download' ),
 		copy: $( '.collaterals-modal__copy' ),
@@ -202,7 +202,7 @@ if ( dialog && mobileDialog && dataEl ) {
 				return li;
 			} )
 		);
-		els.next.hidden = ids.length === 0;
+		els.nextSection.hidden = ids.length === 0;
 	};
 
 	/** Fills the desktop sidebar from one payload item. textContent only (the mobile modal fills its own header). */
