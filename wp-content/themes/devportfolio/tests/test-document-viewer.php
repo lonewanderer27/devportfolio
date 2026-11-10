@@ -61,9 +61,9 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	private function read( string $relative ): string {
 		$contents = file_get_contents( $this->theme_dir() . '/' . $relative );
-		if ( 'blocks/document-modal/viewer.js' === $relative ) {
+		if ( 'blocks/shared/viewer.js' === $relative ) {
 			// The page sources and the status line moved to page-source.js and status.js (DPD-021): the viewer is read as one piece.
-			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/native-pptx.js' );
+			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/shared/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/shared/status.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/shared/native-pptx.js' );
 		}
 		$this->assertNotFalse( $contents, $relative );
 		return $contents;
@@ -302,8 +302,8 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	public function test_css_stage_and_book_layout(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*display: flex[^}]*overflow: hidden#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__stage\s*\{[^}]*display: grid[^}]*place-items: center[^}]*min-width: 0#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__book\s*\{\s*position: relative#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__stage[^{]*\{[^}]*display: grid[^}]*place-items: center[^}]*min-width: 0#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__book[^{]*\{\s*position: relative#', $css );
 	}
 
 	public function test_the_modal_opens_without_changing_size(): void {
@@ -311,7 +311,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 		$this->assertSame( 1, preg_match( '#@keyframes documents-modal-pop\s*\{(.*?)\n\}#s', $css, $m ) );
 		$this->assertStringNotContainsString( 'scale', $m[1], 'A scale in the open animation makes the modal grow a few pixels.' );
 
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'stage.clientWidth', $js );
 		$this->assertStringNotContainsString( 'getBoundingClientRect', $js, 'The rect follows transforms and is wrong while the modal animates.' );
 	}
@@ -331,7 +331,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_viewer_draws_pdf_pages_with_a_text_layer_first_when_text_is_selectable(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'selectableText = false', $js );
 		$this->assertStringContainsString( 'if ( selectableText && Boolean( doc.viewerUrl ) )', $js );
 		$this->assertStringContainsString( 'selectableText ? lib.TextLayer : null', $js );
@@ -342,45 +342,45 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_text_layers_leave_the_mouse_to_the_text(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'useMouseEvents: ! source.textLayer', $js );
 		$this->assertStringContainsString( 'showPageCorners: ! reducedMotion.matches && ! source.textLayer', $js );
-		$this->assertStringContainsString( "'documents-modal__book--selectable'", $js );
+		$this->assertStringContainsString( "`\${ prefix }__book--selectable`", $js );
 
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "selectableText: root.getAttribute( 'data-selectable-text' ) === '1'", $view );
 	}
 
 	public function test_css_has_a_transparent_selectable_text_layer(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__text\s*\{[^}]*position: absolute[^}]*inset: 0#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__text :is\(span, br\)\s*\{[^}]*position: absolute[^}]*color: transparent[^}]*white-space: pre#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__text[^{]*\{[^}]*position: absolute[^}]*inset: 0#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__text :is\(span, br\)[^{]*\{[^}]*position: absolute[^}]*color: transparent[^}]*white-space: pre#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__book--selectable[^{]*\{[^}]*user-select: text#s', $css );
 	}
 
 	public function test_css_pages_are_white_on_the_grey_stage(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__page\s*\{[^}]*background: \#fff#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__page\s*\{[^}]*box-shadow#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__page[^{]*\{[^}]*background: \#fff#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__page[^{]*\{[^}]*box-shadow#s', $css );
 		// The grey, dotted body is the existing stage background.
 		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*background-color: var\(--dm-surface-alt\)#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__sheet img\s*\{[^}]*object-fit: contain#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__sheet img[^{]*\{[^}]*object-fit: contain#s', $css );
 	}
 
 	public function test_css_clips_the_empty_bottom_strip_of_cropped_stored_images(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__book--cropped \.documents-modal__sheet\s*\{[^}]*display: block[^}]*overflow: hidden#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__book--cropped \.documents-modal__sheet[^{]*\{[^}]*display: block[^}]*overflow: hidden#s', $css );
 		$this->assertSame( 1, preg_match( '#\.documents-modal__book--cropped \.documents-modal__sheet img\s*\{([^}]*)\}#', $css, $m ) );
-		$this->assertStringContainsString( 'height: calc(100% / (1 - var(--documents-crop, 0)))', $m[1] );
+		$this->assertStringContainsString( 'height: calc(100% / (1 - var(--book-crop, 0)))', $m[1] );
 		$this->assertStringContainsString( 'object-fit: cover', $m[1] );
 		$this->assertStringContainsString( 'object-position: top', $m[1] );
 	}
 
 	public function test_viewer_script_applies_the_crop_to_stored_images_only(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'doc.cropBottom', $js );
-		$this->assertStringContainsString( "container.classList.add( 'documents-modal__book--cropped' )", $js );
-		$this->assertStringContainsString( "container.style.setProperty( '--documents-crop'", $js );
+		$this->assertStringContainsString( "container.classList.add( `\${ prefix }__book--cropped` )", $js );
+		$this->assertStringContainsString( "container.style.setProperty( '--book-crop'", $js );
 		$this->assertMatchesRegularExpression( '#if \( source\.crop > 0 \)#', $js, 'The class is set from the source, which only the image source fills.' );
 		$this->assertMatchesRegularExpression( '#function pdfSource\([^)]*\)\s*\{(?:(?!function ).)*\}#s', $js );
 		$pdf = substr( $js, (int) strpos( $js, 'function pdfSource' ), 900 );
@@ -389,7 +389,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	public function test_css_page_number_sits_at_the_bottom_centre_of_every_page(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertSame( 1, preg_match( '#\.documents-modal__pn\s*\{([^}]*)\}#', $css, $m ) );
+		$this->assertSame( 1, preg_match( '#\.documents-modal__pn[^{]*\{([^}]*)\}#', $css, $m ) );
 		$this->assertStringContainsString( 'position: absolute', $m[1] );
 		$this->assertMatchesRegularExpression( '#bottom: [\d.]+%#', $m[1] );
 		$this->assertStringContainsString( 'left: 50%', $m[1] );
@@ -406,16 +406,16 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	public function test_css_status_message_and_reduced_motion(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__state\s*\{[^}]*position: absolute[^}]*inset: 0[^}]*pointer-events: none#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__state\[data-kind="unavailable"\] \.documents-modal__spinner\s*\{\s*display: none#', $css );
-		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)\s*\{.*\.documents-modal__spinner\s*\{\s*animation: none#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__state[^{]*\{[^}]*position: absolute[^}]*inset: 0[^}]*pointer-events: none#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__state\[data-kind="unavailable"\] \.documents-modal__spinner[^{]*\{\s*display: none#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)\s*\{.*\.documents-modal__spinner[^{]*\{\s*animation: none#s', $css );
 	}
 
 	// --- Scripts ------------------------------------------------------------------------
 
 	public function test_view_script_hands_the_book_to_the_viewer(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( "import { createViewer } from './viewer.js'", $js );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
+		$this->assertStringContainsString( "import { createViewer } from '../shared/viewer.js'", $js );
 		$this->assertStringContainsString( 'viewer.show( doc, state.page )', $js );
 		$this->assertStringContainsString( 'viewer.goTo( state.page, { animate } )', $js );
 		$this->assertStringContainsString( 'viewer.destroy()', $js );
@@ -427,7 +427,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_view_script_turns_pages_with_the_arrow_keys(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "'ArrowLeft'", $js );
 		$this->assertStringContainsString( "'ArrowRight'", $js );
 		$this->assertStringContainsString( 'input, textarea, select, [contenteditable]', $js );
@@ -435,12 +435,12 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_a_page_turned_on_the_book_syncs_back_without_echoing(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertMatchesRegularExpression( '#const syncFromViewer = \( page \) => \{\s*const next = normalisePage\( page, state\.pages, state\.step \);\s*if \( next !== state\.page \)#', $js );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
+		$this->assertMatchesRegularExpression( '#const syncFromViewer = \( page \) => \{\s*const next = normalisePage\( page, state\.pages, state\.step \);\s*(?:flipped = true;\s*)?if \( next !== state\.page \)#', $js );
 	}
 
 	public function test_viewer_script_book_settings(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		// Pairs 1-2, 3-4; an odd last page sits alone on the left.
 		$this->assertStringContainsString( 'showCover: false', $js );
 		// A spread needs the library's landscape mode, a single page its portrait mode.
@@ -454,20 +454,23 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_viewer_script_page_markup(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
-		$this->assertStringContainsString( "el( 'div', 'documents-modal__page'", $js );
-		$this->assertStringContainsString( "el( 'div', 'documents-modal__sheet' )", $js );
-		$this->assertStringContainsString( "el( 'span', 'documents-modal__pn'", $js );
-		$this->assertStringContainsString( 'number.textContent = String( i + 1 )', $js );
-		$this->assertStringContainsString( "'documents-modal__page--left', step === 2 && i % 2 === 0", $js );
-		$this->assertStringContainsString( "'documents-modal__page--right', step === 2 && i % 2 === 1", $js );
+		// The page elements are built in the shared page-source.js, with the class prefix as an argument (WP2).
+		$source = $this->read( 'blocks/shared/page-source.js' );
+		$this->assertStringContainsString( "el( 'div', `\${ prefix }__page`", $source );
+		$this->assertStringContainsString( "el( 'div', `\${ prefix }__sheet` )", $source );
+		$this->assertStringContainsString( "el( 'span', `\${ prefix }__pn`", $source );
+		$this->assertStringContainsString( 'number.textContent = String( i + 1 )', $source );
+		$js = $this->read( 'blocks/shared/viewer.js' );
+		$this->assertStringContainsString( "`\${ prefix }__page--left`, step === 2 && i % 2 === 0", $js );
+		$this->assertStringContainsString( "`\${ prefix }__page--right`, step === 2 && i % 2 === 1", $js );
 	}
 
 	public function test_viewer_script_decision_order(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		// The acquisition order moved to the shared page-source.js (WP2).
+		$js = $this->read( 'blocks/shared/page-source.js' );
 		// Default order (the else branch of the selectable-text switch): stored images, then pdf.js.
-		$default = (int) strpos( $js, '} else {' . "\n\t\t" . 'images = await tryImages( doc, alive, limits )' );
-		$images  = strpos( $js, 'images = await tryImages( doc, alive, limits )', $default );
+		$default = (int) strpos( $js, '} else {' . "\n\t\t" . 'images = await tryImages( doc, alive, limits, prefix )' );
+		$images  = strpos( $js, 'images = await tryImages( doc, alive, limits, prefix )', $default );
 		$pdf     = strpos( $js, 'pdf = await tryPdf( doc, alive, options )', $default );
 		$this->assertGreaterThan( 0, $default );
 		$this->assertNotFalse( $images );
@@ -480,7 +483,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_viewer_script_cleans_up(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'flip.destroy()', $js );
 		$this->assertStringContainsString( 'pdf.destroy()', $js );
 		$this->assertStringContainsString( 'observer.disconnect()', $js );
@@ -497,7 +500,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_a_late_failure_cannot_touch_a_newer_book(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		// fail() takes the session it was raised for and drops errors from an older one.
 		$this->assertStringContainsString( 'const fail = ( error, mine = session ) => {', $js );
 		$this->assertStringContainsString( 'mine !== session || isBenignRenderError( error )', $js );
@@ -512,27 +515,27 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_only_a_moving_page_blocks_a_second_turn(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( "[ 'flipping', 'user_fold' ].includes( flip.getState() )", $js );
 		$this->assertStringNotContainsString( "getState() !== 'read'", $js );
 	}
 
 	public function test_pdf_is_destroyed_when_the_first_page_cannot_be_read(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertMatchesRegularExpression( '/await pdf\.getPage\( 1 \);.*?catch \( error \) \{\s*pdf\.destroy\(\);\s*throw error;/s', $js );
 	}
 
 	public function test_a_broken_stored_image_is_marked_and_a_broken_first_spread_falls_back(): void {
-		$js  = $this->read( 'blocks/document-modal/viewer.js' );
+		$js  = $this->read( 'blocks/shared/page-source.js' );
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertStringContainsString( "pageEl.classList.add( 'documents-modal__page--broken' )", $js );
+		$this->assertStringContainsString( "pageEl.classList.add( `\${ prefix }__page--broken` )", $js );
 		$this->assertStringContainsString( 'documents-modal__page--broken', $css );
 		// The second page of a spread is loaded before the book is shown, like the first.
 		$this->assertStringContainsString( 'preloaded[ 2 ] = await withTimeout( loadImage( doc.images[ 1 ] )', $js );
 	}
 
 	public function test_status_text_is_set_before_the_region_is_shown(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 		$set = strpos( $js, 'textEl.textContent = kind ===' );
 		$show = strpos( $js, 'status.hidden = false;' );
 		$this->assertNotFalse( $set );
@@ -545,13 +548,13 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_module_worker_probe_is_cached_and_revokes_its_blob_url(): void {
-		$js = $this->read( 'blocks/document-modal/capability.js' );
+		$js = $this->read( 'blocks/shared/capability.js' );
 		$this->assertStringContainsString( 'workerProbes', $js );
 		$this->assertStringContainsString( 'revokeObjectURL', $js );
 	}
 
 	public function test_viewer_scripts_have_no_external_urls(): void {
-		foreach ( array( 'blocks/document-modal/viewer.js', 'blocks/document-modal/view.js', 'blocks/document-modal/capability.js', 'blocks/document-modal/layout.js', 'blocks/document-modal/pager.js', 'blocks/document-modal/mobile.js', 'blocks/shared/download.js', 'blocks/document-modal/render.php' ) as $file ) {
+		foreach ( array( 'blocks/shared/viewer.js', 'blocks/document-modal/view.js', 'blocks/shared/capability.js', 'blocks/shared/layout.js', 'blocks/shared/pager.js', 'blocks/shared/mobile.js', 'blocks/shared/download.js', 'blocks/document-modal/render.php' ) as $file ) {
 			$source = $this->read( $file );
 			// The SVG namespace is an identifier for createElementNS(), not a host that is contacted.
 			$source = str_replace( 'http://www.w3.org/2000/svg', '', $source );
@@ -562,7 +565,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	// --- Vendored library ---------------------------------------------------------------
 
 	public function test_page_flip_is_vendored_with_its_licence(): void {
-		$dir = $this->theme_dir() . '/blocks/document-modal/vendor';
+		$dir = $this->theme_dir() . '/blocks/shared/vendor';
 		$this->assertFileExists( $dir . '/page-flip.browser.js' );
 		$this->assertFileExists( $dir . '/LICENSE' );
 		$this->assertFileExists( $dir . '/README.md' );
@@ -572,8 +575,8 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_gate_version_floors_match_the_readme(): void {
-		$readme = $this->read( 'blocks/document-modal/vendor/README.md' );
-		$js     = $this->read( 'blocks/document-modal/capability.js' );
+		$readme = $this->read( 'blocks/shared/vendor/README.md' );
+		$js     = $this->read( 'blocks/shared/capability.js' );
 		$this->assertStringContainsString( 'Chrome and Edge 119, Firefox 124, Safari 17.4', $readme );
 		$this->assertStringContainsString( 'minVersions: { chrome: 119, edge: 119, firefox: 124, safari: 17.4 }', $js );
 		$this->assertStringContainsString( 'Promise.withResolvers', $readme );

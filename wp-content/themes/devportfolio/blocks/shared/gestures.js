@@ -11,6 +11,8 @@ export const ZOOM_MIN = 1;
 export const ZOOM_MAX = 4;
 export const ZOOM_STEP = 0.5;
 export const DOUBLE_TAP_ZOOM = 2.5;
+/** The window (ms) in which a second tap completes a double-tap; a single tap waits this long before it acts. */
+export const DOUBLE_TAP_WINDOW = 300;
 
 const clamp = ( value, min, max ) => Math.min( max, Math.max( min, value ) );
 
@@ -82,7 +84,7 @@ export function isDoubleTap( previous, next ) {
 	if ( ! previous || ! next ) {
 		return false;
 	}
-	return next.t - previous.t <= 300 && Math.hypot( next.x - previous.x, next.y - previous.y ) <= 30;
+	return next.t - previous.t <= DOUBLE_TAP_WINDOW && Math.hypot( next.x - previous.x, next.y - previous.y ) <= 30;
 }
 
 /**
@@ -110,4 +112,23 @@ export function distance( a, b ) {
 /** `Zoom 150%` style percentage for the live region. */
 export function zoomPercent( scale ) {
 	return Math.round( scale * 100 );
+}
+
+/**
+ * Which way a single tap on the book turns (Tap to Flip, DPC-012): -1 for the left half (previous view), 1 for
+ * the right half (next view), 0 inside the dead strip at either edge (the phone's edge gesture, DEAD_STRIP).
+ */
+export function tapSide( x, width ) {
+	if ( ! ( width > 0 ) || x < DEAD_STRIP || x > width - DEAD_STRIP ) {
+		return 0;
+	}
+	return x < width / 2 ? -1 : 1;
+}
+
+/**
+ * Whether the "Tap to Flip" hint shows (DPC-012, D7): a touch screen, a two-page view, nothing turned yet in this
+ * opening, and the pages not zoomed (a tap then does not flip, as a swipe does not while zoomed).
+ */
+export function shouldShowTapHint( { coarse = false, step = 1, flipped = false, zoomed = false } = {} ) {
+	return Boolean( coarse ) && step === 2 && ! flipped && ! zoomed;
 }

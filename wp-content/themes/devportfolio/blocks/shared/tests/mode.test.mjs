@@ -100,7 +100,7 @@ test( 'a workbook with a native url is drawn natively, and falls back to its pag
 } );
 
 test( 'the mobile body draws every known kind: PDFs, presentations, workbooks and word documents (DPD-031)', () => {
-	[ 'pdf', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
+	[ 'pdf', 'pptx', 'ppt', 'odp', 'xlsx', 'xls', 'ods', 'docx', 'doc', 'odt', 'image' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), true, kind ) );
 	[ 'other', '' ].forEach( ( kind ) => assert.equal( canShowOnMobile( { kind } ), false, kind ) );
 	assert.equal( canShowOnMobile( null ), false );
 	assert.equal( hintKeyFor( { kind: 'pptx' } ), 'hintSlide' );

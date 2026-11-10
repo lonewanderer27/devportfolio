@@ -92,7 +92,8 @@ export function canDrawOffice( env ) {
  * one gate to widen.
  */
 export function canShowOnMobile( doc ) {
-	return !! doc && ( doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) || isWord( doc ) );
+	// `image` is a collateral's raster file: one stored page, drawn like the PDF pages (DPC-023).
+	return !! doc && ( doc.kind === 'pdf' || doc.kind === 'image' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) || isWord( doc ) );
 }
 
 /**

@@ -204,8 +204,8 @@ class Devportfolio_Test_Document_Spreadsheets extends WP_UnitTestCase {
 	// --- Structure -----------------------------------------------------------------------------
 
 	public function test_the_native_xlsx_viewer_loads_only_on_demand_and_is_locked_down(): void {
-		$js    = $this->read( 'blocks/document-modal/viewer.js' );
-		$mount = $this->read( 'blocks/document-modal/native-xlsx.js' );
+		$js    = $this->read( 'blocks/shared/viewer.js' );
+		$mount = $this->read( 'blocks/shared/native-xlsx.js' );
 
 		// The mount (shared with the mobile viewer, DPD-030) holds the URLs and every option.
 		$this->assertStringContainsString( 'export const XLSX_LIB = new URL( `./vendor/ooxml/xlsx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;', $mount );
@@ -230,17 +230,18 @@ class Devportfolio_Test_Document_Spreadsheets extends WP_UnitTestCase {
 	}
 
 	public function test_the_grid_keeps_its_own_arrow_keys_and_the_hint_exists(): void {
-		$this->assertStringContainsString( '.documents-modal__grid', $this->read( 'blocks/document-modal/view.js' ) );
-		$this->assertStringContainsString( 'data-hint-sheet=', $this->read( 'blocks/document-modal/render.php' ) );
-		$this->assertStringContainsString( 'Download the file to open it in Excel', $this->read( 'blocks/document-modal/render.php' ) );
-		$this->assertStringContainsString( "'hintSheet'", $this->read( 'blocks/document-modal/mode.js' ) );
-		$this->assertStringContainsString( 'hintKeyFor( doc )', $this->read( 'blocks/document-modal/viewer.js' ) );
-		$this->assertStringContainsString( '.documents-modal__grid {', $this->read( 'blocks/document-modal/style.css' ) );
-		$this->assertStringContainsString( 'nativeMaxCells', $this->read( 'blocks/document-modal/capability.js' ) );
+		$this->assertStringContainsString( '.documents-modal__grid', ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) ) );
+		// The status strings moved to the shared viewer helpers in functions.php (WP6).
+		$this->assertStringContainsString( "'data-hint-sheet'", $this->read( 'functions.php' ) );
+		$this->assertStringContainsString( 'Download the file to open it in Excel', $this->read( 'functions.php' ) );
+		$this->assertStringContainsString( "'hintSheet'", $this->read( 'blocks/shared/mode.js' ) );
+		$this->assertStringContainsString( 'hintKeyFor( doc )', $this->read( 'blocks/shared/viewer.js' ) );
+		$this->assertStringContainsString( '.documents-modal__grid', $this->read( 'blocks/document-modal/style.css' ) );
+		$this->assertStringContainsString( 'nativeMaxCells', $this->read( 'blocks/shared/capability.js' ) );
 	}
 
 	public function test_the_xlsx_viewer_is_vendored_with_every_file_it_imports(): void {
-		$dir = $this->theme_dir() . '/blocks/document-modal/vendor/ooxml';
+		$dir = $this->theme_dir() . '/blocks/shared/vendor/ooxml';
 
 		foreach ( array( 'xlsx.mjs', 'xlsx-source-worker.mjs', 'xlsx_parser_bg.wasm' ) as $file ) {
 			$this->assertFileExists( $dir . '/' . $file, $file );
@@ -255,7 +256,7 @@ class Devportfolio_Test_Document_Spreadsheets extends WP_UnitTestCase {
 			}
 		}
 
-		$readme = $this->read( 'blocks/document-modal/vendor/ooxml/README.md' );
+		$readme = $this->read( 'blocks/shared/vendor/ooxml/README.md' );
 		$this->assertStringContainsString( 'xlsx.mjs', $readme );
 		$this->assertStringContainsString( '**0.89.7**', $readme );
 	}

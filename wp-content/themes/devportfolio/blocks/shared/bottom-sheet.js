@@ -47,19 +47,19 @@ const reduced = () => typeof window.matchMedia === 'function' && window.matchMed
  * @param {Element}  args.dialog      The mobile dialog.
  * @param {string}   args.titleId     Unique id of the title element the caller puts in the header (`aria-labelledby`).
  * @param {string}   args.handleLabel Accessible name of the grab handle ("Close pages").
- * @param {string}   args.modifier    Extra class for the sheet (`documents-mobile__sheet--pages`).
+ * @param {string}   args.modifier    Extra class for the sheet (`${ prefix }__sheet--pages`).
  * @param {Function} args.onDismiss   Called when the visitor asks to close it (dim, Esc, handle, drag).
  * @return {{sheet:Element,head:Element,body:Element,grab:Element,show:Function,hide:Function,isOpen:Function}}
  */
-export function createBottomSheet( { dialog, titleId, handleLabel = 'Close', modifier = '', onDismiss } ) {
-	const panel = dialog.querySelector( '.documents-mobile__panel' );
-	const dim = el( 'div', 'documents-mobile__dim' );
+export function createBottomSheet( { dialog, titleId, handleLabel = 'Close', modifier = '', onDismiss, prefix = 'documents-mobile' } ) {
+	const panel = dialog.querySelector( `.${ prefix }__panel` );
+	const dim = el( 'div', `${ prefix }__dim` );
 	dim.hidden = true;
-	const sheet = el( 'div', `documents-mobile__sheet${ modifier ? ` ${ modifier }` : '' }`, { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId } );
+	const sheet = el( 'div', `${ prefix }__sheet${ modifier ? ` ${ modifier }` : '' }`, { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId } );
 	sheet.hidden = true;
-	const grab = el( 'button', 'documents-mobile__grab', { type: 'button', 'aria-label': handleLabel } );
-	const head = el( 'div', 'documents-mobile__sheet-head' );
-	const body = el( 'div', 'documents-mobile__sheet-body' );
+	const grab = el( 'button', `${ prefix }__grab`, { type: 'button', 'aria-label': handleLabel } );
+	const head = el( 'div', `${ prefix }__sheet-head` );
+	const body = el( 'div', `${ prefix }__sheet-body` );
 	sheet.append( grab, head, body );
 	dialog.append( dim, sheet );
 

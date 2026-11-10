@@ -7,10 +7,10 @@
  * builds the DOM once on the shared shell (bottom-sheet.js) and only rewrites its text when it is reopened.
  * mobile.js loads this module with `import()` on the first tap of Details (through sheet-controller.js).
  */
-import { el, svgIcon } from './dom.js';
-import { createBottomSheet } from './bottom-sheet.js';
+import { el, svgIcon } from '../shared/dom.js';
+import { createBottomSheet } from '../shared/bottom-sheet.js';
 import { applyDownload, guardDisabledDownload } from '../shared/download.js';
-import { unitOf, wording } from './mode.js';
+import { unitOf, wording } from '../shared/mode.js';
 
 const clean = ( value ) => ( typeof value === 'string' ? value.trim() : '' );
 

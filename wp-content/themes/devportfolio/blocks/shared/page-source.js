@@ -48,10 +48,10 @@ export function loadImage( url ) {
 	} );
 }
 
-const sheetOf = ( pageEl ) => pageEl.querySelector( '.documents-modal__sheet' );
+const sheetOf = ( pageEl, prefix = 'documents-modal' ) => pageEl.querySelector( `.${ prefix }__sheet` );
 
 /** Stored page images: one <img> per page, drawn when the page enters the window. */
-export function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
+export function imageSource( urls, ratio, imageWidth, preloaded, crop, prefix = 'documents-modal' ) {
 	return {
 		kind: 'images',
 		count: urls.length,
@@ -60,7 +60,7 @@ export function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
 		crop: crop > 0 ? crop : 0,
 		maxPageW: imageWidth > 0 ? imageWidth : Infinity,
 		mount( index, pageEl ) {
-			const sheet = sheetOf( pageEl );
+			const sheet = sheetOf( pageEl, prefix );
 			if ( sheet.firstChild ) {
 				return Promise.resolve();
 			}
@@ -69,7 +69,7 @@ export function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
 			img.decoding = 'async';
 			img.draggable = false;
 			// A page whose image cannot be loaded is marked, instead of staying a silent blank sheet.
-			img.onerror = () => pageEl.classList.add( 'documents-modal__page--broken' );
+			img.onerror = () => pageEl.classList.add( `${ prefix }__page--broken` );
 			if ( ! img.src ) {
 				img.src = urls[ index - 1 ];
 			}
@@ -84,7 +84,7 @@ export function imageSource( urls, ratio, imageWidth, preloaded, crop ) {
 }
 
 /** pdf.js pages: a canvas per page, drawn at the page's display size and released when far away. */
-export function pdfSource( pdf, ratio, TextLayer ) {
+export function pdfSource( pdf, ratio, TextLayer, prefix = 'documents-modal' ) {
 	const drawn = new Map();
 
 	const release = ( index, pageEl ) => {
@@ -108,7 +108,7 @@ export function pdfSource( pdf, ratio, TextLayer ) {
 			entry.canvas.height = 0;
 		}
 		if ( pageEl ) {
-			sheetOf( pageEl ).replaceChildren();
+			sheetOf( pageEl, prefix ).replaceChildren();
 		}
 		drawn.delete( index );
 	};
@@ -142,11 +142,11 @@ export function pdfSource( pdf, ratio, TextLayer ) {
 		if ( TextLayer ) {
 			// Real text over the canvas, at the page's display size (pdf.js sizes it from --scale-factor).
 			content = document.createElement( 'div' );
-			content.className = 'documents-modal__pdf-page';
+			content.className = `${ prefix }__pdf-page`;
 			content.style.width = canvas.style.width;
 			content.style.height = canvas.style.height;
 			const layer = document.createElement( 'div' );
-			layer.className = 'documents-modal__text';
+			layer.className = `${ prefix }__text`;
 			layer.style.setProperty( '--scale-factor', String( fit ) );
 			content.append( canvas, layer );
 			entry.text = new TextLayer( {
@@ -159,7 +159,7 @@ export function pdfSource( pdf, ratio, TextLayer ) {
 				return;
 			}
 		}
-		sheetOf( pageEl ).replaceChildren( content );
+		sheetOf( pageEl, prefix ).replaceChildren( content );
 		page.cleanup();
 	};
 
@@ -203,7 +203,7 @@ export function rememberFailure( error ) {
 }
 
 /** Stored page images, or null when the first one cannot be loaded (then the PDF is tried). */
-export async function tryImages( doc, alive, limits ) {
+export async function tryImages( doc, alive, limits, prefix = 'documents-modal' ) {
 	if ( ! Array.isArray( doc.images ) || ! doc.images.length ) {
 		return null;
 	}
@@ -224,14 +224,14 @@ export async function tryImages( doc, alive, limits ) {
 				return null;
 			}
 		}
-		return imageSource( doc.images, ratio, Number( doc.imageWidth ) || 0, preloaded, crop );
+		return imageSource( doc.images, ratio, Number( doc.imageWidth ) || 0, preloaded, crop, prefix );
 	} catch ( e ) {
 		return null;
 	}
 }
 
 /** pdf.js in the browser, or null when the gate refuses this device. Throws on a real failure. */
-export async function tryPdf( doc, alive, { pdfjs, limits, selectableText } ) {
+export async function tryPdf( doc, alive, { pdfjs, limits, selectableText, prefix = 'documents-modal' } ) {
 	if ( ! doc.viewerUrl || ! pdfjs || ! pdfjs.module || ! pdfjs.worker ) {
 		return null;
 	}
@@ -266,7 +266,7 @@ export async function tryPdf( doc, alive, { pdfjs, limits, selectableText } ) {
 			pdf.destroy();
 			throw error;
 		}
-		return { source: pdfSource( pdf, viewport.width / viewport.height, selectableText ? lib.TextLayer : null ), budget: budgetFor( verdict.tier, limits ) };
+		return { source: pdfSource( pdf, viewport.width / viewport.height, selectableText ? lib.TextLayer : null, prefix ), budget: budgetFor( verdict.tier, limits ) };
 	} catch ( error ) {
 		// Tag it, so a failure of the PDF path (not of the stored images) is remembered.
 		throw Object.assign( new Error( String( error && error.message ) ), { name: error && error.name, fromPdf: true } );
@@ -280,8 +280,8 @@ export async function tryPdf( doc, alive, { pdfjs, limits, selectableText } ) {
  * or null when there is nothing to show. Throws on a real failure of the pdf.js path (tagged `fromPdf`).
  * The caller destroys the source when it is no longer wanted.
  */
-export async function acquireSource( doc, alive, { pdfjs, limits, selectableText } ) {
-	const options = { pdfjs, limits, selectableText };
+export async function acquireSource( doc, alive, { pdfjs, limits, selectableText, prefix = 'documents-modal' } ) {
+	const options = { pdfjs, limits, selectableText, prefix };
 	let pdf = null;
 	let images = null;
 	// Selectable text needs real text, which only pdf.js gives: try it first, and fall back to the
@@ -296,10 +296,10 @@ export async function acquireSource( doc, alive, { pdfjs, limits, selectableText
 			rememberFailure( error );
 		}
 		if ( alive() && ! pdf ) {
-			images = await tryImages( doc, alive, limits );
+			images = await tryImages( doc, alive, limits, prefix );
 		}
 	} else {
-		images = await tryImages( doc, alive, limits );
+		images = await tryImages( doc, alive, limits, prefix );
 		if ( alive() && ! images ) {
 			pdf = await tryPdf( doc, alive, options );
 		}
@@ -315,12 +315,12 @@ export async function acquireSource( doc, alive, { pdfjs, limits, selectableText
  * plus the printed number), kept across relayouts so drawn pages are not lost. `label( index, count )`
  * names a page for screen readers.
  */
-export function buildPageEls( count, label ) {
+export function buildPageEls( count, label, prefix = 'documents-modal' ) {
 	return Array.from( { length: count }, ( _, i ) => {
-		const page = el( 'div', 'documents-modal__page', { role: 'img', 'aria-label': label( i + 1, count ) } );
-		const number = el( 'span', 'documents-modal__pn', { 'aria-hidden': 'true' } );
+		const page = el( 'div', `${ prefix }__page`, { role: 'img', 'aria-label': label( i + 1, count ) } );
+		const number = el( 'span', `${ prefix }__pn`, { 'aria-hidden': 'true' } );
 		number.textContent = String( i + 1 );
-		page.append( el( 'div', 'documents-modal__sheet' ), number );
+		page.append( el( 'div', `${ prefix }__sheet` ), number );
 		return page;
 	} );
 }

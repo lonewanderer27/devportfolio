@@ -4,7 +4,7 @@
  * descriptor, both left out when empty) and the structure of the scripts and styles.
  *
  * There is no browser runner in the repo: the pure maths (names, thumbnail URLs, which tiles are due, the history
- * marker) is tested with node (`blocks/document-modal/tests/pages-sheet.test.mjs`, `deeplink.test.mjs`), and this
+ * marker) is tested with node (`blocks/shared/tests/pages-sheet.test.mjs`, `deeplink.test.mjs`), and this
  * file checks the PHP side and that the markup, scripts and CSS keep the structure the plan asks for.
  *
  * @package devportfolio
@@ -147,29 +147,29 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	/* ---- Scripts: loading, history, visible-only thumbnails ---------- */
 
 	public function test_the_sheet_code_is_loaded_on_demand(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertStringContainsString( "import( './pages-sheet.js' )", $mobile );
 		$this->assertDoesNotMatchRegularExpression( "/^import .* from '\.\/pages-sheet\.js';/m", $mobile, 'pages-sheet.js must not be a static import.' );
-		$this->assertStringContainsString( "'documents:mobile-pages'", $mobile );
+		$this->assertStringContainsString( "`\${ eventPrefix }:mobile-pages`", $mobile );
 		// The sheets are registered with the controller (DPD-023), which loads each module once.
 		$this->assertStringContainsString( "sheets.register( 'pages'", $mobile );
 	}
 
 	public function test_selecting_a_page_closes_the_sheet_and_turns_the_viewer(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertMatchesRegularExpression( '/onSelect:\s*\(\s*page\s*\)\s*=>\s*\{\s*sheets\.close\(\s*\);\s*setPage\(\s*page\s*\);/', $mobile );
 	}
 
 	public function test_back_closes_only_the_sheet(): void {
-		$history = $this->read( 'blocks/document-modal/sheet-back.js' );
+		$history = $this->read( 'blocks/shared/sheet-back.js' );
 		$this->assertStringContainsString( 'withSheetState( window.history.state )', $history );
 		$this->assertStringContainsString( 'window.history.pushState', $history );
 		$this->assertStringContainsString( 'hasSheetState( event.state )', $history );
 		$this->assertStringContainsString( 'expectPop', $history );
 
 		// mobile.js knows nothing about history: it only asks sheet-back.js (DPD-017 test).
-		$mobile     = $this->read( 'blocks/document-modal/mobile.js' );
-		$controller = $this->read( 'blocks/document-modal/sheet-controller.js' );
+		$mobile     = $this->read( 'blocks/shared/mobile.js' );
+		$controller = $this->read( 'blocks/shared/sheet-controller.js' );
 		$this->assertStringContainsString( 'createSheetController( { dialog } )', $mobile );
 		$this->assertStringNotContainsString( 'sheetHistory', $mobile );
 		$this->assertStringContainsString( 'history.push()', $controller );
@@ -179,19 +179,19 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/^\tconst history = createSheetHistory\(/m', $controller );
 		$this->assertDoesNotMatchRegularExpression( '/import\( [\'"]\.\/sheet-back/', $controller );
 
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( 'skipNextPop', $view );
 		$this->assertStringContainsString( 'window.history.go( -( 1 + extra ) )', $view );
 		$this->assertStringContainsString( 'onClose: ( extra ) => finishClose( \'mobile\', extra )', $view );
 	}
 
 	public function test_the_page_keys_do_nothing_behind_the_open_sheet(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertMatchesRegularExpression( '/sheets\.isAnyOpen\(\s*\)\s*\)\s*\{\s*return;/', $mobile );
 	}
 
 	public function test_thumbnails_are_fetched_only_when_visible(): void {
-		$js = $this->read( 'blocks/document-modal/pages-sheet.js' );
+		$js = $this->read( 'blocks/shared/pages-sheet.js' );
 		$this->assertStringContainsString( 'IntersectionObserver', $js );
 		$this->assertStringContainsString( 'dataset.src', $js );
 		$this->assertStringContainsString( 'ROWS_AHEAD', $js );
@@ -202,19 +202,19 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	}
 
 	public function test_the_list_view_and_data_saver_request_no_images(): void {
-		$js = $this->read( 'blocks/document-modal/pages-sheet.js' );
+		$js = $this->read( 'blocks/shared/pages-sheet.js' );
 		$this->assertStringContainsString( 'saveData', $js );
 		$this->assertStringContainsString( "view === 'list'", $js );
 		$this->assertStringContainsString( 'cancelPending', $js );
 	}
 
 	public function test_the_sheet_is_built_once_and_listens_once(): void {
-		$js = $this->read( 'blocks/document-modal/pages-sheet.js' );
+		$js = $this->read( 'blocks/shared/pages-sheet.js' );
 		// One delegated listener per view, not one per tile.
 		$this->assertSame( 2, substr_count( $js, "addEventListener( 'click', choose )" ) );
 		$this->assertStringContainsString( 'applyCurrent', $js );
 		// Esc, the inert viewer and the dismiss gestures belong to the shared shell.
-		$shell = $this->read( 'blocks/document-modal/bottom-sheet.js' );
+		$shell = $this->read( 'blocks/shared/bottom-sheet.js' );
 		$this->assertStringContainsString( "dialog.addEventListener( 'cancel'", $shell );
 		$this->assertStringContainsString( 'panel.inert = true', $shell );
 		$this->assertStringContainsString( 'createBottomSheet(', $js );
@@ -270,11 +270,11 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	}
 
 	public function test_visible_range_is_exported_for_the_sheet(): void {
-		$this->assertStringContainsString( 'export function visibleRange(', $this->read( 'blocks/document-modal/pager.js' ) );
+		$this->assertStringContainsString( 'export function visibleRange(', $this->read( 'blocks/shared/pager.js' ) );
 	}
 
 	public function test_the_sheet_remembers_the_view_and_scroll_of_each_document(): void {
-		$js = $this->read( 'blocks/document-modal/pages-sheet.js' );
+		$js = $this->read( 'blocks/shared/pages-sheet.js' );
 
 		// One memory for the life of the sheet (not per open, not stored), written before the sheet hides.
 		$this->assertStringContainsString( 'export function createSheetMemory(', $js );
@@ -294,7 +294,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	}
 
 	public function test_the_handle_can_be_dragged_to_dismiss_and_still_taps_and_keys(): void {
-		$js  = $this->read( 'blocks/document-modal/bottom-sheet.js' );
+		$js  = $this->read( 'blocks/shared/bottom-sheet.js' );
 		$css = $this->sheet_css();
 
 		// Pointer events on the handle and the title row, with the tap and keyboard paths kept.
@@ -319,7 +319,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 	}
 
 	public function test_the_sheets_own_history_moves_never_reach_the_router_or_the_filters(): void {
-		$js = $this->read( 'blocks/document-modal/sheet-back.js' );
+		$js = $this->read( 'blocks/shared/sheet-back.js' );
 
 		// WordPress's Interactivity Router reloads the page on a popstate to a URL it has not cached
 		// (`?document_slug=...`), which re-opened the whole modal the first time a page was chosen.
@@ -336,7 +336,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 		$this->assertLessThan( strpos( $categories, "document.addEventListener( 'DOMContentLoaded'" ), strpos( $categories, "window.addEventListener(\n\t\t'popstate'" ), 'Added before DOMContentLoaded.' );
 
 		// The modal's own Back/Forward handler stops the event when it acts on it (and on the sheet's stale entry).
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertGreaterThanOrEqual( 5, substr_count( $view, 'event.stopImmediatePropagation()' ) );
 		$this->assertStringContainsString( 'slug && isOpen() && hasSheetState( event.state )', $view );
 	}

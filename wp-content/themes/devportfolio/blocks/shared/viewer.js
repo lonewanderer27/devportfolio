@@ -23,10 +23,10 @@
 import { stepFor, normalisePage } from './pager.js';
 import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js';
 import { fitPage, orientationOf, canvasScale, spreadFits, spreadIsWorthIt } from './layout.js';
-import { swipeDirection } from './gestures.js';
+import { swipeDirection, tapSide, DOUBLE_TAP_WINDOW } from './gestures.js';
 import { createTouchZoom } from './touch-zoom.js';
 import { createStatus } from './status.js';
-import { svgIcon } from './dom.js';
+import { iconIn } from './dom.js';
 import { budgetFor, clearFailure, safeStorage, isBenignRenderError } from './capability.js';
 import { readNativeEnvironment, openPptx } from './native-pptx.js';
 import { openXlsx } from './native-xlsx.js';
@@ -68,15 +68,17 @@ function loadFlipLibrary() {
 
 /**
  * @param {object}   options
- * @param {Element}  options.stage       .documents-modal__stage (empty; the book is added inside it).
- * @param {Element}  options.status      .documents-modal__state (loading / can't preview message).
+ * @param {Element}  options.stage       .<prefix>__stage (empty; the book is added inside it).
+ * @param {Element}  options.status      .<prefix>__state (loading / can't preview message).
+ * @param {string}   [options.prefix]    Class prefix of the modal ('documents-modal' or 'collaterals-modal'); CSS and the markup it builds use it.
  * @param {object}   options.pdfjs       { module, worker } URLs of the plugin's pdf.js, or {}.
  * @param {object}   options.limits      Merged gate limits.
  * @param {boolean}  options.selectableText  Draw pages with pdf.js plus a real text layer (selectable, slower) instead of the stored images.
  * @param {Function} options.onGeometry  ({ pages, step }) => page to show. pages 0 = nothing to show.
  * @param {Function} options.onFlip      ( page ) A page turn made on the book itself.
+ * @param {Function} [options.onTap]     ( direction ) A single tap on a touch screen: -1 left half, 1 right half (Tap to Flip, DPC-012).
  */
-export function createViewer( { stage, status, pdfjs, limits, units = null, selectableText = false, onGeometry, onFlip, onSwipe = null } ) {
+export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs, limits, units = null, selectableText = false, singlePage = false, onGeometry, onFlip, onSwipe = null, onTap = null } ) {
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 	// Touch devices wider than 700px (a rotated phone, an unfolded foldable) get the desktop dialog: the book is
 	// then driven by swipe and pinch instead of the mouse, and one or two pages follow the space (DPD-024).
@@ -84,7 +86,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	// The book is not a live region: dozens of page labels would be announced at once.
 	// Loading and "can't be previewed" are announced by the status element (role="status").
 	stage.removeAttribute( 'aria-live' );
-	const statusView = createStatus( { stage, status } );
+	const statusView = createStatus( { stage, status, prefix } );
 	const setStatus = ( kind ) => statusView.set( kind );
 
 	let session = 0;
@@ -124,22 +126,22 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 		const zoomIn = document.createElement( 'button' );
 		zoomIn.type = 'button';
-		zoomIn.className = 'documents-modal__zoom-button';
+		zoomIn.className = `${ prefix }__zoom-button`;
 		zoomIn.dataset.zoom = 'in';
 		zoomIn.setAttribute( 'aria-label', 'Zoom in' );
 		zoomIn.title = 'Zoom in';
-		zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
+		zoomIn.appendChild( iconIn( prefix, 'M12 5v14M5 12h14' ) );
 
 		const zoomOut = document.createElement( 'button' );
 		zoomOut.type = 'button';
-		zoomOut.className = 'documents-modal__zoom-button';
+		zoomOut.className = `${ prefix }__zoom-button`;
 		zoomOut.dataset.zoom = 'out';
 		zoomOut.setAttribute( 'aria-label', 'Zoom out' );
 		zoomOut.title = 'Zoom out';
-		zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
+		zoomOut.appendChild( iconIn( prefix, 'M5 12h14' ) );
 
 		zoomFab = document.createElement( 'div' );
-		zoomFab.className = 'documents-modal__zoom-fab';
+		zoomFab.className = `${ prefix }__zoom-fab`;
 		zoomFab.setAttribute( 'aria-label', 'Zoom controls' );
 		zoomFab.append( zoomOut, zoomIn );
 		stage.appendChild( zoomFab );
@@ -229,7 +231,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 	/** One white page per document page, kept across rebuilds so drawn pages are not lost. */
 	const buildPages = ( count ) => {
-		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ) );
+		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ), prefix );
 		// StPageFlip bends a 'soft' page like paper.
 		pageEls.forEach( ( page ) => {
 			page.dataset.density = 'soft';
@@ -286,12 +288,12 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 
 		container = document.createElement( 'div' );
 		touchZoom.reset();
-		container.className = 'documents-modal__book';
-		container.classList.toggle( 'documents-modal__book--selectable', Boolean( source.textLayer ) );
+		container.className = `${ prefix }__book`;
+		container.classList.toggle( `${ prefix }__book--selectable`, Boolean( source.textLayer ) );
 		if ( source.crop > 0 ) {
 			// Stored images only: hide the empty strip at the bottom of every page (the pdf.js path is not cropped).
-			container.classList.add( 'documents-modal__book--cropped' );
-			container.style.setProperty( '--documents-crop', String( source.crop ) );
+			container.classList.add( `${ prefix }__book--cropped` );
+			container.style.setProperty( '--book-crop', String( source.crop ) );
 		}
 		container.style.width = `${ step === 2 ? pageW * 2 : pageW }px`;
 		container.style.height = `${ pageH }px`;
@@ -301,8 +303,8 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		stage.appendChild( container );
 
 		pageEls.forEach( ( el, i ) => {
-			el.classList.toggle( 'documents-modal__page--left', step === 2 && i % 2 === 0 );
-			el.classList.toggle( 'documents-modal__page--right', step === 2 && i % 2 === 1 );
+			el.classList.toggle( `${ prefix }__page--left`, step === 2 && i % 2 === 0 );
+			el.classList.toggle( `${ prefix }__page--right`, step === 2 && i % 2 === 1 );
 		} );
 
 		flip = new PageFlip( container, {
@@ -346,6 +348,9 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 	 * clearly larger (`spreadIsWorthIt()`), which would otherwise leave empty bands above and below the spread.
 	 */
 	const stepForStage = ( src ) => {
+		if ( singlePage ) {
+			return 1;
+		}
 		const room = measure();
 		if ( room.w >= 40 && room.h >= 40 ) {
 			const args = { stageW: room.w, stageH: room.h, ratio: src.ratio, pages: src.count };
@@ -365,6 +370,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			}
 		},
 	} );
+	let tapTimer = 0;
 	const bindTouch = () => {
 		const pointers = new Map();
 		let gesture = null; // 'press' | 'pinch' | 'pan'
@@ -435,7 +441,22 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 				return;
 			}
 			if ( Math.hypot( dx, dy ) < 10 ) {
-				touchZoom.tap( { t: event.timeStamp, x: entry.sx, y: entry.sy, zx: entry.x, zy: entry.y } );
+				const double = touchZoom.tap( { t: event.timeStamp, x: entry.sx, y: entry.sy, zx: entry.x, zy: entry.y } );
+				if ( onTap ) {
+					// A double tap zooms and never flips; a single tap waits out the double-tap window first.
+					window.clearTimeout( tapTimer );
+					tapTimer = 0;
+					// The book's own untransformed box (the modal's opening animation moves the rect, see local()).
+					const direction = touchZoom.isZoomed() || double ? 0 : tapSide( local( event ).x, container ? container.offsetWidth : 0 );
+					if ( direction !== 0 ) {
+						tapTimer = window.setTimeout( () => {
+							tapTimer = 0;
+							if ( ! touchZoom.isZoomed() ) {
+								onTap( direction );
+							}
+						}, DOUBLE_TAP_WINDOW );
+					}
+				}
 			}
 		};
 		stage.addEventListener( 'pointerup', ( event ) => end( event, false ) );
@@ -525,10 +546,10 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		const mine = session;
 		let opened = false;
 		const wrap = document.createElement( 'div' );
-		wrap.className = 'documents-modal__native';
+		wrap.className = `${ prefix }__native`;
 		wrap.style.visibility = 'hidden';
 		const canvas = document.createElement( 'canvas' );
-		canvas.className = 'documents-modal__native-canvas';
+		canvas.className = `${ prefix }__native-canvas`;
 		canvas.setAttribute( 'role', 'img' );
 		canvas.setAttribute( 'aria-label', doc.title || '' );
 		wrap.append( canvas );
@@ -629,7 +650,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		let opened = false;
 		const mine = session;
 		const wrap = document.createElement( 'div' );
-		wrap.className = 'documents-modal__grid';
+		wrap.className = `${ prefix }__grid`;
 		wrap.setAttribute( 'role', 'group' );
 		wrap.setAttribute( 'aria-label', doc.title || '' );
 		wrap.style.visibility = 'hidden';
@@ -689,7 +710,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		const mine = session;
 		let opened = false;
 		const wrap = document.createElement( 'div' );
-		wrap.className = 'documents-modal__native documents-modal__native--doc';
+		wrap.className = `${ prefix }__native ${ prefix }__native--doc`;
 		wrap.setAttribute( 'role', 'region' );
 		wrap.setAttribute( 'aria-label', doc.title || '' );
 		wrap.style.visibility = 'hidden';
@@ -767,7 +788,7 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			let next = null;
 			try {
 				let nextBudget = budget;
-				const got = await acquireSource( doc, alive, { pdfjs, limits, selectableText } );
+				const got = await acquireSource( doc, alive, { pdfjs, limits, selectableText, prefix } );
 				if ( ! alive() ) {
 					if ( got ) {
 						got.source.destroy();
@@ -834,6 +855,11 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 			}
 		},
 
+		/** True while the pages are zoomed in (a tap does not flip, a swipe does nothing). */
+		isZoomed() {
+			return touchZoom.isZoomed();
+		},
+
 		/** True while a page is turning, so callers can ignore a second turn. */
 		isTurning() {
 			if ( grid ) {
@@ -897,6 +923,8 @@ export function createViewer( { stage, status, pdfjs, limits, units = null, sele
 		/** Closes the viewer and frees pages, canvases and the PDF. */
 		destroy() {
 			session++;
+			window.clearTimeout( tapTimer );
+			tapTimer = 0;
 			reset();
 			setStatus( null );
 		},

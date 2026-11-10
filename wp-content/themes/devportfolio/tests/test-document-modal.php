@@ -194,18 +194,18 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_css_arrows_are_round_centred_and_hover_only(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow\s*\{[^}]*top: 50%[^}]*border-radius: 50%[^}]*translateY\(-50%\)#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--prev\s*\{\s*left: 18px#', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next\s*\{\s*right: 18px#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow[^{]*\{[^}]*top: 50%[^}]*border-radius: 50%[^}]*translateY\(-50%\)#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left: 18px#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next(?:,\s*\.collaterals-modal__arrow--next)?\s*\{\s*right: 18px#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow\[aria-disabled="true"\]\s*\{[^}]*opacity: 0\.3#', $css );
-		$this->assertMatchesRegularExpression( '#@media \(hover: hover\)\s*\{\s*\.documents-modal__arrow\s*\{\s*opacity: 0;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(hover: hover\)\s*\{\s*\.documents-modal__arrow[^{]*\{\s*opacity: 0;#', $css );
 		$this->assertStringContainsString( '.documents-modal__body:hover .documents-modal__arrow', $css );
 		$this->assertStringContainsString( '.documents-modal__arrow:focus-visible', $css );
 	}
 
 	public function test_arrow_wiring(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( "'aria-disabled', String( arrows.backOff )", $js );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
+		$this->assertStringContainsString( "'aria-disabled', String( model.prev.disabled )", $js );
 		$this->assertStringContainsString( 'arrow === els.next ? 1 : -1', $js );
 	}
 
@@ -245,7 +245,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_dismissal_wiring(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "els.close.addEventListener( 'click', () => dialog.close() )", $js );
 		$this->assertStringContainsString( 'event.target === dialog', $js );
 		// Esc is the native dialog behaviour; nothing may cancel it.
@@ -274,20 +274,20 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_css_progress_is_a_thin_line_on_the_top_edge_of_the_footer(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__footer\s*\{[^}]*position: relative#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__indicator\s*\{[^}]*position: absolute[^}]*top: -1px[^}]*height: 3px#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__footer[^{]*\{[^}]*position: relative#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__indicator[^{]*\{[^}]*position: absolute[^}]*top: -1px[^}]*height: 3px#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__footer\[hidden\]#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow\[hidden\]#', $css, 'Arrows are hidden for one-page documents.' );
 		$this->assertStringNotContainsString( '.documents-modal__legend', $css );
 	}
 
 	public function test_view_script_gives_the_progress_line_its_position_as_text_and_hides_the_footer_for_one_page(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "els.bar.setAttribute( 'aria-valuetext'", $js );
-		$this->assertStringContainsString( 'if ( pages < 2 )', $js );
+		$this->assertStringContainsString( 'if ( model.hidden )', $js );
 		$this->assertStringContainsString( 'els.footer.hidden = true', $js );
-		$this->assertStringContainsString( 'els.prev.hidden = pages < 2', $js );
-		$this->assertStringContainsString( 'els.next.hidden = pages < 2', $js );
+		$this->assertStringContainsString( 'els.prev.hidden = model.prev.hidden', $js );
+		$this->assertStringContainsString( 'els.next.hidden = model.next.hidden', $js );
 		$this->assertStringNotContainsString( 'els.legend', $js );
 		$this->assertStringNotContainsString( 'els.count', $js );
 	}
@@ -336,7 +336,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-radius: 14px', $css );
 		$this->assertStringContainsString( '.documents-modal::backdrop', $css );
 		$this->assertMatchesRegularExpression( '#@media \(max-width: 1200px\)\s*\{\s*\.documents-modal\s*\{[^}]*width: 100%[^}]*height: 100dvh[^}]*border-radius: 0#s', $css );
-		$this->assertMatchesRegularExpression( '#@media \(max-width: 700px\)[^{]*\{[^}]*\.documents-modal,\s*\.documents-modal__footer\s*\{\s*display: none#s', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 700px\)[^{]*\{[^}]*\.documents-modal,\s*\.documents-modal__footer[^{]*\{\s*display: none#s', $css );
 		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)#', $css );
 	}
 
@@ -355,7 +355,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\) and \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*0;#', $css );
 
 		// The arrows float over the page edges instead of sitting in a gutter.
-		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev\s*\{\s*left:\s*10px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left:\s*10px;#', $css );
 	}
 
 	public function test_header_is_a_grid_on_medium_windows_with_the_tools_on_their_own_row(): void {
@@ -376,8 +376,8 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_viewer_lets_a_mouse_drop_to_one_page_in_a_tall_narrow_window(): void {
-		$js     = $this->read( 'blocks/document-modal/viewer.js' );
-		$layout = $this->read( 'blocks/document-modal/layout.js' );
+		$js     = $this->read( 'blocks/shared/viewer.js' );
+		$layout = $this->read( 'blocks/shared/layout.js' );
 
 		$this->assertStringContainsString( 'export function spreadIsWorthIt(', $layout );
 		$this->assertStringContainsString( 'export const SPREAD_MIN_SCALE = 0.8;', $layout );
@@ -386,15 +386,15 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_css_header_pager_rules(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__header\s*\{[^}]*border-bottom: 1px solid#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__header[^{]*\{[^}]*border-bottom: 1px solid#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*font-family: var\(--wp--preset--font-family--sans\)[^}]*font-weight: 700#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space: nowrap#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\.is-on\s*\{[^}]*background: var\(--dm-ink\)#', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\[aria-disabled="true"\]\s*\{[^}]*opacity: 0\.35#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\.is-on[^{]*\{[^}]*background: var\(--dm-ink\)#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__pg\[aria-disabled="true"\][^{]*\{[^}]*opacity: 0\.35#', $css );
 	}
 
 	public function test_view_script_wiring(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/shared/routing.js' ), 'The one definition of the 700px rule.' );
 		$this->assertStringContainsString( 'createRouting()', $js );
 		$this->assertStringContainsString( 'event.target === dialog', $js );
@@ -404,7 +404,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_view_script_deeplink_wiring(): void {
-		$js = $this->read( 'blocks/document-modal/view.js' );
+		$js = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "from '../shared/deeplink.js'", $js );
 		$this->assertStringContainsString( 'history.pushState', $js );
 		$this->assertStringContainsString( 'history.back()', $js );
