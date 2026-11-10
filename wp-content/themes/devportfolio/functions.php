@@ -423,13 +423,14 @@ if ( ! function_exists( 'devportfolio_document_download_target' ) ) :
 	 *
 	 * @since 0.4.0
 	 *
-	 * @param int $post_id Document ID.
+	 * @param int    $post_id   Document or collateral ID.
+	 * @param string $file_meta Meta key of the attachment ID (`cptdp_collateral_file` for collaterals).
 	 * @return array{mode:string,url:string}
 	 */
-	function devportfolio_document_download_target( $post_id ) {
+	function devportfolio_document_download_target( $post_id, $file_meta = 'cptdp_document_file' ) {
 		$post_id = (int) $post_id;
 
-		$file_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		$file_id = (int) get_post_meta( $post_id, $file_meta, true );
 		if ( $file_id > 0 ) {
 			$url = wp_get_attachment_url( $file_id );
 			if ( $url ) {
