@@ -14,15 +14,7 @@
  * @var WP_Block $block      Block instance.
  */
 
-$devportfolio_ids = get_posts(
-	array(
-		'post_type'      => 'document',
-		'post_status'    => 'publish',
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-		'no_found_rows'  => true,
-	)
-);
+$devportfolio_ids = devportfolio_published_ids( 'document' );
 
 $devportfolio_payload = array();
 foreach ( $devportfolio_ids as $devportfolio_id ) {

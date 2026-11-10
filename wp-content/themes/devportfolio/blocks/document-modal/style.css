@@ -1,14 +1,14 @@
 /* Document modal (DPD-009 to DPD-012). Tokens follow the hi-fi viewer (.vmodal / .vhead / .vfoot). */
 .documents-modal,
 .documents-mobile {
-	--dm-ink: #000;
-	--dm-subtle: #6a6a6f;
-	--dm-line: #d1d1d6;
-	--dm-line-strong: #1c1c1e;
-	--dm-edge: rgb(0 0 0 / 0.1);
-	--dm-surface: #fff;
-	--dm-surface-alt: #f2f2f7;
-	--dm-on-primary: #fff;
+	--dm-ink: var(--wp--custom--modal--ink);
+	--dm-subtle: var(--wp--custom--modal--subtle);
+	--dm-line: var(--wp--custom--modal--line);
+	--dm-line-strong: var(--wp--custom--modal--line-strong);
+	--dm-edge: var(--wp--custom--edge);
+	--dm-surface: var(--wp--custom--modal--surface);
+	--dm-surface-alt: var(--wp--custom--modal--surface-alt);
+	--dm-on-primary: var(--wp--custom--modal--on-primary);
 	--dm-grad: linear-gradient(135deg, rgb(26 214 253), rgb(29 98 240));
 	--dm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 	--dm-dur: 260ms;
@@ -653,7 +653,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 .documents-modal__zoom-button:hover {
-	background: var(--dm-surface-alt, #f2f2f7);
+	background: var(--dm-surface-alt);
 }
 
 .documents-modal__zoom-button:focus-visible {

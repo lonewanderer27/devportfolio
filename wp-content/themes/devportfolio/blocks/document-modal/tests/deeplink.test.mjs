@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugFromUrl, urlWithSlug, urlWithoutSlug, SHEET_KEY, withSheetState, hasSheetState, withoutSheetState } from '../deeplink.js';
+import { slugFromUrl, urlWithSlug, urlWithoutSlug, SHEET_KEY, withSheetState, hasSheetState, withoutSheetState } from '../../shared/deeplink.js';
 
 test( 'reads the slug, or an empty string', () => {
 	assert.equal( slugFromUrl( 'https://x.test/documents/?document_slug=q3-report' ), 'q3-report' );

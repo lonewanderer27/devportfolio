@@ -17,6 +17,11 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// The per-request memo store (DPC-024) starts empty in every test.
+		if ( function_exists( 'devportfolio_memo_flush' ) ) {
+			devportfolio_memo_flush();
+		}
+
 		// Meta is unregistered and terms wiped between tests; make sure the plugin's types exist.
 		do_action( 'cptdp_register_post_types' );
 
@@ -390,7 +395,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_view_script_wiring(): void {
 		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/document-modal/routing.js' ), 'The one definition of the 700px rule.' );
+		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/shared/routing.js' ), 'The one definition of the 700px rule.' );
 		$this->assertStringContainsString( 'createRouting()', $js );
 		$this->assertStringContainsString( 'event.target === dialog', $js );
 		$this->assertStringContainsString( 'showModal()', $js );
@@ -400,7 +405,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 
 	public function test_view_script_deeplink_wiring(): void {
 		$js = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( "from './deeplink.js'", $js );
+		$this->assertStringContainsString( "from '../shared/deeplink.js'", $js );
 		$this->assertStringContainsString( 'history.pushState', $js );
 		$this->assertStringContainsString( 'history.back()', $js );
 		$this->assertStringContainsString( 'history.replaceState', $js );

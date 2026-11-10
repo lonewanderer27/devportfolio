@@ -20,6 +20,11 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// The per-request memo store (DPC-024) starts empty in every test.
+		if ( function_exists( 'devportfolio_memo_flush' ) ) {
+			devportfolio_memo_flush();
+		}
+
 		// Meta is unregistered and terms wiped between tests; make sure the plugin's types exist.
 		do_action( 'cptdp_register_post_types' );
 
@@ -441,7 +446,7 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( "@media (max-width: 700px), {$sideways} {", $css );
 		$this->assertStringContainsString( "@media (min-width: 701px) and (not ({$sideways})) {", $css );
-		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/document-modal/routing.js' ) );
+		$this->assertStringContainsString( '(min-width: 701px)', $this->read( 'blocks/shared/routing.js' ) );
 	}
 
 	public function test_the_mobile_dialog_is_full_screen_without_radius_or_backdrop(): void {
@@ -495,8 +500,8 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'innerHTML', $js );
 		$this->assertStringContainsString( "createDeeplink( 'collateral_slug' )", $js );
 		$this->assertStringNotContainsString( "'collateral_slug'", str_replace( "createDeeplink( 'collateral_slug' )", '', $js ), 'the parameter name lives only in createDeeplink' );
-		$this->assertStringContainsString( "from '../document-modal/routing.js'", $js );
-		$this->assertStringContainsString( "from '../document-modal/download.js'", $js );
+		$this->assertStringContainsString( "from '../shared/routing.js'", $js );
+		$this->assertStringContainsString( "from '../shared/download.js'", $js );
 	}
 
 	public function test_back_and_forward_are_handled_in_the_capture_phase_at_top_level(): void {

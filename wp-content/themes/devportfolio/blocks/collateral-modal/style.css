@@ -8,14 +8,14 @@
 
 .collaterals-modal,
 .collaterals-mobile {
-	--cm-ink: #000;
-	--cm-subtle: #6a6a6f;
-	--cm-line: #d1d1d6;
-	--cm-line-strong: #1c1c1e;
-	--cm-edge: rgb(0 0 0 / 0.1);
-	--cm-surface: #fff;
-	--cm-surface-alt: #f2f2f7;
-	--cm-on-primary: #fff;
+	--cm-ink: var(--wp--custom--modal--ink);
+	--cm-subtle: var(--wp--custom--modal--subtle);
+	--cm-line: var(--wp--custom--modal--line);
+	--cm-line-strong: var(--wp--custom--modal--line-strong);
+	--cm-edge: var(--wp--custom--edge);
+	--cm-surface: var(--wp--custom--modal--surface);
+	--cm-surface-alt: var(--wp--custom--modal--surface-alt);
+	--cm-on-primary: var(--wp--custom--modal--on-primary);
 	--cm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 	--cm-dur: 260ms;
 	--cm-width: 1280px;
@@ -523,7 +523,7 @@
 @media (prefers-contrast: more) {
 	.collaterals-modal,
 	.collaterals-mobile {
-		--cm-line: #6a6a6f;
+		--cm-line: var(--wp--custom--modal--subtle);
 	}
 }
 

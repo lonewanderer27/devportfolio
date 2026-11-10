@@ -20,10 +20,11 @@ import {
 import { mergeLimits } from './capability.js';
 import { createViewer } from './viewer.js';
 import { viewerMode, unitOf, wording, positionText } from './mode.js';
-import { slugFromUrl, urlWithSlug, urlWithoutSlug, hasSheetState } from './deeplink.js';
+import { slugFromUrl, urlWithSlug, urlWithoutSlug, hasSheetState } from '../shared/deeplink.js';
 import { createMobileModal } from './mobile.js';
-import { createRouting } from './routing.js';
-import { applyDownload, guardDisabledDownload } from './download.js';
+import { createRouting } from '../shared/routing.js';
+import { bindOpen } from '../shared/modal-trigger.js';
+import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
@@ -363,14 +364,7 @@ if ( dialog && dataEl ) {
 		enforceSingleDialog();
 	};
 
-	document.addEventListener( 'click', ( event ) => {
-		const trigger = event.target.closest ? event.target.closest( '[data-document-id]' ) : null;
-		if ( ! trigger ) {
-			return;
-		}
-		event.preventDefault();
-		open( trigger.getAttribute( 'data-document-id' ), trigger );
-	} );
+	bindOpen( document, 'data-document-id', open );
 
 	// A click on the dimmed backdrop lands on the dialog element itself.
 	dialog.addEventListener( 'click', ( event ) => {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRouting, WIDE_QUERY, SIDEWAYS_QUERY } from '../routing.js';
+import { createRouting, WIDE_QUERY, SIDEWAYS_QUERY } from '../../shared/routing.js';
 
 // A fake matchMedia whose answers are set per query.
 const fake = ( answers ) => ( query ) => ( {

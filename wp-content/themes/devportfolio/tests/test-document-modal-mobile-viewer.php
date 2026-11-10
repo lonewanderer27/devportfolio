@@ -19,6 +19,11 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+
+		// The per-request memo store (DPC-024) starts empty in every test.
+		if ( function_exists( 'devportfolio_memo_flush' ) ) {
+			devportfolio_memo_flush();
+		}
 		do_action( 'cptdp_register_post_types' );
 		require_once $this->theme_dir() . '/functions.php';
 		if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-modal' ) ) {
@@ -345,7 +350,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 
 	public function test_a_touch_screen_held_sideways_gets_the_mobile_dialog_with_round_buttons(): void {
 		$view = $this->read( 'blocks/document-modal/view.js' );
-		$routing = $this->read( 'blocks/document-modal/routing.js' );
+		$routing = $this->read( 'blocks/shared/routing.js' );
 		$this->assertStringContainsString( "'(pointer: coarse) and (orientation: landscape) and (max-height: 520px)'", $routing );
 		$this->assertStringContainsString( 'Boolean( wide.matches ) && ! sideways.matches', $routing );
 		$this->assertStringContainsString( 'routing.onChange( swap )', $view );

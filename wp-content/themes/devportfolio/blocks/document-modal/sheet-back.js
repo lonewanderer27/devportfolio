@@ -4,7 +4,7 @@
  * viewer. Kept apart from mobile.js, which knows nothing about history; view.js removes a leftover entry when
  * the viewer itself closes with the sheet open.
  */
-import { withSheetState, hasSheetState } from './deeplink.js';
+import { withSheetState, hasSheetState } from '../shared/deeplink.js';
 
 /**
  * @param {Object}   args

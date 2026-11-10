@@ -21,6 +21,11 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+
+		// The per-request memo store (DPC-024) starts empty in every test.
+		if ( function_exists( 'devportfolio_memo_flush' ) ) {
+			devportfolio_memo_flush();
+		}
 		do_action( 'cptdp_register_post_types' );
 		require_once $this->theme_dir() . '/functions.php';
 		if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'devportfolio/document-modal' ) ) {
@@ -146,7 +151,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 
 	public function test_the_details_sheet_reuses_the_download_helpers(): void {
 		$js = $this->read( 'blocks/document-modal/details-sheet.js' );
-		$this->assertStringContainsString( "from './download.js'", $js );
+		$this->assertStringContainsString( "from '../shared/download.js'", $js );
 		$this->assertStringContainsString( 'applyDownload( download, doc )', $js );
 		$this->assertStringContainsString( 'guardDisabledDownload( download )', $js );
 		$this->assertStringContainsString( "'data-no-drag'", $js, 'The X must not start a drag.' );
