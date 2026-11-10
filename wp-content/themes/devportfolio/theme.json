@@ -10,6 +10,15 @@
 		},
 		"custom": {
 			"edge": "rgb(0 0 0 / 0.1)",
+			"modal": {
+				"ink": "#000",
+				"subtle": "#6a6a6f",
+				"line": "#d1d1d6",
+				"line-strong": "#1c1c1e",
+				"surface": "#fff",
+				"surface-alt": "#f2f2f7",
+				"on-primary": "#fff"
+			},
 			"glass": {
 				"tint": "rgb(255 255 255 / 0.8)",
 				"filter": "blur(20px) saturate(180%)"
