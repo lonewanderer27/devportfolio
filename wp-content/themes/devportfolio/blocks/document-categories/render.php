@@ -40,10 +40,26 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 		'aria-label' => esc_attr__( 'Document categories', 'devportfolio' ),
 	)
 );
+$devportfolio_list_id = wp_unique_id( 'documents-categories-list-' );
+$devportfolio_active_name = _x( 'All', 'document category filter', 'devportfolio' );
+foreach ( $devportfolio_terms as $devportfolio_term ) {
+	if ( $devportfolio_term->slug === $devportfolio_active ) {
+		$devportfolio_active_name = $devportfolio_term->name;
+		break;
+	}
+}
 ?>
 <div <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core. ?>>
-	<button type="button" class="documents-categories__pill" data-filter="" aria-pressed="<?php echo '' === $devportfolio_active ? 'true' : 'false'; ?>"><?php echo esc_html_x( 'All', 'document category filter', 'devportfolio' ); ?></button>
-	<?php foreach ( $devportfolio_terms as $devportfolio_term ) : ?>
-		<button type="button" class="documents-categories__pill" data-filter="<?php echo esc_attr( $devportfolio_term->slug ); ?>" aria-pressed="<?php echo $devportfolio_term->slug === $devportfolio_active ? 'true' : 'false'; ?>"><?php echo esc_html( $devportfolio_term->name ); ?></button>
-	<?php endforeach; ?>
+	<span class="documents-categories__label" aria-hidden="true"><?php echo esc_html_x( 'Category:', 'document category dropdown; visible label beside the active category', 'devportfolio' ); ?></span>
+	<button type="button" class="documents-categories__trigger<?php echo '' !== $devportfolio_active ? ' is-active' : ''; ?>" aria-expanded="false" aria-controls="<?php echo esc_attr( $devportfolio_list_id ); ?>">
+		<span class="documents-categories__trigger-prefix"><?php echo esc_html_x( 'Category:', 'document category dropdown; read by screen readers before the active category', 'devportfolio' ); ?> </span>
+		<span class="documents-categories__trigger-label"><?php echo esc_html( $devportfolio_active_name ); ?></span>
+		<svg class="documents-categories__trigger-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+	</button>
+	<div class="documents-categories__list" id="<?php echo esc_attr( $devportfolio_list_id ); ?>">
+		<button type="button" class="documents-categories__pill" data-filter="" aria-pressed="<?php echo '' === $devportfolio_active ? 'true' : 'false'; ?>"><?php echo esc_html_x( 'All', 'document category filter', 'devportfolio' ); ?></button>
+		<?php foreach ( $devportfolio_terms as $devportfolio_term ) : ?>
+			<button type="button" class="documents-categories__pill" data-filter="<?php echo esc_attr( $devportfolio_term->slug ); ?>" aria-pressed="<?php echo $devportfolio_term->slug === $devportfolio_active ? 'true' : 'false'; ?>"><?php echo esc_html( $devportfolio_term->name ); ?></button>
+		<?php endforeach; ?>
+	</div>
 </div>
