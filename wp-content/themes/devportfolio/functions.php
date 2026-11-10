@@ -59,6 +59,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/software-tags' );
 		register_block_type( __DIR__ . '/blocks/document-shelf' );
 		register_block_type( __DIR__ . '/blocks/collateral-grid' );
+		register_block_type( __DIR__ . '/blocks/collateral-modal' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
