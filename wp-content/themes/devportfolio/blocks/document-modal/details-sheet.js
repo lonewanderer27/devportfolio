@@ -9,7 +9,7 @@
  */
 import { el, svgIcon } from './dom.js';
 import { createBottomSheet } from './bottom-sheet.js';
-import { applyDownload, guardDisabledDownload } from './download.js';
+import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 import { unitOf, wording } from './mode.js';
 
 const clean = ( value ) => ( typeof value === 'string' ? value.trim() : '' );

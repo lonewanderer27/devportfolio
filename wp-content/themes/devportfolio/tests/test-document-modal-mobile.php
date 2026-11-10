@@ -112,7 +112,7 @@ class Devportfolio_Test_Document_Modal_Mobile extends WP_UnitTestCase {
 		$view = $this->read( 'blocks/document-modal/view.js' );
 		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
 		$this->assertStringContainsString( "from './mobile.js'", $view );
-		$this->assertStringContainsString( "from './download.js'", $view );
+		$this->assertStringContainsString( "from '../shared/download.js'", $view );
 		$this->assertStringContainsString( 'startViewTransition', $view );
 		$this->assertStringContainsString( 'prefers-reduced-motion', $view );
 		$this->assertStringNotContainsString( 'history.', $mobile );

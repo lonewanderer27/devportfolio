@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDeeplink } from '../../document-modal/deeplink.js';
+import { createDeeplink } from '../../shared/deeplink.js';
 
 const link = createDeeplink( 'collateral_slug' );
 

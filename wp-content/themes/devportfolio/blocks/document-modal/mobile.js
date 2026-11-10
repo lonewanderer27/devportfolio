@@ -1,8 +1,8 @@
 import { normalisePage, mobileFooterParts } from './pager.js';
 import { unitOf, wording, positionText } from './mode.js';
-import { applyDownload, guardDisabledDownload } from './download.js';
+import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 import { createMobileViewer } from './mobile-viewer.js';
-import { SIDEWAYS_QUERY } from './routing.js';
+import { SIDEWAYS_QUERY } from '../shared/routing.js';
 import { createSheetController } from './sheet-controller.js';
 
 export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {}, limits = {}, selectableText = false, onClose } ) {

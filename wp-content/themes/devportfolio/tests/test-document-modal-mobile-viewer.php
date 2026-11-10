@@ -350,7 +350,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 
 	public function test_a_touch_screen_held_sideways_gets_the_mobile_dialog_with_round_buttons(): void {
 		$view = $this->read( 'blocks/document-modal/view.js' );
-		$routing = $this->read( 'blocks/document-modal/routing.js' );
+		$routing = $this->read( 'blocks/shared/routing.js' );
 		$this->assertStringContainsString( "'(pointer: coarse) and (orientation: landscape) and (max-height: 520px)'", $routing );
 		$this->assertStringContainsString( 'Boolean( wide.matches ) && ! sideways.matches', $routing );
 		$this->assertStringContainsString( 'routing.onChange( swap )', $view );

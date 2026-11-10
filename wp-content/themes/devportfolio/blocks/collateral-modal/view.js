@@ -7,9 +7,10 @@
  * parameter `collateral_slug`: a click pushes one history entry, a swap replaces it (one Back always closes).
  * The body (DPC-012) and footer (DPC-013) listen for `collaterals:modal-change` on the dialog.
  */
-import { createRouting } from '../document-modal/routing.js';
-import { createDeeplink } from '../document-modal/deeplink.js';
-import { applyDownload, guardDisabledDownload } from '../document-modal/download.js';
+import { createRouting } from '../shared/routing.js';
+import { bindOpen } from '../shared/modal-trigger.js';
+import { createDeeplink } from '../shared/deeplink.js';
+import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 import { nextTwo } from './next.js';
 import { linkFor, copyText } from './copy-link.js';
 
@@ -294,14 +295,7 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	const closeFromButton = () => closeOpen();
 
-	document.addEventListener( 'click', ( event ) => {
-		const trigger = event.target.closest ? event.target.closest( '[data-collateral-id]' ) : null;
-		if ( ! trigger ) {
-			return;
-		}
-		event.preventDefault();
-		show( Number( trigger.getAttribute( 'data-collateral-id' ) ), { push: true, trigger } );
-	} );
+	bindOpen( document, 'data-collateral-id', ( id, trigger ) => show( Number( id ), { push: true, trigger } ) );
 
 	// A click on the dimmed backdrop lands on the dialog itself (the mobile dialog has none).
 	dialog.addEventListener( 'click', ( event ) => {

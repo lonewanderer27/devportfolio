@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { WIDE_QUERY, SIDEWAYS_QUERY } from '../../document-modal/routing.js';
+import { WIDE_QUERY, SIDEWAYS_QUERY } from '../../shared/routing.js';
 
 test( 'the collateral stylesheet repeats the same two queries as routing.js (D3)', () => {
 	const css = readFileSync( new URL( '../style.css', import.meta.url ), 'utf8' );

@@ -151,7 +151,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 
 	public function test_the_details_sheet_reuses_the_download_helpers(): void {
 		$js = $this->read( 'blocks/document-modal/details-sheet.js' );
-		$this->assertStringContainsString( "from './download.js'", $js );
+		$this->assertStringContainsString( "from '../shared/download.js'", $js );
 		$this->assertStringContainsString( 'applyDownload( download, doc )', $js );
 		$this->assertStringContainsString( 'guardDisabledDownload( download )', $js );
 		$this->assertStringContainsString( "'data-no-drag'", $js, 'The X must not start a drag.' );
