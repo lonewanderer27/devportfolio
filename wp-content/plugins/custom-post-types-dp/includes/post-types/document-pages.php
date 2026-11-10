@@ -1,10 +1,10 @@
 <?php
 /**
- * Document page images: public PHP API, meta, "Page images" meta box and the admin-browser generator.
+ * Page images of documents and collaterals: public PHP API, meta, "Page images" meta box and the admin-browser generator.
  *
- * The page images of a document's PDF are generated when the document is saved
- * (see CPTDP_Page_Scheduler). The viewer in the theme reads them through
- * `cptdp_get_document_pages()`.
+ * The page images of a post's file are generated when the post is saved (see CPTDP_Page_Scheduler),
+ * for every type in CPTDP_Page_Store::post_types(). The theme reads them through
+ * `cptdp_get_document_pages()` and `cptdp_get_collateral_pages()`.
  *
  * @package CustomPostTypesDP
  */
@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 CPTDP_Page_Scheduler::init();
 CPTDP_Page_REST::init();
+CPTDP_Page_Featured::init();
 
 if ( ! function_exists( 'cptdp_get_document_pages' ) ) :
 	/**
@@ -33,6 +34,19 @@ if ( ! function_exists( 'cptdp_get_document_pages' ) ) :
 	 */
 	function cptdp_get_document_pages( int $post_id ): ?array {
 		return CPTDP_Page_Store::get_pages( $post_id );
+	}
+endif;
+
+if ( ! function_exists( 'cptdp_get_collateral_pages' ) ) :
+	/**
+	 * Stored page images of a collateral, when they are valid (DPC-023): the same array as
+	 * `cptdp_get_document_pages()`, or null for anything that is not a collateral. Never converts, never writes.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return array{pages:string[],count:int,width:int,height:int,ratio:float,crop_bottom:float,names:string[],name_ranges:array,thumbs:string[],thumb_width:int,thumb_height:int}|null
+	 */
+	function cptdp_get_collateral_pages( int $post_id ): ?array {
+		return 'collateral' === get_post_type( $post_id ) ? CPTDP_Page_Store::get_pages( $post_id ) : null;
 	}
 endif;
 
@@ -126,9 +140,21 @@ if ( ! function_exists( 'cptdp_document_pdfjs_urls' ) ) :
 endif;
 
 /**
- * Register the (non-public) page image meta.
+ * Register the (non-public) page image meta, for every post type with page images.
  */
 function cptdp_register_document_pages_meta(): void {
+	foreach ( CPTDP_Page_Store::post_types() as $type ) {
+		cptdp_register_pages_meta_for( $type );
+	}
+}
+add_action( 'cptdp_register_post_types', 'cptdp_register_document_pages_meta', 17 );
+
+/**
+ * Register the page image meta of one post type.
+ *
+ * @param string $type Post type.
+ */
+function cptdp_register_pages_meta_for( string $type ): void {
 	$auth = static function ( $allowed, $meta_key, $post_id ): bool {
 		unset( $allowed, $meta_key );
 
@@ -136,7 +162,19 @@ function cptdp_register_document_pages_meta(): void {
 	};
 
 	register_post_meta(
-		'document',
+		$type,
+		CPTDP_Page_Featured::META,
+		array(
+			'type'          => 'integer',
+			'single'        => true,
+			'default'       => 0,
+			'show_in_rest'  => false,
+			'auth_callback' => $auth,
+		)
+	);
+
+	register_post_meta(
+		$type,
 		CPTDP_Page_Store::META_MANIFEST,
 		array(
 			'type'          => 'object',
@@ -147,7 +185,7 @@ function cptdp_register_document_pages_meta(): void {
 	);
 
 	register_post_meta(
-		'document',
+		$type,
 		CPTDP_Page_Store::META_STATUS,
 		array(
 			'type'              => 'string',
@@ -163,7 +201,7 @@ function cptdp_register_document_pages_meta(): void {
 
 	foreach ( array( CPTDP_Page_Store::META_ERROR, CPTDP_Page_Store::META_SOURCE ) as $key ) {
 		register_post_meta(
-			'document',
+			$type,
 			$key,
 			array(
 				'type'              => 'string',
@@ -176,7 +214,6 @@ function cptdp_register_document_pages_meta(): void {
 		);
 	}
 }
-add_action( 'cptdp_register_post_types', 'cptdp_register_document_pages_meta', 17 );
 
 /**
  * Human label for a status.
@@ -201,6 +238,10 @@ function cptdp_document_pages_status_label( string $status, int $count = 0, stri
 				return sprintf( _n( 'Ready, %1$d page (converted from %2$s)', 'Ready, %1$d pages (converted from %2$s)', $count, 'custom-post-types-dp' ), $count, $from );
 			}
 
+			if ( CPTDP_Page_Store::is_image_kind( $kind ) ) {
+				return __( 'Ready, 1 page (from an image)', 'custom-post-types-dp' );
+			}
+
 			if ( CPTDP_Page_Store::is_word_kind( $kind ) ) {
 				$from = CPTDP_Page_Store::KIND_ODT === $kind ? __( 'OpenDocument', 'custom-post-types-dp' ) : __( 'Word', 'custom-post-types-dp' );
 
@@ -222,19 +263,69 @@ function cptdp_document_pages_status_label( string $status, int $count = 0, stri
 }
 
 /**
- * Add the "Page images" meta box to the Document edit screen.
+ * The "Page images" list cell of a document or collateral: the status label, a link to the edit
+ * screen when someone has to act, the error as its title, or a dash when the post has no file.
+ *
+ * @param int $post_id Post ID.
+ * @return string HTML.
  */
-function cptdp_document_pages_add_meta_box(): void {
+function cptdp_pages_status_cell( int $post_id ): string {
+	if ( null === CPTDP_Page_Store::get_source( $post_id ) ) {
+		return '&mdash;';
+	}
+
+	$status   = CPTDP_Page_Store::get_status( $post_id );
+	$manifest = CPTDP_Page_Store::get_manifest( $post_id );
+	$label    = cptdp_document_pages_status_label( $status, null !== $manifest ? (int) $manifest['count'] : 0, CPTDP_Page_Store::source_kind( $post_id ) );
+	$error    = CPTDP_Page_Store::get_error( $post_id );
+
+	if ( in_array( $status, array( CPTDP_Page_Store::STATUS_NEEDS_BROWSER, CPTDP_Page_Store::STATUS_FAILED ), true ) ) {
+		return sprintf(
+			'<a href="%1$s" title="%2$s">%3$s</a>',
+			esc_url( (string) get_edit_post_link( $post_id ) ),
+			esc_attr( $error ),
+			esc_html( $label )
+		);
+	}
+
+	return '<span title="' . esc_attr( $error ) . '">' . esc_html( $label ) . '</span>';
+}
+
+/**
+ * Add the "Page images" meta box to the edit screen of every post type with page images.
+ *
+ * @param string $post_type Post type of the screen.
+ */
+function cptdp_document_pages_add_meta_box( string $post_type = 'document' ): void {
+	if ( ! in_array( $post_type, CPTDP_Page_Store::post_types(), true ) ) {
+		return;
+	}
+
 	add_meta_box(
 		'cptdp_document_pages',
 		esc_html__( 'Page images', 'custom-post-types-dp' ),
 		'cptdp_document_pages_render_box',
-		'document',
+		$post_type,
 		'side',
 		'default'
 	);
 }
-add_action( 'add_meta_boxes_document', 'cptdp_document_pages_add_meta_box' );
+add_action( 'add_meta_boxes', 'cptdp_document_pages_add_meta_box' );
+
+/**
+ * The link to the shared page image settings, for administrators only (DPC-023), or ''.
+ */
+function cptdp_pages_settings_link(): string {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return '';
+	}
+
+	return sprintf(
+		'<p class="description"><a href="%1$s">%2$s</a></p>',
+		esc_url( admin_url( 'options-general.php?page=cptdp-documents#cptdp-page-images' ) ),
+		esc_html__( 'Page image settings (shared with Documents/Brand Collaterals)', 'custom-post-types-dp' )
+	);
+}
 
 /**
  * Render the "Page images" meta box.
@@ -248,13 +339,25 @@ function cptdp_document_pages_render_box( WP_Post $post ): void {
 	$manifest = CPTDP_Page_Store::get_manifest( $post->ID );
 	$count    = null !== $manifest ? (int) $manifest['count'] : 0;
 	$producer = null !== $manifest ? (string) ( $manifest['producer'] ?? '' ) : '';
+	$link     = cptdp_pages_settings_link();
 
 	if ( null === $source ) {
-		echo '<p>' . esc_html__( 'Select a PDF or a PowerPoint, Excel, Word or OpenDocument file as the document file, and save, to generate page images for the viewer.', 'custom-post-types-dp' ) . '</p>';
+		$file = (int) get_post_meta( $post->ID, CPTDP_Page_Store::file_meta_key( $post->ID ), true );
+
+		if ( 'collateral' === $post->post_type && $file > 0 && 'image/svg+xml' === get_post_mime_type( $file ) ) {
+			echo '<p>' . esc_html__( 'SVG files are not turned into page images; upload a PNG or PDF export to show it in the viewer.', 'custom-post-types-dp' ) . '</p>';
+		} elseif ( 'collateral' === $post->post_type ) {
+			echo '<p>' . esc_html__( 'Select a PDF, an image (JPEG, PNG, WebP or GIF) or a PowerPoint, Excel, Word or OpenDocument file as the collateral file, and save, to generate page images for the viewer.', 'custom-post-types-dp' ) . '</p>';
+		} else {
+			echo '<p>' . esc_html__( 'Select a PDF or a PowerPoint, Excel, Word or OpenDocument file as the document file, and save, to generate page images for the viewer.', 'custom-post-types-dp' ) . '</p>';
+		}
+
+		echo $link; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
 		return;
 	}
 
-	$kind = $source['kind'];
+	$kind        = $source['kind'];
+	$server_only = CPTDP_Page_Store::is_server_only_kind( $kind );
 	?>
 	<div id="cptdp-pages-box" data-status="<?php echo esc_attr( $status ); ?>" data-kind="<?php echo esc_attr( $kind ); ?>">
 		<?php
@@ -287,21 +390,28 @@ function cptdp_document_pages_render_box( WP_Post $post ): void {
 		<progress id="cptdp-pages-progress" max="100" value="0" style="width:100%" hidden></progress>
 		<p id="cptdp-pages-progress-label" class="description" hidden></p>
 		<p>
-			<button type="button" class="button" id="cptdp-pages-regenerate"><?php echo CPTDP_Page_Store::is_office_kind( $kind ) ? esc_html__( 'Regenerate', 'custom-post-types-dp' ) : esc_html__( 'Regenerate in this browser', 'custom-post-types-dp' ); ?></button>
+			<button type="button" class="button" id="cptdp-pages-regenerate"><?php echo $server_only ? esc_html__( 'Regenerate', 'custom-post-types-dp' ) : esc_html__( 'Regenerate in this browser', 'custom-post-types-dp' ); ?></button>
 		</p>
 		<p class="description">
 			<?php
-			echo CPTDP_Page_Store::is_office_kind( $kind )
-				? esc_html__( 'Page images are generated by the server when you save, so visitors see the document straight away.', 'custom-post-types-dp' )
-				: esc_html__( 'Page images are generated when you save, so visitors see the document straight away. Keep this screen open while it runs in your browser.', 'custom-post-types-dp' );
+			$cptdp_singular = strtolower( (string) get_post_type_object( $post->post_type )->labels->singular_name );
+
+			echo esc_html(
+				$server_only
+					/* translators: %s: post type name, e.g. document or collateral. */
+					? sprintf( __( 'Page images are generated by the server when you save, so visitors see the %s straight away.', 'custom-post-types-dp' ), $cptdp_singular )
+					/* translators: %s: post type name, e.g. document or collateral. */
+					: sprintf( __( 'Page images are generated when you save, so visitors see the %s straight away. Keep this screen open while it runs in your browser.', 'custom-post-types-dp' ), $cptdp_singular )
+			);
 			?>
 		</p>
+		<?php echo $link; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts. ?>
 	</div>
 	<?php
 }
 
 /**
- * Enqueue the page generator on Document edit screens.
+ * Enqueue the page generator on the edit screens of every post type with page images.
  *
  * @param string $hook Current admin page.
  */
@@ -312,18 +422,19 @@ function cptdp_document_pages_enqueue_admin( string $hook ): void {
 
 	$screen = get_current_screen();
 
-	if ( ! $screen || 'document' !== $screen->post_type ) {
+	if ( ! $screen || ! in_array( $screen->post_type, CPTDP_Page_Store::post_types(), true ) ) {
 		return;
 	}
 
 	$post_id = (int) get_the_ID();
 	$source  = $post_id ? CPTDP_Page_Store::get_source( $post_id ) : null;
+	$route   = $post_id ? CPTDP_Page_REST::route_for( $post_id ) : '';
 
-	if ( null === $source ) {
+	if ( null === $source || '' === $route ) {
 		return;
 	}
 
-	$base = 'cptdp/v1/documents/' . $post_id . '/pages';
+	$base = CPTDP_Page_REST::NAMESPACE_ID . '/' . $route;
 
 	wp_enqueue_script(
 		'cptdp-admin-document-pages',
@@ -377,18 +488,18 @@ function cptdp_document_pages_enqueue_admin( string $hook ): void {
 add_action( 'admin_enqueue_scripts', 'cptdp_document_pages_enqueue_admin' );
 
 /**
- * Notice on the Documents list when documents are waiting for a browser.
+ * Notice on the Documents and Collaterals lists when posts are waiting for a browser.
  */
 function cptdp_document_pages_list_notice(): void {
 	$screen = get_current_screen();
 
-	if ( ! $screen || 'edit-document' !== $screen->id || ! current_user_can( 'edit_posts' ) ) {
+	if ( ! $screen || ! in_array( $screen->post_type, CPTDP_Page_Store::post_types(), true ) || 'edit-' . $screen->post_type !== $screen->id || ! current_user_can( 'edit_posts' ) ) {
 		return;
 	}
 
 	$ids = get_posts(
 		array(
-			'post_type'      => 'document',
+			'post_type'      => $screen->post_type,
 			'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
@@ -402,20 +513,26 @@ function cptdp_document_pages_list_notice(): void {
 		return;
 	}
 
-	printf(
-		'<div class="notice notice-warning"><p>%s</p></div>',
-		esc_html(
-			sprintf(
-				/* translators: %d: number of documents. */
-				_n(
-					'%d document needs page images. Open it in the editor and keep the screen open while your browser generates them.',
-					'%d documents need page images. Open each in the editor and keep the screen open while your browser generates them.',
-					count( $ids ),
-					'custom-post-types-dp'
-				),
-				count( $ids )
-			)
-		)
-	);
+	$count = count( $ids );
+
+	if ( 'collateral' === $screen->post_type ) {
+		/* translators: %d: number of collaterals. */
+		$message = _n(
+			'%d collateral needs page images. Open it in the editor and keep the screen open while your browser generates them.',
+			'%d collaterals need page images. Open each in the editor and keep the screen open while your browser generates them.',
+			$count,
+			'custom-post-types-dp'
+		);
+	} else {
+		/* translators: %d: number of documents. */
+		$message = _n(
+			'%d document needs page images. Open it in the editor and keep the screen open while your browser generates them.',
+			'%d documents need page images. Open each in the editor and keep the screen open while your browser generates them.',
+			$count,
+			'custom-post-types-dp'
+		);
+	}
+
+	printf( '<div class="notice notice-warning"><p>%s</p></div>', esc_html( sprintf( $message, $count ) ) );
 }
 add_action( 'admin_notices', 'cptdp_document_pages_list_notice' );

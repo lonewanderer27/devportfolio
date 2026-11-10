@@ -289,6 +289,167 @@ abstract class CPTDP_Pages_Test_Case extends CPTDP_Test_Case {
 	}
 
 	/**
+	 * A PDF whose pages have an outline.
+	 *
+	 * @param int                                         $pages Page count.
+	 * @param array<int,array{0:string,1:int|string,2?:array}> $items [ title, page (1-based) or a destination name, children ].
+	 * @param array<string,mixed>                         $opts  `named` (name => page), `utf16` (encode titles), `encrypt`, `objstm` (put the outline in an object stream).
+	 */
+	protected function outline_pdf( int $pages, array $items, array $opts = array() ): string {
+		$objects = array();
+		$kids    = array();
+
+		for ( $i = 0; $i < $pages; $i++ ) {
+			$objects[ 10 + $i ] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << >> >>';
+			$kids[]             = ( 10 + $i ) . ' 0 R';
+		}
+
+		$objects[2] = '<< /Type /Pages /Kids [' . implode( ' ', $kids ) . '] /Count ' . $pages . ' >>';
+
+		$next    = 100;
+		$outline = array();
+		$build   = function ( array $list, int $parent ) use ( &$build, &$next, &$outline, $opts ): array {
+			$numbers = array();
+
+			foreach ( $list as $item ) {
+				$numbers[] = $next++;
+			}
+
+			foreach ( $list as $i => $item ) {
+				$n    = $numbers[ $i ];
+				$dest = is_int( $item[1] )
+					? '/Dest [' . ( 9 + $item[1] ) . ' 0 R /Fit]'
+					: '/Dest (' . $item[1] . ')';
+				$text = ! empty( $opts['utf16'] ) ? '<' . bin2hex( "\xFE\xFF" . mb_convert_encoding( $item[0], 'UTF-16BE', 'UTF-8' ) ) . '>' : '(' . str_replace( array( '\\', '(', ')' ), array( '\\\\', '\\(', '\\)' ), $item[0] ) . ')';
+				$body = "<< /Title {$text} /Parent {$parent} 0 R {$dest}";
+
+				if ( $i > 0 ) {
+					$body .= ' /Prev ' . $numbers[ $i - 1 ] . ' 0 R';
+				}
+
+				if ( $i < count( $list ) - 1 ) {
+					$body .= ' /Next ' . $numbers[ $i + 1 ] . ' 0 R';
+				}
+
+				if ( ! empty( $item[2] ) ) {
+					$children = $build( $item[2], $n );
+					$body    .= ' /First ' . $children[0] . ' 0 R /Last ' . end( $children ) . ' 0 R /Count ' . count( $children );
+				}
+
+				$outline[ $n ] = $body . ' >>';
+			}
+
+			return $numbers;
+		};
+
+		$top = $items ? $build( $items, 3 ) : array();
+
+		if ( $items ) {
+			$outline[3] = '<< /Type /Outlines /First ' . $top[0] . ' 0 R /Last ' . end( $top ) . ' 0 R /Count ' . count( $top ) . ' >>';
+		}
+
+		$catalog = '<< /Type /Catalog /Pages 2 0 R' . ( $items ? ' /Outlines 3 0 R' : '' );
+
+		if ( ! empty( $opts['named'] ) ) {
+			$pairs = '';
+
+			foreach ( $opts['named'] as $name => $page ) {
+				$pairs .= '(' . $name . ') [' . ( 9 + $page ) . ' 0 R /Fit] ';
+			}
+
+			$catalog .= ' /Names << /Dests << /Names [ ' . $pairs . '] >> >>';
+		}
+
+		$objects[1] = $catalog . ' >>';
+
+		if ( empty( $opts['objstm'] ) ) {
+			$objects += $outline;
+		}
+
+		ksort( $objects );
+
+		$pdf     = "%PDF-1.5\n";
+
+		foreach ( $objects as $number => $body ) {
+			$pdf .= "{$number} 0 obj\n{$body}\nendobj\n";
+		}
+
+		if ( ! empty( $opts['objstm'] ) ) {
+			ksort( $outline );
+			$header = '';
+			$body   = '';
+
+			foreach ( $outline as $number => $value ) {
+				$header .= $number . ' ' . strlen( $body ) . ' ';
+				$body   .= $value . "\n";
+			}
+
+			$stream = gzcompress( $header . $body );
+			$pdf   .= '200 0 obj' . "\n" . '<< /Type /ObjStm /N ' . count( $outline ) . ' /First ' . strlen( $header ) . ' /Filter /FlateDecode /Length ' . strlen( $stream ) . " >>\nstream\n" . $stream . "\nendstream\nendobj\n";
+		}
+
+		$pdf .= "trailer\n<< /Root 1 0 R" . ( ! empty( $opts['encrypt'] ) ? ' /Encrypt 99 0 R' : '' ) . " >>\n%%EOF\n";
+
+		return $pdf;
+	}
+
+	/**
+	 * Create a published collateral, optionally with a file (DPC-023).
+	 *
+	 * @param int $attachment_id File attachment ID, 0 for none.
+	 * @param int $total_pages   `cptdp_total_pages`, 0 for none.
+	 * @return int Collateral ID.
+	 */
+	protected function make_collateral( int $attachment_id = 0, int $total_pages = 0 ): int {
+		$id = self::factory()->post->create(
+			array(
+				'post_type'   => 'collateral',
+				'post_status' => 'publish',
+				'post_title'  => 'Fixture collateral',
+			)
+		);
+
+		if ( $total_pages > 0 ) {
+			update_post_meta( $id, 'cptdp_total_pages', $total_pages );
+		}
+
+		if ( $attachment_id > 0 ) {
+			update_post_meta( $id, 'cptdp_collateral_file', $attachment_id );
+		}
+
+		return $id;
+	}
+
+	/**
+	 * Write an image (or other bytes) into uploads and create an attachment for it.
+	 *
+	 * @param string $format `png`, `jpeg`, `webp` or `gif`.
+	 * @param int    $width  Width.
+	 * @param int    $height Height.
+	 * @param string $bytes  Use these bytes instead of a generated image.
+	 * @param string $mime   Mime type to record, default the format's own.
+	 * @return int Attachment ID.
+	 */
+	protected function make_image_attachment( string $format = 'png', int $width = 1080, int $height = 1350, string $bytes = '', string $mime = '' ): int {
+		$exts   = array( 'png' => 'png', 'jpeg' => 'jpg', 'webp' => 'webp', 'gif' => 'gif', 'svg' => 'svg' );
+		$upload = wp_upload_dir();
+		wp_mkdir_p( $upload['path'] );
+		$file = $upload['path'] . '/cptdp-test-' . wp_generate_uuid4() . '.' . $exts[ $format ];
+
+		file_put_contents( $file, '' !== $bytes ? $bytes : $this->image_bytes( $format, $width, $height ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_put_contents_file_put_contents
+		$this->created_files[] = $file;
+
+		return (int) wp_insert_attachment(
+			array(
+				'post_mime_type' => '' !== $mime ? $mime : ( 'svg' === $format ? 'image/svg+xml' : 'image/' . $format ),
+				'post_title'     => 'fixture image',
+				'post_status'    => 'inherit',
+			),
+			$file
+		);
+	}
+
+	/**
 	 * Write placeholder image files for a document and a matching manifest.
 	 *
 	 * @param int    $post_id Document ID.
@@ -318,7 +479,7 @@ abstract class CPTDP_Pages_Test_Case extends CPTDP_Test_Case {
 	/**
 	 * A real image's bytes.
 	 *
-	 * @param string $format webp or jpeg.
+	 * @param string $format webp, jpeg, png or gif.
 	 * @param int    $width  Width.
 	 * @param int    $height Height.
 	 */
@@ -326,7 +487,16 @@ abstract class CPTDP_Pages_Test_Case extends CPTDP_Test_Case {
 		$image = imagecreatetruecolor( $width, $height );
 		imagefill( $image, 0, 0, imagecolorallocate( $image, 240, 240, 240 ) );
 		ob_start();
-		'webp' === $format ? imagewebp( $image, null, 80 ) : imagejpeg( $image, null, 80 );
+
+		if ( 'webp' === $format ) {
+			imagewebp( $image, null, 80 );
+		} elseif ( 'png' === $format ) {
+			imagepng( $image );
+		} elseif ( 'gif' === $format ) {
+			imagegif( $image );
+		} else {
+			imagejpeg( $image, null, 80 );
+		}
 
 		return (string) ob_get_clean();
 	}

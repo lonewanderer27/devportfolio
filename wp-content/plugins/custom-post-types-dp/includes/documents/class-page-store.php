@@ -30,7 +30,25 @@ class CPTDP_Page_Store {
 
 	const MAX_PAGES = 300;
 
-	const KIND_PDF  = 'pdf';
+	/**
+	 * The post types that get page images, and the meta key holding each one's file (DPC-023).
+	 *
+	 * The stored meta keys (`cptdp_document_pages*`) keep their names for every type, so no
+	 * existing document has to be migrated.
+	 */
+	const SOURCE_META = array(
+		'document'   => 'cptdp_document_file',
+		'collateral' => 'cptdp_collateral_file',
+	);
+
+	const KIND_PDF   = 'pdf';
+	const KIND_IMAGE = 'image';
+
+	/**
+	 * Mime types of the raster images a collateral turns into one page (DPC-023). SVG is not one of them.
+	 */
+	const IMAGE_MIMES = array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif' );
+
 	const KIND_PPTX = 'pptx';
 	const KIND_PPT  = 'ppt';
 	const KIND_ODP  = 'odp';
@@ -102,18 +120,58 @@ class CPTDP_Page_Store {
 	}
 
 	/**
-	 * Attachment ID of a document's file when that file is a PDF, else 0.
+	 * Post types that get page images.
 	 *
-	 * @param int $post_id Document ID.
+	 * @return string[]
+	 */
+	public static function post_types(): array {
+		return array_keys( self::SOURCE_META );
+	}
+
+	/**
+	 * Whether a post is of a type that gets page images.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function supports( int $post_id ): bool {
+		return '' !== self::file_meta_key( $post_id );
+	}
+
+	/**
+	 * The meta key holding a post's file, or '' when its type gets no page images.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function file_meta_key( int $post_id ): string {
+		$type = $post_id > 0 ? get_post_type( $post_id ) : false;
+
+		return is_string( $type ) && isset( self::SOURCE_META[ $type ] ) ? self::SOURCE_META[ $type ] : '';
+	}
+
+	/**
+	 * Attachment ID stored in a post's file meta, 0 when none or unsupported.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	private static function file_attachment_id( int $post_id ): int {
+		$key = self::file_meta_key( $post_id );
+
+		return '' === $key ? 0 : (int) get_post_meta( $post_id, $key, true );
+	}
+
+	/**
+	 * Attachment ID of a post's file when that file is a PDF, else 0.
+	 *
+	 * @param int $post_id Document or collateral ID.
 	 */
 	public static function pdf_attachment_id( int $post_id ): int {
-		$attachment_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		$attachment_id = self::file_attachment_id( $post_id );
 
 		return $attachment_id > 0 && 'application/pdf' === get_post_mime_type( $attachment_id ) ? $attachment_id : 0;
 	}
 
 	/**
-	 * What kind of page source an attachment is: `pdf`, `pptx`, `ppt`, `odp`, or '' for anything else.
+	 * What kind of page source an attachment is: `pdf`, an Office kind, `image`, or '' for anything else.
 	 *
 	 * The mime type decides. Some hosts report an Office or OpenDocument file as a generic
 	 * zip/binary type, so the file extension is used then (the content is checked again
@@ -144,6 +202,10 @@ class CPTDP_Page_Store {
 			return self::WORD_MIMES[ $mime ];
 		}
 
+		if ( in_array( $mime, self::IMAGE_MIMES, true ) ) {
+			return self::KIND_IMAGE;
+		}
+
 		if ( in_array( $mime, array( 'application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2' ), true ) ) {
 			$extension = strtolower( (string) pathinfo( (string) get_attached_file( $attachment_id ), PATHINFO_EXTENSION ) );
 
@@ -156,23 +218,51 @@ class CPTDP_Page_Store {
 	}
 
 	/**
-	 * Attachment ID of a document's file when it is a PDF or a presentation, else 0.
+	 * Attachment ID of a post's file when it can become page images, else 0.
 	 *
-	 * @param int $post_id Document ID.
+	 * PDF and Office files for every supported type; raster images for collaterals only.
+	 *
+	 * @param int $post_id Document or collateral ID.
 	 */
 	public static function source_attachment_id( int $post_id ): int {
-		$attachment_id = (int) get_post_meta( $post_id, 'cptdp_document_file', true );
+		$attachment_id = self::file_attachment_id( $post_id );
 
-		return '' !== self::kind_of_attachment( $attachment_id ) ? $attachment_id : 0;
+		return '' !== self::source_kind( $post_id ) ? $attachment_id : 0;
 	}
 
 	/**
-	 * The kind of file a document points at: `pdf`, `pptx`, `ppt`, `odp`, or '' for none.
+	 * The kind of file a post points at (see kind_of_attachment()), or '' for none.
 	 *
-	 * @param int $post_id Document ID.
+	 * `image` is only a source kind for a collateral; for a document it is ''.
+	 *
+	 * @param int $post_id Document or collateral ID.
 	 */
 	public static function source_kind( int $post_id ): string {
-		return self::kind_of_attachment( (int) get_post_meta( $post_id, 'cptdp_document_file', true ) );
+		$kind = self::kind_of_attachment( self::file_attachment_id( $post_id ) );
+
+		if ( self::KIND_IMAGE === $kind && 'collateral' !== get_post_type( $post_id ) ) {
+			return '';
+		}
+
+		return $kind;
+	}
+
+	/**
+	 * Whether a kind is a raster image (a collateral's one-page set, made by the WordPress image editor).
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_image_kind( string $kind ): bool {
+		return self::KIND_IMAGE === $kind;
+	}
+
+	/**
+	 * Whether a kind is made by the server only (Office files and images): no browser path, no `needs_browser`.
+	 *
+	 * @param string $kind Kind from kind_of_attachment().
+	 */
+	public static function is_server_only_kind( string $kind ): bool {
+		return self::is_office_kind( $kind ) || self::is_image_kind( $kind );
 	}
 
 	/**
@@ -338,10 +428,13 @@ class CPTDP_Page_Store {
 
 		unset( $manifest['source_token'] );
 
-		// Only Office files are marked (a missing `source_kind` means a PDF, as before DPB-026).
+		// Only Office files and images are marked (a missing `source_kind` means a PDF, as before DPB-026).
 		if ( self::is_office_kind( $source['kind'] ) ) {
-			$manifest['source_kind']  = $source['kind'];
+			$manifest['source_kind']   = $source['kind'];
 			$manifest['converted_via'] = 'libreoffice';
+		} elseif ( self::is_image_kind( $source['kind'] ) ) {
+			$manifest['source_kind']   = $source['kind'];
+			$manifest['converted_via'] = 'image-editor';
 		}
 
 		$manifest = array_merge(
@@ -357,10 +450,13 @@ class CPTDP_Page_Store {
 
 		update_post_meta( $post_id, self::META_MANIFEST, $manifest );
 		update_post_meta( $post_id, self::META_SOURCE, $source['token'] );
-		if ( self::is_word_kind( $source['kind'] ) && ! empty( $manifest['count'] ) ) {
+		if ( self::count_follows_file( $post_id, $source['kind'] ) && ! empty( $manifest['count'] ) ) {
 			update_post_meta( $post_id, 'cptdp_total_pages', (int) $manifest['count'] );
 		}
-		self::reconcile( $post_id );
+
+		if ( self::STATUS_READY === self::reconcile( $post_id ) ) {
+			CPTDP_Page_Featured::sync( $post_id );
+		}
 
 		return true;
 	}
@@ -387,7 +483,7 @@ class CPTDP_Page_Store {
 		if ( $total > 0 && $total !== $count ) {
 			$kind = (string) ( $manifest['source_kind'] ?? '' );
 
-			if ( self::is_word_kind( $kind ) ) {
+			if ( self::count_follows_file( $post_id, $kind ) ) {
 				update_post_meta( $post_id, 'cptdp_total_pages', $count );
 				self::set_status( $post_id, self::STATUS_READY );
 
@@ -413,6 +509,20 @@ class CPTDP_Page_Store {
 		self::set_status( $post_id, self::STATUS_READY );
 
 		return self::STATUS_READY;
+	}
+
+	/**
+	 * Whether `cptdp_total_pages` is overwritten with the page count instead of checked against it.
+	 *
+	 * True for Word files (their pages depend on the fonts) and for every collateral (DPC-023), so a
+	 * typed or seeded count is corrected rather than marking the set failed. A document's PDF keeps
+	 * the check.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $kind    Source kind.
+	 */
+	private static function count_follows_file( int $post_id, string $kind ): bool {
+		return self::is_word_kind( $kind ) || 'collateral' === get_post_type( $post_id );
 	}
 
 	/**
@@ -643,8 +753,8 @@ class CPTDP_Page_Store {
 	 * @param array<string,mixed> $manifest Manifest.
 	 */
 	public static function effective_crop( array $manifest ): float {
-		// A slide or sheet has a fixed shape: Office files are never trimmed.
-		if ( self::is_office_kind( (string) ( $manifest['source_kind'] ?? '' ) ) ) {
+		// A slide or sheet has a fixed shape, and an image's artwork is its content: never trimmed.
+		if ( self::is_server_only_kind( (string) ( $manifest['source_kind'] ?? '' ) ) ) {
 			return 0.0;
 		}
 
@@ -688,7 +798,7 @@ class CPTDP_Page_Store {
 			return null;
 		}
 
-		$crop = self::is_office_kind( (string) ( $manifest['source_kind'] ?? '' ) )
+		$crop = self::is_server_only_kind( (string) ( $manifest['source_kind'] ?? '' ) )
 			? 0.0
 			: CPTDP_Page_Analyzer::analyze_folder(
 				self::base_dir() . '/' . ltrim( (string) $manifest['dir'], '/' ),
@@ -831,25 +941,30 @@ class CPTDP_Page_Store {
 	}
 
 	/**
-	 * Documents that use an attachment as their file.
+	 * Posts of every supported type that use an attachment as their file.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 * @return int[]
 	 */
-	public static function documents_using( int $attachment_id ): array {
-		return array_map(
-			'intval',
-			get_posts(
+	public static function posts_using( int $attachment_id ): array {
+		$ids = array();
+
+		foreach ( self::SOURCE_META as $type => $key ) {
+			$found = get_posts(
 				array(
-					'post_type'      => 'document',
+					'post_type'      => $type,
 					'post_status'    => 'any',
 					'posts_per_page' => -1,
 					'fields'         => 'ids',
 					'no_found_rows'  => true,
-					'meta_key'       => 'cptdp_document_file', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					'meta_key'       => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 					'meta_value'     => $attachment_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 				)
-			)
-		);
+			);
+
+			$ids = array_merge( $ids, array_map( 'intval', $found ) );
+		}
+
+		return $ids;
 	}
 }

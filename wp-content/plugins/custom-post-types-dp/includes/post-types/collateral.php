@@ -74,7 +74,7 @@ function cptdp_collateral_classic_editor( bool $use_block_editor, string $post_t
 add_filter( 'use_block_editor_for_post_type', 'cptdp_collateral_classic_editor', 10, 2 );
 
 /**
- * Add Thumbnail, Paper Size, Pages, Highlight and Order columns after Title.
+ * Add Thumbnail, Paper Size, Pages, Page images, Highlight and Order columns after Title.
  *
  * The Category column comes from `show_admin_column`.
  *
@@ -87,11 +87,12 @@ function cptdp_collateral_columns( array $columns ): array {
 		$new[ $key ] = $label;
 
 		if ( 'title' === $key ) {
-			$new['thumbnail']         = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
-			$new['cptdp_paper_size']  = esc_html__( 'Paper Size', 'custom-post-types-dp' );
-			$new['cptdp_total_pages'] = esc_html__( 'Pages', 'custom-post-types-dp' );
-			$new['cptdp_highlight']   = esc_html__( 'Highlight', 'custom-post-types-dp' );
-			$new['menu_order']        = esc_html__( 'Order', 'custom-post-types-dp' );
+			$new['thumbnail']          = esc_html__( 'Thumbnail', 'custom-post-types-dp' );
+			$new['cptdp_paper_size']   = esc_html__( 'Paper Size', 'custom-post-types-dp' );
+			$new['cptdp_total_pages']  = esc_html__( 'Pages', 'custom-post-types-dp' );
+			$new['cptdp_pages_status'] = esc_html__( 'Page images', 'custom-post-types-dp' );
+			$new['cptdp_highlight']    = esc_html__( 'Highlight', 'custom-post-types-dp' );
+			$new['menu_order']         = esc_html__( 'Order', 'custom-post-types-dp' );
 		}
 	}
 
@@ -108,7 +109,15 @@ add_filter( 'manage_collateral_posts_columns', 'cptdp_collateral_columns' );
 function cptdp_collateral_column_content( string $column, int $post_id ): void {
 	switch ( $column ) {
 		case 'thumbnail':
+			// The featured image if there is one, else page 1 of the collateral's page images (DPC-023).
 			$thumb = get_the_post_thumbnail( $post_id, array( 50, 50 ) );
+
+			if ( ! $thumb && function_exists( 'cptdp_document_admin_thumb_html' ) ) {
+				$thumb = cptdp_document_admin_thumb_html( $post_id );
+				echo '' !== $thumb ? $thumb : '&mdash;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_document_admin_thumb_html().
+				break;
+			}
+
 			echo $thumb ? wp_kses_post( $thumb ) : '&mdash;';
 			break;
 
@@ -120,6 +129,10 @@ function cptdp_collateral_column_content( string $column, int $post_id ): void {
 		case 'cptdp_total_pages':
 			$pages = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 			echo $pages > 0 ? esc_html( (string) $pages ) : '&mdash;';
+			break;
+
+		case 'cptdp_pages_status':
+			echo cptdp_pages_status_cell( $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_pages_status_cell().
 			break;
 
 		case 'cptdp_highlight':
@@ -171,7 +184,7 @@ function cptdp_collateral_admin_css(): void {
 		return;
 	}
 
-	echo '<style>.column-thumbnail{width:60px}.column-cptdp_paper_size,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-menu_order{width:70px}</style>';
+	echo '<style>.column-thumbnail{width:90px}.column-cptdp_paper_size,.column-cptdp_total_pages,.column-cptdp_highlight{width:80px}.column-cptdp_pages_status{width:140px}.column-menu_order{width:70px}</style>';
 }
 add_action( 'admin_head-edit.php', 'cptdp_collateral_admin_css' );
 

@@ -23,9 +23,10 @@ function cptdp_documents_pages_modes(): array {
  */
 function cptdp_documents_defaults(): array {
 	$defaults = array(
-		'show_book_title' => false,
-		'pages_mode'      => 'auto',
-		'trim_bottom'     => true,
+		'show_book_title'    => false,
+		'pages_mode'         => 'auto',
+		'trim_bottom'        => true,
+		'featured_from_page' => true,
 	);
 
 	foreach ( cptdp_documents_native_formats() as $format ) {
@@ -47,12 +48,12 @@ function cptdp_documents_native_formats(): array {
 }
 
 /**
- * The settings that are checkboxes: the two page options and one `native_<format>` per native viewer format.
+ * The settings that are checkboxes: the page options and one `native_<format>` per native viewer format.
  *
  * @return string[]
  */
 function cptdp_documents_checkbox_keys(): array {
-	return array_merge( array( 'show_book_title', 'trim_bottom' ), array_map( static fn( string $format ): string => 'native_' . $format, cptdp_documents_native_formats() ) );
+	return array_merge( array( 'show_book_title', 'trim_bottom', 'featured_from_page' ), array_map( static fn( string $format ): string => 'native_' . $format, cptdp_documents_native_formats() ) );
 }
 
 /**
@@ -148,12 +149,20 @@ function cptdp_documents_register_sections(): void {
 		array( 'label_for' => 'cptdp_documents_show_book_title' )
 	);
 
+	// Shared by the Documents and Brand Collaterals pages (DPC-023). Same option, same keys.
+	add_settings_section(
+		'cptdp_documents_page_images',
+		esc_html__( 'Page images (Documents and Brand Collaterals)', 'custom-post-types-dp' ),
+		'cptdp_documents_render_page_images_section',
+		'cptdp-documents'
+	);
+
 	add_settings_field(
 		'cptdp_documents_pages_mode',
 		esc_html__( 'Generate page images', 'custom-post-types-dp' ),
 		'cptdp_documents_render_pages_mode',
 		'cptdp-documents',
-		'cptdp_documents_section',
+		'cptdp_documents_page_images',
 		array( 'label_for' => 'cptdp_documents_pages_mode' )
 	);
 
@@ -162,8 +171,17 @@ function cptdp_documents_register_sections(): void {
 		esc_html__( 'Page margins', 'custom-post-types-dp' ),
 		'cptdp_documents_render_trim_bottom',
 		'cptdp-documents',
-		'cptdp_documents_section',
+		'cptdp_documents_page_images',
 		array( 'label_for' => 'cptdp_documents_trim_bottom' )
+	);
+
+	add_settings_field(
+		'cptdp_documents_featured_from_page',
+		esc_html__( 'Featured image', 'custom-post-types-dp' ),
+		'cptdp_documents_render_featured_from_page',
+		'cptdp-documents',
+		'cptdp_documents_page_images',
+		array( 'label_for' => 'cptdp_documents_featured_from_page' )
 	);
 
 	add_settings_section(
@@ -240,7 +258,26 @@ function cptdp_documents_render_page(): void {
  * Render the section intro.
  */
 function cptdp_documents_render_section(): void {
-	echo '<p>' . esc_html__( 'Options for the Documents page.', 'custom-post-types-dp' ) . '</p>';
+	echo '<p>' . esc_html__( 'Options for the Documents page only.', 'custom-post-types-dp' ) . '</p>';
+}
+
+/**
+ * Render the intro of the page images section, shared by both pages (DPC-023). It carries the id the Page images boxes link to.
+ */
+function cptdp_documents_render_page_images_section(): void {
+	echo '<div id="cptdp-page-images"><p>' . esc_html__( 'These settings apply to both the Documents page and the Brand Collaterals page. Page images are made when a document or collateral with a file is saved.', 'custom-post-types-dp' ) . '</p></div>';
+}
+
+/**
+ * Render the "Featured image from page 1" checkbox.
+ */
+function cptdp_documents_render_featured_from_page(): void {
+	printf(
+		'<label><input type="checkbox" id="cptdp_documents_featured_from_page" name="cptdp_documents[featured_from_page]" value="1" %s /> %s</label><p class="description">%s</p>',
+		checked( cptdp_get_documents_settings( 'featured_from_page' ), true, false ),
+		esc_html__( 'Use page 1 as the featured image when a document or collateral has none', 'custom-post-types-dp' ),
+		esc_html__( 'Applies to the Documents page and the Brand Collaterals page. An image you choose yourself is never replaced. Off keeps the images already made.', 'custom-post-types-dp' )
+	);
 }
 
 /**
@@ -263,7 +300,7 @@ function cptdp_documents_render_pages_mode(): void {
 	$labels  = array(
 		'auto'    => esc_html__( 'Automatic (server when it can, otherwise your browser)', 'custom-post-types-dp' ),
 		'server'  => esc_html__( 'Server only', 'custom-post-types-dp' ),
-		'browser' => esc_html__( 'Browser only (generated from the document edit screen)', 'custom-post-types-dp' ),
+		'browser' => esc_html__( 'Browser only (generated from the document or collateral edit screen)', 'custom-post-types-dp' ),
 	);
 
 	echo '<select id="cptdp_documents_pages_mode" name="cptdp_documents[pages_mode]">';
@@ -276,7 +313,7 @@ function cptdp_documents_render_pages_mode(): void {
 		);
 	}
 	echo '</select>';
-	echo '<p class="description">' . esc_html__( 'Page images are made when a document with a PDF is saved, so visitors see them straight away. Automatic uses the server (Imagick or Ghostscript) when available and falls back to the browser of whoever is editing the document.', 'custom-post-types-dp' ) . '</p>';
+	echo '<p class="description">' . esc_html__( 'Page images are made when a document or collateral with a PDF is saved, so visitors see them straight away. Automatic uses the server (Imagick or Ghostscript) when available and falls back to the browser of whoever is editing the document or collateral. Office files and images are always made by the server.', 'custom-post-types-dp' ) . '</p>';
 }
 
 /**
@@ -287,7 +324,7 @@ function cptdp_documents_render_trim_bottom(): void {
 		'<label><input type="checkbox" id="cptdp_documents_trim_bottom" name="cptdp_documents[trim_bottom]" value="1" %s /> %s</label><p class="description">%s</p>',
 		checked( cptdp_get_documents_settings( 'trim_bottom' ), true, false ),
 		esc_html__( 'Trim empty space at the bottom of pages', 'custom-post-types-dp' ),
-		esc_html__( 'When a document\'s pages all end well above their bottom edge, the viewer hides that empty strip (the page images are not changed, and printed footers are kept). The strip is measured when the images are made; switching this off or on takes effect straight away.', 'custom-post-types-dp' )
+		esc_html__( 'When the pages of a document or collateral all end well above their bottom edge, the viewer hides that empty strip (the page images are not changed, and printed footers are kept). Images and Office files are never trimmed. The strip is measured when the images are made; switching this off or on takes effect straight away.', 'custom-post-types-dp' )
 	);
 }
 

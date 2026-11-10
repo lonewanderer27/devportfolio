@@ -149,7 +149,7 @@ class CPTDP_Test_Presentation_Source extends CPTDP_Pages_Test_Case {
 		$pdf  = $this->make_document( $this->make_pdf_attachment( 1 ) );
 		$none = $this->make_document();
 
-		$ids = CPTDP_Page_Scheduler::documents_with_pdf();
+		$ids = CPTDP_Page_Scheduler::posts_with_source();
 
 		$this->assertContains( $deck, $ids );
 		$this->assertContains( $pdf, $ids );

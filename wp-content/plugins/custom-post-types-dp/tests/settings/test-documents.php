@@ -13,13 +13,14 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 	public function test_defaults_hide_the_book_title(): void {
 		$this->assertSame(
 			array(
-				'show_book_title' => false,
-				'pages_mode'      => 'auto',
-				'trim_bottom'     => true,
-				'native_pdf'      => false,
-				'native_pptx'     => false,
-				'native_xlsx'     => false,
-				'native_docx'     => false,
+				'show_book_title'    => false,
+				'pages_mode'         => 'auto',
+				'trim_bottom'        => true,
+				'featured_from_page' => true,
+				'native_pdf'         => false,
+				'native_pptx'        => false,
+				'native_xlsx'        => false,
+				'native_docx'        => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -38,13 +39,14 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 
 		$this->assertSame(
 			array(
-				'show_book_title' => true,
-				'pages_mode'      => 'auto',
-				'trim_bottom'     => true,
-				'native_pdf'      => false,
-				'native_pptx'     => false,
-				'native_xlsx'     => false,
-				'native_docx'     => false,
+				'show_book_title'    => true,
+				'pages_mode'         => 'auto',
+				'trim_bottom'        => true,
+				'featured_from_page' => true,
+				'native_pdf'         => false,
+				'native_pptx'        => false,
+				'native_xlsx'        => false,
+				'native_docx'        => false,
 			),
 			cptdp_get_documents_settings()
 		);
@@ -220,9 +222,9 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		cptdp_documents_register_sections();
 
 		$this->assertSame(
-			array( 'cptdp_documents_section', 'cptdp_documents_conversion_section', 'cptdp_documents_native_section' ),
+			array( 'cptdp_documents_section', 'cptdp_documents_page_images', 'cptdp_documents_conversion_section', 'cptdp_documents_native_section' ),
 			array_keys( $wp_settings_sections['cptdp-documents'] ),
-			'Documents, then Document conversion, then Native viewer.'
+			'Documents, then the shared Page images, then Document conversion, then Native viewer.'
 		);
 		$this->assertSame( 'Document conversion', $wp_settings_sections['cptdp-documents']['cptdp_documents_conversion_section']['title'] );
 		$this->assertSame(
@@ -296,13 +298,14 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 
 		$this->assertSame(
 			array(
-				'show_book_title' => true,
-				'pages_mode'      => 'server',
-				'trim_bottom'     => false,
-				'native_pdf'      => true,
-				'native_pptx'     => false,
-				'native_xlsx'     => false,
-				'native_docx'     => false,
+				'show_book_title'    => true,
+				'pages_mode'         => 'server',
+				'trim_bottom'        => false,
+				'featured_from_page' => true,
+				'native_pdf'         => true,
+				'native_pptx'        => false,
+				'native_xlsx'        => false,
+				'native_docx'        => false,
 			),
 			cptdp_documents_sanitize( array( 'pages_mode' => 'server' ) )
 		);
@@ -343,5 +346,67 @@ class CPTDP_Test_Documents_Settings extends CPTDP_Test_Case {
 		$this->assertFalse( $clean['native_pdf'] );
 		$this->assertFalse( $clean['native_pptx'] );
 		$this->assertFalse( $clean['show_book_title'] );
+	}
+
+	// --- Page images, shared by Documents and Brand Collaterals (DPC-023) ----------------------------
+
+	public function test_the_page_image_settings_have_their_own_section_named_for_both_pages(): void {
+		global $wp_settings_sections, $wp_settings_fields;
+
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$wp_settings_sections = array();
+		$wp_settings_fields   = array();
+		cptdp_documents_register_sections();
+
+		$title = $wp_settings_sections['cptdp-documents']['cptdp_documents_page_images']['title'];
+		$this->assertStringContainsString( 'Documents', $title );
+		$this->assertStringContainsString( 'Brand Collaterals', $title );
+
+		$this->assertSame(
+			array( 'cptdp_documents_pages_mode', 'cptdp_documents_trim_bottom', 'cptdp_documents_featured_from_page' ),
+			array_keys( $wp_settings_fields['cptdp-documents']['cptdp_documents_page_images'] )
+		);
+		$this->assertSame( array( 'cptdp_documents_show_book_title' ), array_keys( $wp_settings_fields['cptdp-documents']['cptdp_documents_section'] ), 'Only the book title stays in Documents.' );
+
+		$intro = $this->capture( 'cptdp_documents_render_page_images_section' );
+		$this->assertStringContainsString( 'id="cptdp-page-images"', $intro, 'The Page images boxes link here.' );
+		$this->assertStringContainsString( 'Documents page and the Brand Collaterals page', $intro );
+		$this->assertStringContainsString( 'Options for the Documents page only.', $this->capture( 'cptdp_documents_render_section' ) );
+		$this->assertStringContainsString( 'document or collateral edit screen', $this->capture( 'cptdp_documents_render_pages_mode' ) );
+		$this->assertStringContainsString( 'document or collateral', $this->capture( 'cptdp_documents_render_trim_bottom' ) );
+	}
+
+	public function test_the_featured_image_setting_is_on_by_default_and_a_checkbox(): void {
+		$this->assertTrue( cptdp_get_documents_settings( 'featured_from_page' ) );
+		$this->assertContains( 'featured_from_page', cptdp_documents_checkbox_keys() );
+
+		$html = $this->capture( 'cptdp_documents_render_featured_from_page' );
+		$this->assertStringContainsString( 'name="cptdp_documents[featured_from_page]"', $html );
+		$this->assertMatchesRegularExpression( '/<input[^>]*checked=/', $html );
+		$this->assertStringContainsString( 'never replaced', $html );
+
+		update_option( 'cptdp_documents', array( 'featured_from_page' => false ) );
+		$this->assertFalse( cptdp_get_documents_settings( 'featured_from_page' ) );
+		$this->assertDoesNotMatchRegularExpression( '/<input[^>]*checked=/', $this->capture( 'cptdp_documents_render_featured_from_page' ) );
+	}
+
+	public function test_the_featured_image_setting_is_in_rest_and_kept_by_partial_updates(): void {
+		$this->acting_as( 'administrator' );
+		update_option( 'cptdp_documents', array( 'featured_from_page' => false ) );
+		do_action( 'rest_api_init' );
+
+		$settings = get_registered_settings();
+		$this->assertArrayHasKey( 'featured_from_page', $settings['cptdp_documents']['show_in_rest']['schema']['properties'] );
+
+		$request = new WP_REST_Request( 'PUT', '/wp/v2/settings' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( (string) wp_json_encode( array( 'cptdp_documents' => array( 'pages_mode' => 'server' ) ) ) );
+
+		$this->assertSame( 200, rest_do_request( $request )->get_status() );
+		$this->assertFalse( cptdp_get_documents_settings( 'featured_from_page' ), 'Not mentioned, not reset.' );
+
+		$_POST['option_page'] = 'cptdp_documents';
+		update_option( 'cptdp_documents', array( 'featured_from_page' => true ) );
+		$this->assertFalse( cptdp_documents_sanitize( array( 'pages_mode' => 'auto' ) )['featured_from_page'], 'The form reads an unticked box as off.' );
 	}
 }

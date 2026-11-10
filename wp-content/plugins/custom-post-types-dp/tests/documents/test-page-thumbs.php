@@ -186,6 +186,8 @@ class CPTDP_Test_Page_Thumbs extends CPTDP_Pages_Test_Case {
 	}
 
 	public function test_the_list_column_shows_the_picture_lazily_or_a_dash(): void {
+		// Without a featured image (DPC-023 would otherwise make one from page 1, which the column shows first).
+		update_option( 'cptdp_documents', array( 'featured_from_page' => false ) );
 		$id = $this->converted( 2 );
 
 		ob_start();

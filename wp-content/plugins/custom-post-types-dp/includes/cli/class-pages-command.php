@@ -8,7 +8,10 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Generate, clear and inspect the page images of document PDFs.
+ * Generate, clear and inspect the page images of documents and collaterals.
+ *
+ * Every subcommand takes one post ID (a document or a collateral), or `--all`, which
+ * `--post_type=document|collateral` narrows to one type.
  */
 class CPTDP_Pages_Command {
 
@@ -21,10 +24,13 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID.
+	 * : Document or collateral ID.
 	 *
 	 * [--all]
-	 * : Every document that has a PDF.
+	 * : Every document and collateral that has a file.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
 	 *
 	 * [--force]
 	 * : Regenerate even when the images are valid.
@@ -77,7 +83,7 @@ class CPTDP_Pages_Command {
 			spawn_cron();
 		}
 
-		WP_CLI::success( sprintf( '%d document(s) processed%s.', count( $ids ), $sync ? '' : ', conversions scheduled with WP-Cron' ) );
+		WP_CLI::success( sprintf( '%d post(s) processed%s.', count( $ids ), $sync ? '' : ', conversions scheduled with WP-Cron' ) );
 	}
 
 	/**
@@ -86,10 +92,13 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID.
+	 * : Document or collateral ID.
 	 *
 	 * [--all]
-	 * : Every document that has page images or a status.
+	 * : Every document and collateral that has page images or a status.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
 	 *
 	 * @param string[]             $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Flags.
@@ -102,7 +111,7 @@ class CPTDP_Pages_Command {
 			wp_clear_scheduled_hook( CPTDP_Page_Scheduler::CRON_HOOK, array( $id ) );
 		}
 
-		WP_CLI::success( sprintf( 'Cleared %d document(s).', count( $ids ) ) );
+		WP_CLI::success( sprintf( 'Cleared %d post(s).', count( $ids ) ) );
 	}
 
 	/**
@@ -114,10 +123,13 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID.
+	 * : Document or collateral ID.
 	 *
 	 * [--all]
-	 * : Every document that has valid page images.
+	 * : Every document and collateral that has valid page images.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -145,7 +157,7 @@ class CPTDP_Pages_Command {
 		}
 
 		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'crop' ) );
-		WP_CLI::success( sprintf( '%d document(s) recropped.', count( $rows ) ) );
+		WP_CLI::success( sprintf( '%d post(s) recropped.', count( $rows ) ) );
 	}
 
 	/**
@@ -157,10 +169,13 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID.
+	 * : Document or collateral ID.
 	 *
 	 * [--all]
-	 * : Every document that has valid page images.
+	 * : Every document and collateral that has valid page images.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
 	 *
 	 * [--force]
 	 * : Make them again even when the set has them.
@@ -184,7 +199,7 @@ class CPTDP_Pages_Command {
 			WP_CLI::log( sprintf( '%d: %s', $id, CPTDP_Page_Store::make_thumbs( $id, $force ) ) );
 		}
 
-		WP_CLI::success( sprintf( '%d document(s) processed.', count( $ids ) ) );
+		WP_CLI::success( sprintf( '%d post(s) processed.', count( $ids ) ) );
 	}
 
 	/**
@@ -196,10 +211,13 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID.
+	 * : Document or collateral ID.
 	 *
 	 * [--all]
-	 * : Every document that has valid page images.
+	 * : Every document and collateral that has valid page images.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -215,7 +233,7 @@ class CPTDP_Pages_Command {
 			WP_CLI::log( sprintf( '%d: %s', $id, CPTDP_Page_Store::refresh_names( $id ) ) );
 		}
 
-		WP_CLI::success( sprintf( '%d document(s) processed.', count( $ids ) ) );
+		WP_CLI::success( sprintf( '%d post(s) processed.', count( $ids ) ) );
 	}
 
 	/**
@@ -224,7 +242,10 @@ class CPTDP_Pages_Command {
 	 * ## OPTIONS
 	 *
 	 * [<id>]
-	 * : Document ID. Default: every document with a PDF.
+	 * : Document or collateral ID. Default: every document and collateral with a file.
+	 *
+	 * [--post_type=<type>]
+	 * : Only `document` or `collateral`.
 	 *
 	 * @param string[]             $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Flags.
@@ -238,6 +259,7 @@ class CPTDP_Pages_Command {
 
 			$rows[] = array(
 				'id'       => $id,
+				'type'     => (string) get_post_type( $id ),
 				'title'    => get_the_title( $id ),
 				'kind'     => CPTDP_Page_Store::source_kind( $id ),
 				'status'   => CPTDP_Page_Store::get_status( $id ),
@@ -247,11 +269,56 @@ class CPTDP_Pages_Command {
 				'crop'     => null !== $manifest ? self::percent( CPTDP_Page_Store::stored_crop( $manifest ) ) : '',
 				'names'    => null !== $manifest ? count( array_filter( CPTDP_Page_Outline::expand( CPTDP_Page_Outline::sanitize_ranges( $manifest['page_names'] ?? array(), (int) $manifest['count'] ), (int) $manifest['count'] ) ) ) : 0,
 				'thumbs'   => null !== $manifest && (int) ( $manifest['thumb_width'] ?? 0 ) > 0 ? (int) $manifest['count'] : 0,
+				'featured' => '' !== CPTDP_Page_Featured::owner( $id ) ? CPTDP_Page_Featured::owner( $id ) : '-',
 				'error'    => CPTDP_Page_Store::get_error( $id ),
 			);
 		}
 
-		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'title', 'kind', 'status', 'valid', 'pages', 'producer', 'crop', 'names', 'thumbs', 'error' ) );
+		WP_CLI\Utils\format_items( 'table', $rows, array( 'id', 'type', 'title', 'kind', 'status', 'valid', 'pages', 'producer', 'crop', 'names', 'thumbs', 'featured', 'error' ) );
+	}
+
+	/**
+	 * Use page 1 as the featured image of posts that have none (sets made before this existed).
+	 *
+	 * Never touches a featured image an editor chose. Posts whose generated image was made from the current page images are skipped unless --force is given.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<id>]
+	 * : Document or collateral ID.
+	 *
+	 * [--all]
+	 * : Every document and collateral that has valid page images.
+	 *
+	 * [--post_type=<type>]
+	 * : With --all, only `document` or `collateral`.
+	 *
+	 * [--force]
+	 * : Make the generated image again.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp cptdp pages featured --all --post_type=document
+	 *
+	 * @param string[]             $args       Positional args.
+	 * @param array<string, mixed> $assoc_args Flags.
+	 */
+	public function featured( array $args, array $assoc_args ): void {
+		if ( ! CPTDP_Page_Featured::enabled() ) {
+			WP_CLI::error( 'Settings > Documents > Page images > Featured image is off.' );
+		}
+
+		$force = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'force', false );
+		$ids   = $this->target_ids( $args, $assoc_args );
+
+		foreach ( $ids as $id ) {
+			$outcome = CPTDP_Page_Featured::sync( $id, $force );
+			$error   = 'failed' === $outcome ? CPTDP_Page_Store::get_error( $id ) : '';
+
+			WP_CLI::log( sprintf( '%d: %s%s', $id, $outcome, '' !== $error ? ' (' . $error . ')' : '' ) );
+		}
+
+		WP_CLI::success( sprintf( '%d post(s) processed.', count( $ids ) ) );
 	}
 
 	/**
@@ -264,33 +331,40 @@ class CPTDP_Pages_Command {
 	}
 
 	/**
-	 * Resolve the documents a command acts on.
+	 * Resolve the posts a command acts on.
 	 *
 	 * @param string[]             $args        Positional args.
 	 * @param array<string, mixed> $assoc_args  Flags.
-	 * @param bool                 $any_status  For `clear --all`: include documents without a PDF but with images.
+	 * @param bool                 $any_status  For `clear --all`: include posts without a file but with images.
 	 * @return int[]
 	 */
 	private function target_ids( array $args, array $assoc_args, bool $any_status = false ): array {
 		if ( isset( $args[0] ) ) {
 			$id = absint( $args[0] );
 
-			if ( 'document' !== get_post_type( $id ) ) {
-				WP_CLI::error( "{$id} is not a document." );
+			if ( ! CPTDP_Page_Store::supports( $id ) ) {
+				WP_CLI::error( "{$id} has no page images (not a document or collateral)." );
 			}
 
 			return array( $id );
 		}
 
 		if ( ! WP_CLI\Utils\get_flag_value( $assoc_args, 'all', false ) ) {
-			WP_CLI::error( 'Give a document ID, or --all.' );
+			WP_CLI::error( 'Give a document or collateral ID, or --all.' );
 		}
 
-		if ( $any_status ) {
-			return CPTDP_Page_Scheduler::document_ids();
+		$types = array();
+		$type  = (string) WP_CLI\Utils\get_flag_value( $assoc_args, 'post_type', '' );
+
+		if ( '' !== $type ) {
+			if ( ! in_array( $type, CPTDP_Page_Store::post_types(), true ) ) {
+				WP_CLI::error( sprintf( 'Unknown --post_type "%s" (use %s).', $type, implode( ' or ', CPTDP_Page_Store::post_types() ) ) );
+			}
+
+			$types = array( $type );
 		}
 
-		return CPTDP_Page_Scheduler::documents_with_pdf();
+		return $any_status ? CPTDP_Page_Scheduler::post_ids( 'any', $types ) : CPTDP_Page_Scheduler::posts_with_source( $types );
 	}
 }
 
