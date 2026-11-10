@@ -428,7 +428,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	cursor: pointer;
 	background: transparent;
 	border: 1px solid var(--dm-line);
-	border-radius: 6px;
+	border-radius: 50%;
 	transition: border-color 160ms var(--dm-ease);
 }
 
