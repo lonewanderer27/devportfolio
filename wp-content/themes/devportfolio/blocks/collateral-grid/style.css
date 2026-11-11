@@ -109,6 +109,59 @@
 	line-height: 1;
 }
 
+/*
+ * A collateral whose page images are still being made (DPC-025). The sample loading image covers the blank
+ * page; it is decorative, so the open button's name carries the meaning. Static under reduced motion and in
+ * forced-colors, where the numbered blank shows instead.
+ */
+.collaterals-item__loading {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	animation: collaterals-loading-pulse 2s ease-in-out infinite;
+}
+
+@keyframes collaterals-loading-pulse {
+	50% {
+		opacity: 0.6;
+	}
+}
+
+/*
+ * The empty line under the grid (DPC-025). It is a sibling of the grid, never a child: the masonry sets an
+ * absolute position and height on every item and on the grid itself. State A (no collaterals at all) is the
+ * same element with `--none`, rendered without a grid.
+ */
+.collaterals-empty {
+	margin: 44px 0 0;
+	padding: 56px 16px;
+	min-height: 160px;
+	color: var(--wp--preset--color--mid);
+	font-size: 14px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.collaterals-empty[hidden],
+.collaterals-item__loading[hidden] {
+	display: none;
+}
+
+/* Nothing at all to filter: the pills would only filter an empty page. */
+.documents-page__content:has(.collaterals-empty--none) .wp-block-devportfolio-document-categories {
+	display: none;
+}
+
+@media (max-width: 700px) {
+	.collaterals-empty {
+		margin-top: 28px;
+		padding: 40px 8px;
+		min-height: 120px;
+	}
+}
+
 .collaterals-item__info {
 	grid-area: 1 / 1;
 	align-self: end;
@@ -137,6 +190,10 @@
 		background: Canvas;
 		-webkit-backdrop-filter: none;
 		backdrop-filter: none;
+	}
+
+	.collaterals-item__loading {
+		display: none;
 	}
 }
 
@@ -225,6 +282,10 @@
 @media (prefers-reduced-motion: reduce) {
 	.collaterals-item__info {
 		transition: none;
+	}
+
+	.collaterals-item__loading {
+		animation: none;
 	}
 
 	::view-transition-group(*.collaterals-item),

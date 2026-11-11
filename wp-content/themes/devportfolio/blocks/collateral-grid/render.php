@@ -27,6 +27,9 @@ $devportfolio_ids = devportfolio_published_ids(
 );
 
 if ( empty( $devportfolio_ids ) ) {
+	?>
+	<p class="collaterals-empty collaterals-empty--none" role="status"><?php echo esc_html_x( 'No collaterals yet.', 'collateral grid empty', 'devportfolio' ); ?></p>
+	<?php
 	return;
 }
 
@@ -55,6 +58,10 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 			: sprintf( _x( 'Open %s', 'collateral item', 'devportfolio' ), $devportfolio_title );
 
 		$devportfolio_sizes = 'auto, (max-width: 700px) 50vw, 290px';
+		if ( 'loading' === $devportfolio_preview['kind'] ) {
+			/* translators: %s: the collateral's name and details, e.g. "Open Flyer, A4 · 2 pp". */
+			$devportfolio_label = sprintf( _x( '%s (preview is being prepared)', 'collateral item', 'devportfolio' ), $devportfolio_label );
+		}
 		?>
 		<article class="collaterals-item" data-collateral-categories="<?php echo esc_attr( implode( ' ', $devportfolio_item['categories'] ) ); ?>" style="view-transition-name:collaterals-item-<?php echo esc_attr( (string) $devportfolio_id ); ?>;--collaterals-ratio:<?php echo esc_attr( (string) $devportfolio_preview['ratio'] ); ?>" data-ratio="<?php echo esc_attr( (string) $devportfolio_preview['ratio'] ); ?>">
 			<div class="collaterals-item__preview">
@@ -76,6 +83,8 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 						)
 					);
 					?>
+				<?php elseif ( 'loading' === $devportfolio_preview['kind'] && function_exists( 'cptdp_collateral_loading_image_url' ) ) : ?>
+					<img class="collaterals-item__loading" src="<?php echo esc_url( cptdp_collateral_loading_image_url() ); ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
 				<?php endif; ?>
 			</div>
 			<div class="collaterals-item__info">
@@ -88,3 +97,4 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 		</article>
 	<?php endforeach; ?>
 </div>
+<p class="collaterals-empty" data-collaterals-empty role="status" hidden><?php echo esc_html_x( 'No collaterals in this category', 'collateral grid empty', 'devportfolio' ); ?></p>

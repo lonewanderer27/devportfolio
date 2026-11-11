@@ -12,7 +12,7 @@
  * `data-ratio`. Nothing here runs a requestAnimationFrame inside the category handler:
  * the new layout must already be in place when the View Transition takes its new snapshot.
  */
-import { layout } from './masonry.js';
+import { layout, matchesCategory } from './masonry.js';
 
 const FILTER_EVENT = 'devportfolio:category-change';
 
@@ -36,15 +36,26 @@ function createGrid( grid ) {
 	const items = Array.prototype.filter.call( grid.children, function ( el ) {
 		return el.classList.contains( 'collaterals-item' );
 	} );
+	// The line under the grid that says a category has nothing in it (DPC-025). State A has no grid at all.
+	const empty = grid.nextElementSibling && grid.nextElementSibling.hasAttribute( 'data-collaterals-empty' ) ? grid.nextElementSibling : null;
 
 	let lastWidth = -1;
 
 	// Shows the items of `slug` ('' shows all). Only sets `hidden`; positions come from relayout().
+	// Returns the number of items now shown, so the empty line can be toggled in the same tick.
 	function filter( slug ) {
+		let shown = 0;
 		items.forEach( function ( item ) {
-			const slugs = ( item.getAttribute( 'data-collateral-categories' ) || '' ).split( /\s+/ );
-			item.hidden = '' !== slug && -1 === slugs.indexOf( slug );
+			const hidden = ! matchesCategory( item.getAttribute( 'data-collateral-categories' ) || '', slug );
+			item.hidden = hidden;
+			if ( ! hidden ) {
+				shown += 1;
+			}
 		} );
+		if ( empty ) {
+			empty.hidden = shown > 0;
+		}
+		return shown;
 	}
 
 	// Places the visible items and sizes the grid. The gap is the CSS custom property, read once per layout.
