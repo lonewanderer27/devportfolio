@@ -145,11 +145,14 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	/**
 	 * Sets the footer and the book's pages for one collateral before its dialog is shown (so the arrows are right
-	 * on first paint): the stored pages, else the typed page count. Collaterals always show one page at a time.
+	 * on first paint): the stored pages, else the typed page count. A pending or unavailable preview has no
+	 * pages to browse, so the pager, arrows and Tap to Flip hint stay hidden from the first paint (DPC-025).
+	 * Collaterals always show one page at a time.
 	 */
 	const openPages = ( id, item, { page = 1, flipped = false } = {} ) => {
 		const stored = Array.isArray( item.images ) ? item.images.length : 0;
-		const pages = stored || Number( item.pages ) || 0;
+		const noPages = item.previewState === 'pending' || item.previewState === 'unavailable';
+		const pages = noPages ? 0 : stored || Number( item.pages ) || 0;
 		const step = 1;
 		pager.open( Number( id ), { pages, step, page, words: wording( unitOf( item ), units ), flipped } );
 	};

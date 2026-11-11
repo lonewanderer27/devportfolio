@@ -194,7 +194,10 @@ export function createMobileModal( { dialog, prefix = 'documents-mobile', viewPr
 			openDoc = doc;
 			sheets.reset();
 			words = wording( unitOf( doc ), units );
-			state.pages = ( Array.isArray( doc.images ) && doc.images.length ) || doc.pages || 0;
+			// A pending or unavailable preview has no pages to browse (DPC-025): no footer, no progress bar,
+			// and the round details button takes the footer's place from the first paint.
+			const noPages = doc.previewState === 'pending' || doc.previewState === 'unavailable';
+			state.pages = noPages ? 0 : ( ( Array.isArray( doc.images ) && doc.images.length ) || doc.pages || 0 );
 			state.step = 1;
 			state.page = normalisePage( page, state.pages, 1 );
 			els.title.textContent = doc.title;

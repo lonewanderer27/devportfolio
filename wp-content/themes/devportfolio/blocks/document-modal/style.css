@@ -752,13 +752,36 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 .documents-modal__state[data-kind="unavailable"] .documents-modal__spinner,
-.collaterals-modal__state[data-kind="unavailable"] .collaterals-modal__spinner {
+.collaterals-modal__state[data-kind="unavailable"] .collaterals-modal__spinner,
+.documents-modal__state[data-kind="pending"] .documents-modal__spinner,
+.collaterals-modal__state[data-kind="pending"] .collaterals-modal__spinner {
 	display: none;
 }
 
 .documents-modal__state[data-kind="unavailable"] .documents-modal__state-text {
 	font-size: 16px;
 	font-weight: 600;
+	color: var(--dm-ink);
+}
+
+/* A pending collateral (DPC-025): the sample loading image instead of the spinner. */
+.documents-modal__state-image,
+.collaterals-modal__state-image {
+	width: 104px;
+	max-width: 40%;
+	height: auto;
+	border: 1px solid var(--dm-line);
+	border-radius: 4px;
+	background: #fff;
+}
+
+.documents-modal__state-image[hidden],
+.collaterals-modal__state-image[hidden] {
+	display: none;
+}
+
+.documents-modal__state[data-kind="pending"] .documents-modal__state-text,
+.collaterals-modal__state[data-kind="pending"] .collaterals-modal__state-text {
 	color: var(--dm-ink);
 }
 
