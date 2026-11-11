@@ -460,7 +460,7 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 	public function test_the_desktop_width_uses_min_and_leaves_32px(): void {
 		$css = $this->read( 'blocks/collateral-modal/style.css' );
 		$this->assertStringContainsString( 'width: min( var( --cm-width ), calc( 100% - 32px ) );', $css );
-		$this->assertStringContainsString( '--cm-width: 1280px;', $css );
+		$this->assertStringContainsString( '--cm-width: 1680px;', $css );
 	}
 
 	public function test_the_actions_sit_outside_the_scrolling_middle(): void {

@@ -131,17 +131,20 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 	/* ---- Scripts: shared components, no copies ----------------------- */
 
 	public function test_the_details_sheet_is_loaded_on_demand_and_registered(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
-		$this->assertStringContainsString( "import( './details-sheet.js' )", $mobile );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
+		// The Details module is loaded by the Documents modal (view.js) and handed to the shared mobile modal (WP5).
+		$view = $this->read( 'blocks/document-modal/view.js' );
+		$this->assertStringContainsString( "loadDetails: () => import( './details-sheet.js' )", $view );
 		$this->assertDoesNotMatchRegularExpression( "/^import .* from '\.\/details-sheet\.js';/m", $mobile );
 		$this->assertStringContainsString( "sheets.register( 'details'", $mobile );
-		$this->assertStringContainsString( "dialog.addEventListener( 'documents:mobile-details', openDetails )", $mobile );
-		$this->assertStringContainsString( "onDetails: () => emit( 'documents:mobile-details' )", $mobile );
+		$this->assertStringContainsString( "dialog.addEventListener( `\${ eventPrefix }:mobile-details`, openDetails )", $mobile );
+		$this->assertStringContainsString( "onDetails: () => emit( `\${ eventPrefix }:mobile-details` )", $mobile );
 	}
 
 	public function test_both_sheets_use_the_shared_shell_and_none_copies_it(): void {
 		foreach ( array( 'pages-sheet.js', 'details-sheet.js' ) as $file ) {
-			$js = $this->read( 'blocks/document-modal/' . $file );
+			// The Pages sheet is shared (WP5); the Details content stays in the Documents folder.
+			$js = $this->read( ( 'pages-sheet.js' === $file ? 'blocks/shared/' : 'blocks/document-modal/' ) . $file );
 			$this->assertStringContainsString( 'createBottomSheet(', $js, $file );
 			foreach ( array( 'pointerdown', 'setPointerCapture', 'panel.inert', "'cancel'", 'documents-mobile__dim' ) as $shell_only ) {
 				$this->assertStringNotContainsString( $shell_only, $js, $file . ' must not copy the shell: ' . $shell_only );
@@ -164,18 +167,18 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 	}
 
 	public function test_only_pages_closes_when_the_phone_is_rotated(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertMatchesRegularExpression( "/sheets\.register\( 'pages', \{\s*closeOnRotate: true/", $mobile );
 		$this->assertStringContainsString( 'sheets.closeOnRotate()', $mobile );
 		$this->assertDoesNotMatchRegularExpression( "/sheets\.register\( 'details', \{\s*closeOnRotate/", $mobile );
 	}
 
 	public function test_the_popover_is_gone(): void {
-		$viewer = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$viewer = $this->read( 'blocks/shared/mobile-viewer.js' );
 		foreach ( array( 'details-panel', 'setDetails', 'toggleDetails', 'hasDetails', 'aria-expanded' ) as $gone ) {
 			$this->assertStringNotContainsString( $gone, $viewer, $gone );
 		}
-		$this->assertStringNotContainsString( 'toggleDetails', $this->read( 'blocks/document-modal/mobile.js' ) );
+		$this->assertStringNotContainsString( 'toggleDetails', $this->read( 'blocks/shared/mobile.js' ) );
 		$this->assertStringNotContainsString( 'documents-mobile__details-panel', $this->read( 'blocks/document-modal/style.css' ) );
 	}
 

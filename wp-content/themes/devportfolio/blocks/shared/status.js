@@ -2,9 +2,9 @@
  * The loading / "can't be previewed" message inside a viewer stage (the `role="status"` element in
  * render.php). One implementation for the desktop book and the mobile viewer.
  */
-export function createStatus( { stage, status } ) {
-	const textEl = status.querySelector( '.documents-modal__state-text' );
-	const hintEl = status.querySelector( '.documents-modal__state-hint' );
+export function createStatus( { stage, status, prefix = 'documents-modal' } ) {
+	const textEl = status.querySelector( `.${ prefix }__state-text` );
+	const hintEl = status.querySelector( `.${ prefix }__state-hint` );
 	let hintKey = 'hint';
 	return {
 		/** Which `data-hint*` string explains an unavailable document (see hintKeyFor() in mode.js). */

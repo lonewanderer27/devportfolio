@@ -132,9 +132,9 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	private function read( string $relative ): string {
 		$contents = file_get_contents( $this->theme_dir() . '/' . $relative ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$this->assertNotFalse( $contents, $relative );
-		if ( 'blocks/document-modal/viewer.js' === $relative ) {
+		if ( 'blocks/shared/viewer.js' === $relative ) {
 			// The page sources and the status line moved to page-source.js and status.js (DPD-021): the viewer is read as one piece.
-			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/status.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/document-modal/native-pptx.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$contents .= (string) file_get_contents( $this->theme_dir() . '/blocks/shared/page-source.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/shared/status.js' ) . (string) file_get_contents( $this->theme_dir() . '/blocks/shared/native-pptx.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		}
 
 		return $contents;
@@ -340,7 +340,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	// --- Script and style structure ------------------------------------------------------------
 
 	public function test_the_native_viewer_loads_only_on_demand_and_is_locked_down(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 
 		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, pieceLabel, canDrawOffice, hintKeyFor } from './mode.js'", $js );
 		$this->assertStringContainsString( 'const PPTX_LIB = new URL( `./vendor/ooxml/pptx.mjs?v=${ OOXML_VERSION }`, import.meta.url ).href;', $js );
@@ -362,7 +362,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_the_native_viewer_is_destroyed_on_close_and_driven_by_the_modal_controls(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 
 		$this->assertStringContainsString( 'destroyNative( pptx )', $js, 'Closing frees the workers.' );
 		$this->assertStringContainsString( 'pptx.goToSlide( target - 1 )', $js );
@@ -372,20 +372,20 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'note', preg_replace( '#//.*|/\*.*?\*/#s', '', substr( $js, strpos( $js, 'const showPptx' ), 900 ) ), 'The canvas is the only thing in the stage.' );
 		$this->assertStringNotContainsString( 'innerHTML', $js );
 
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$this->assertStringContainsString( "viewerMode( doc ) === 'native' ? 'landscape' : 'portrait'", $view, 'No two-page footer flash while the deck loads.' );
 	}
 
 	public function test_no_third_party_address_is_hardcoded_in_the_scripts_or_markup(): void {
-		foreach ( array( 'blocks/document-modal/viewer.js', 'blocks/document-modal/view.js', 'blocks/document-modal/mode.js', 'blocks/document-modal/render.php', 'functions.php' ) as $file ) {
+		foreach ( array( 'blocks/shared/viewer.js', 'blocks/document-modal/view.js', 'blocks/shared/mode.js', 'blocks/document-modal/render.php', 'functions.php' ) as $file ) {
 			$this->assertStringNotContainsString( 'officeapps', $this->read( $file ), $file );
 			$this->assertStringNotContainsString( 'googleapis', $this->read( $file ), $file );
 		}
 	}
 
 	public function test_the_entry_and_wasm_urls_carry_the_library_version_so_a_long_cache_cannot_go_stale(): void {
-		$js     = $this->read( 'blocks/document-modal/viewer.js' );
-		$readme = $this->read( 'blocks/document-modal/vendor/ooxml/README.md' );
+		$js     = $this->read( 'blocks/shared/viewer.js' );
+		$readme = $this->read( 'blocks/shared/vendor/ooxml/README.md' );
 
 		$this->assertSame( 1, preg_match( "#const OOXML_VERSION = '([0-9.]+)';#", $js, $m ), 'The version constant exists.' );
 		$this->assertStringContainsString( '**' . $m[1] . '**', $readme, 'It matches the vendored release.' );
@@ -394,7 +394,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 
 		// Every other file the viewer loads has a content hash in its name, so only these two can go stale.
 		$unhashed = array_filter(
-			array_map( 'basename', glob( $this->theme_dir() . '/blocks/document-modal/vendor/ooxml/*.{js,mjs,wasm}', GLOB_BRACE ) ),
+			array_map( 'basename', glob( $this->theme_dir() . '/blocks/shared/vendor/ooxml/*.{js,mjs,wasm}', GLOB_BRACE ) ),
 			static function ( string $file ): bool {
 				return 0 === preg_match( '/-[A-Za-z0-9_-]{8}\.m?js$/', $file );
 			}
@@ -405,7 +405,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_the_canvas_is_drawn_at_the_size_it_is_shown(): void {
-		$js = $this->read( 'blocks/document-modal/viewer.js' );
+		$js = $this->read( 'blocks/shared/viewer.js' );
 
 		$this->assertStringContainsString( 'const room = fitPage( { stageW: size.w, stageH: Math.max( 40, size.h ), ratio: 16 / 9 } );', $js );
 		$this->assertStringContainsString( 'width: Math.max( 640, Math.min( 1920, room.pageW ) )', $js );
@@ -414,14 +414,14 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_the_bundled_viewer_is_vendored_with_its_licence_and_pinned_version(): void {
-		$dir = $this->theme_dir() . '/blocks/document-modal/vendor/ooxml';
+		$dir = $this->theme_dir() . '/blocks/shared/vendor/ooxml';
 
 		foreach ( array( 'pptx.mjs', 'pptx_parser_bg.wasm', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md' ) as $file ) {
 			$this->assertFileExists( $dir . '/' . $file, $file );
 		}
 		$this->assertNotEmpty( glob( $dir . '/assets/render-worker-*.js' ), 'The render worker sits next to the entry.' );
-		$this->assertStringContainsString( 'MIT License', $this->read( 'blocks/document-modal/vendor/ooxml/LICENSE' ) );
-		$this->assertStringContainsString( '**0.89.7**', $this->read( 'blocks/document-modal/vendor/ooxml/README.md' ) );
+		$this->assertStringContainsString( 'MIT License', $this->read( 'blocks/shared/vendor/ooxml/LICENSE' ) );
+		$this->assertStringContainsString( '**0.89.7**', $this->read( 'blocks/shared/vendor/ooxml/README.md' ) );
 		$this->assertSame( "\0asm", substr( (string) file_get_contents( $dir . '/pptx_parser_bg.wasm', false, null, 0, 4 ), 0, 4 ), 'A real WebAssembly module.' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 		// Every file the entry imports is present (the import graph was copied whole).
@@ -434,7 +434,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_the_pager_gives_the_focus_back_after_it_is_redrawn(): void {
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 
 		$this->assertStringContainsString( 'const focused = els.pager.contains( document.activeElement )', $view );
 		$this->assertStringContainsString( 'again.focus()', $view );
@@ -442,12 +442,12 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_view_js_words_follow_the_unit(): void {
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 
-		$this->assertStringContainsString( "import { viewerMode, unitOf, wording, positionText } from './mode.js'", $view );
+		$this->assertStringContainsString( "import { viewerMode, unitOf, wording } from '../shared/mode.js'", $view );
 		$this->assertStringContainsString( "readJson( 'data-units' )", $view );
 		$this->assertStringContainsString( 'positionText( words, first, both ? last : first, pages )', $view );
-		$this->assertStringContainsString( "'aria-label': `\${ words.one } \${ item }`", $view );
+		$this->assertStringContainsString( "label: `\${ words.one } \${ item }`", $view );
 		$this->assertStringContainsString( "els.prev.setAttribute( 'aria-label', words.prev )", $view );
 		$this->assertStringContainsString( "els.next.setAttribute( 'aria-label', words.next )", $view );
 		$this->assertStringNotContainsString( '`Pages ${', $view );
@@ -470,13 +470,13 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		update_option( 'cptdp_documents', array( 'native_pdf' => true ) );
 
 		$this->assertSame( '', devportfolio_document_modal_payload( $id )['viewerUrl'] );
-		$this->assertStringContainsString( 'if ( selectableText && Boolean( doc.viewerUrl ) )', $this->read( 'blocks/document-modal/viewer.js' ) );
+		$this->assertStringContainsString( 'if ( selectableText && Boolean( doc.viewerUrl ) )', $this->read( 'blocks/shared/viewer.js' ) );
 	}
 
 	public function test_css_for_the_native_viewer(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 
-		$this->assertMatchesRegularExpression( '#\.documents-modal__native\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*height: 100%#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__native[^{]*\{[^}]*display: flex[^}]*flex-direction: column[^}]*height: 100%#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__native-canvas\s*\{[^}]*display: block[^}]*max-width: 100%[^}]*background: \#fff#s', $css );
 		$this->assertStringNotContainsString( 'native-note', $css );
 		$this->assertStringNotContainsString( 'documents-modal--office', $css );

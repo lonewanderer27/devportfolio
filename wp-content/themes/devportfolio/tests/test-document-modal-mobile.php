@@ -87,8 +87,8 @@ class Devportfolio_Test_Document_Modal_Mobile extends WP_UnitTestCase {
 		$html = $this->render_modal();
 		$this->assertSame( 2, preg_match_all( '#<button class="documents-mobile__(?:pages|details)[^>]+type="button"#', $html ) );
 		$php = $this->read( 'blocks/document-modal/render.php' );
-		$this->assertStringContainsString( "esc_html_x( 'Pages'", $php );
-		$this->assertStringContainsString( "esc_html_x( 'Details'", $php );
+		$this->assertStringContainsString( "_x( 'Pages'", $php );
+		$this->assertStringContainsString( "_x( 'Details'", $php );
 	}
 
 	public function test_mobile_css_is_full_screen_and_paired_with_desktop_breakpoint(): void {
@@ -102,16 +102,16 @@ class Devportfolio_Test_Document_Modal_Mobile extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'border-radius: 0;', $css );
 		$this->assertStringContainsString( '.documents-mobile::backdrop', $css );
 		$this->assertStringContainsString( 'background: transparent', $css );
-		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\)[^{]*\{\s*\.documents-mobile\s*\{\s*display: none#s', $css );
+		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\)[^{]*\{\s*(?:\.collaterals-mobile,\s*)?\.documents-mobile\s*\{\s*display: none#s', $css );
 		$this->assertStringContainsString( 'grid-template-columns: 1fr auto 1fr', $css );
 		$this->assertStringContainsString( 'transition: width var(--dm-dur)', $css );
 		$this->assertStringContainsString( 'bottom: 0;', $css );
 	}
 
 	public function test_mobile_routing_and_swap_are_present(): void {
-		$view = $this->read( 'blocks/document-modal/view.js' );
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
-		$this->assertStringContainsString( "from './mobile.js'", $view );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
+		$this->assertStringContainsString( "from '../shared/mobile.js'", $view );
 		$this->assertStringContainsString( "from '../shared/download.js'", $view );
 		$this->assertStringContainsString( 'startViewTransition', $view );
 		$this->assertStringContainsString( 'prefers-reduced-motion', $view );

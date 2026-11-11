@@ -233,30 +233,31 @@ const saveDataOn = () => !! ( typeof navigator !== 'undefined' && navigator.conn
  * @param {Function} args.onClose  Called when the visitor closes the sheet (not on `close( true )`).
  * @return {{open:Function,close:Function,isOpen:Function,reset:Function}}
  */
-export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) {
+export function createPagesSheet( { dialog, strings = {}, onSelect, onClose, prefix = 'documents-mobile' } ) {
 	const text = ( key, fallback ) => ( typeof strings[ key ] === 'string' && strings[ key ] !== '' ? strings[ key ] : fallback );
 	// The shell (dim layer, sheet, handle, drag to dismiss, inert viewer, Esc) is shared with the Details sheet.
 	const shell = createBottomSheet( {
 		dialog,
-		titleId: 'documents-mobile-pages-title',
+		titleId: `${ prefix }-pages-title`,
 		handleLabel: text( 'closePages', 'Close pages' ),
-		modifier: 'documents-mobile__sheet--pages',
+		modifier: `${ prefix }__sheet--pages`,
 		onDismiss: () => close( false ),
+		prefix,
 	} );
 	const { sheet, head, body } = shell;
 
-	const title = el( 'h3', 'documents-mobile__sheet-title', { id: 'documents-mobile-pages-title' } );
+	const title = el( 'h3', `${ prefix }__sheet-title`, { id: `${ prefix }-pages-title` } );
 	title.textContent = text( 'pagesTitle', 'Pages' );
-	const toggle = el( 'div', 'documents-mobile__sheet-toggle', { role: 'group', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
-	const galleryBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'true', 'aria-label': text( 'galleryView', 'Gallery view' ), 'data-view': 'grid', 'data-no-drag': '' } );
+	const toggle = el( 'div', `${ prefix }__sheet-toggle`, { role: 'group', 'aria-label': text( 'pagesLabel', 'Pages' ) } );
+	const galleryBtn = el( 'button', `${ prefix }__sheet-view`, { type: 'button', 'aria-pressed': 'true', 'aria-label': text( 'galleryView', 'Gallery view' ), 'data-view': 'grid', 'data-no-drag': '' } );
 	galleryBtn.appendChild( svgIcon( 'M3.5 5.5h17v13h-17z', 'M8 10.5a1.3 1.3 0 1 0 0-.01', 'M4 17l5-5 4 4 3-3 4 4' ) );
-	const listBtn = el( 'button', 'documents-mobile__sheet-view', { type: 'button', 'aria-pressed': 'false', 'aria-label': text( 'listView', 'List view' ), 'data-view': 'list', 'data-no-drag': '' } );
+	const listBtn = el( 'button', `${ prefix }__sheet-view`, { type: 'button', 'aria-pressed': 'false', 'aria-label': text( 'listView', 'List view' ), 'data-view': 'list', 'data-no-drag': '' } );
 	listBtn.appendChild( svgIcon( 'M9 6h11M9 12h11M9 18h11', 'M4.5 6h.01M4.5 12h.01M4.5 18h.01' ) );
 	toggle.append( galleryBtn, listBtn );
 	head.append( title, toggle );
 
-	const grid = el( 'div', 'documents-mobile__pgr' );
-	const list = el( 'div', 'documents-mobile__rows' );
+	const grid = el( 'div', `${ prefix }__pgr` );
+	const list = el( 'div', `${ prefix }__rows` );
 	list.hidden = true;
 	body.append( grid, list );
 
@@ -277,27 +278,27 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 	} );
 
 	const makeTile = ( entry, hasThumbs ) => {
-		const tile = el( 'button', 'documents-mobile__tile', { type: 'button', 'data-page': String( entry.n ), 'aria-label': entry.label } );
+		const tile = el( 'button', `${ prefix }__tile`, { type: 'button', 'data-page': String( entry.n ), 'aria-label': entry.label } );
 		if ( ! hasThumbs ) {
-			tile.classList.add( 'documents-mobile__tile--blank' );
+			tile.classList.add( `${ prefix }__tile--blank` );
 		} else {
 			tile.dataset.src = entry.thumb;
 			tile.dataset.state = '';
 		}
-		const chip = el( 'span', 'documents-mobile__tile-n', { 'aria-hidden': 'true' } );
+		const chip = el( 'span', `${ prefix }__tile-n`, { 'aria-hidden': 'true' } );
 		chip.textContent = String( entry.n );
 		tile.appendChild( chip );
 		return tile;
 	};
 
 	const makeRow = ( entry ) => {
-		const row = el( 'button', 'documents-mobile__prow', { type: 'button', 'data-page': String( entry.n ), 'aria-label': entry.label } );
-		const square = el( 'span', 'documents-mobile__prow-n', { 'aria-hidden': 'true' } );
+		const row = el( 'button', `${ prefix }__prow`, { type: 'button', 'data-page': String( entry.n ), 'aria-label': entry.label } );
+		const square = el( 'span', `${ prefix }__prow-n`, { 'aria-hidden': 'true' } );
 		square.textContent = String( entry.n );
-		const name = el( 'span', 'documents-mobile__prow-name' );
-		const label = el( 'span', 'documents-mobile__prow-text' );
+		const name = el( 'span', `${ prefix }__prow-name` );
+		const label = el( 'span', `${ prefix }__prow-text` );
 		label.textContent = entry.name;
-		const mark = el( 'span', 'documents-mobile__prow-cur' );
+		const mark = el( 'span', `${ prefix }__prow-cur` );
 		mark.textContent = ` · ${ text( 'current', 'current' ) }`;
 		name.append( label, mark );
 		row.append( square, name );
@@ -329,7 +330,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 		const total = cache.model.length;
 		const upTo = Math.min( total, target );
 		const hasThumbs = cache.model.some( ( entry ) => entry.thumb !== '' );
-		const existing = parent.querySelector( '.documents-mobile__sentinel' );
+		const existing = parent.querySelector( `.${ prefix }__sentinel` );
 		if ( existing ) {
 			existing.remove();
 		}
@@ -344,7 +345,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 			cache.builtRows = upTo;
 		}
 		if ( upTo < total ) {
-			const sentinel = el( 'div', 'documents-mobile__sentinel', { 'aria-hidden': 'true', 'data-kind': kind } );
+			const sentinel = el( 'div', `${ prefix }__sentinel`, { 'aria-hidden': 'true', 'data-kind': kind } );
 			parent.appendChild( sentinel );
 			if ( state.growObserver ) {
 				state.growObserver.observe( sentinel );
@@ -358,7 +359,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 			return;
 		}
 		const cache = state.cache;
-		const img = el( 'img', 'documents-mobile__thumb', { alt: '', decoding: 'async', fetchpriority: 'low', draggable: 'false' } );
+		const img = el( 'img', `${ prefix }__thumb`, { alt: '', decoding: 'async', fetchpriority: 'low', draggable: 'false' } );
 		// The descriptor carries the thumbnail's size, so the image reserves its box (no layout shift).
 		const size = cache && cache.doc && cache.doc.thumbs && ! Array.isArray( cache.doc.thumbs ) ? cache.doc.thumbs : {};
 		if ( Number( size.width ) > 0 ) {
@@ -375,7 +376,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 		img.addEventListener( 'error', () => {
 			img.remove();
 			tile.dataset.state = 'failed';
-			tile.classList.add( 'documents-mobile__tile--blank' );
+			tile.classList.add( `${ prefix }__tile--blank` );
 		} );
 		img.src = tile.dataset.src;
 		tile.prepend( img );
@@ -459,7 +460,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 				},
 				{ root: body, rootMargin: `0px 0px ${ rowPixels() }px 0px` }
 			);
-			body.querySelectorAll( '.documents-mobile__sentinel' ).forEach( ( node ) => state.growObserver.observe( node ) );
+			body.querySelectorAll( `.${ prefix }__sentinel` ).forEach( ( node ) => state.growObserver.observe( node ) );
 		}
 		startImages();
 	};
@@ -557,7 +558,7 @@ export function createPagesSheet( { dialog, strings = {}, onSelect, onClose } ) 
 			// Observe only after the scroll position is set, so the pages above the current one are never fetched.
 			startObserving();
 		} else if ( state.growObserver ) {
-			body.querySelectorAll( '.documents-mobile__sentinel' ).forEach( ( node ) => state.growObserver.observe( node ) );
+			body.querySelectorAll( `.${ prefix }__sentinel` ).forEach( ( node ) => state.growObserver.observe( node ) );
 		}
 	};
 

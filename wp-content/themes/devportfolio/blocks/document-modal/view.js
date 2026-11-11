@@ -5,23 +5,16 @@
  * the current viewport. Fills header and footer from the JSON payload; the body shows the
  * pages as an open book (DPD-013, viewer.js). This file owns the current page
  * (`state`): the pager, the arrows, the keyboard and the book itself all end in
- * setPage(), and `documents:modal-change` is dispatched on the dialog after
+ * the shared pager controller (setPage), and `documents:modal-change` is dispatched on the dialog after
  * every open and page change.
  */
-import {
-	stepFor,
-	normalisePage,
-	pagerItems,
-	visiblePages,
-	pagerState,
-	turnPage,
-	indicatorParts,
-} from './pager.js';
-import { mergeLimits } from './capability.js';
-import { createViewer } from './viewer.js';
-import { viewerMode, unitOf, wording, positionText } from './mode.js';
+import { stepFor } from '../shared/pager.js';
+import { mergeLimits } from '../shared/capability.js';
+import { createViewer } from '../shared/viewer.js';
+import { viewerMode, unitOf, wording } from '../shared/mode.js';
+import { createPagerController } from '../shared/pager-controller.js';
 import { slugFromUrl, urlWithSlug, urlWithoutSlug, hasSheetState } from '../shared/deeplink.js';
-import { createMobileModal } from './mobile.js';
+import { createMobileModal } from '../shared/mobile.js';
 import { createRouting } from '../shared/routing.js';
 import { bindOpen } from '../shared/modal-trigger.js';
 import { applyDownload, guardDisabledDownload } from '../shared/download.js';
@@ -59,7 +52,15 @@ if ( dialog && dataEl ) {
 		stage: $( '.documents-modal__stage' ),
 		status: $( '.documents-modal__state' ),
 	};
-	const state = { id: 0, page: 1, step: 1, pages: 0 };
+	// The footer, pager, arrows and keys are one shared controller (DPD-013, DPC-013); it owns the page state.
+	const pager = createPagerController( {
+		els: { footer: els.footer, pager: els.pager, indicator: els.indicator, bar: els.bar, prev: els.prev, next: els.next },
+		prefix: 'documents-modal',
+		target: dialog,
+		eventName: 'documents:modal-change',
+		ignore: '.documents-modal__grid',
+	} );
+	const state = pager.state;
 	let opener = null;
 	// Deeplink (DPD-032): the open document is `?document_slug=<slug>`. `pushed` is true when the current
 	// history entry was added by this modal, so closing can step back instead of leaving a dead entry;
@@ -74,8 +75,6 @@ if ( dialog && dataEl ) {
 		}
 	} );
 	let units = {};
-	// What the open document's pieces are called: pages, or slides for a presentation (DPD-026).
-	let words = wording( 'page', units );
 
 	const readJson = ( name ) => {
 		try {
@@ -86,94 +85,7 @@ if ( dialog && dataEl ) {
 		}
 	};
 
-	const emit = () =>
-		dialog.dispatchEvent( new CustomEvent( 'documents:modal-change', { detail: { ...state } } ) );
-
-	const makeButton = ( className, text, attrs ) => {
-		const button = document.createElement( 'button' );
-		button.type = 'button';
-		button.className = className;
-		button.textContent = text;
-		Object.entries( attrs ).forEach( ( [ key, value ] ) => button.setAttribute( key, value ) );
-		return button;
-	};
-
-	const drawFooter = () => {
-		const { pages, step } = state;
-
-		// Page arrows (DPD-014): dimmed on the first and last view; hidden with one page.
-		const arrows = pagerState( normalisePage( state.page, pages, step ), pages, step );
-		els.prev.setAttribute( 'aria-disabled', String( arrows.backOff ) );
-		els.next.setAttribute( 'aria-disabled', String( arrows.nextOff ) );
-		// One page (or none): nothing to turn, so the arrows are not shown at all.
-		els.prev.hidden = pages < 2;
-		els.next.hidden = pages < 2;
-
-		// One page (or none): there is nothing to page through, so the footer is not shown at all.
-		if ( pages < 2 ) {
-			els.footer.hidden = true;
-			els.pager.hidden = true;
-			els.indicator.hidden = true;
-			return;
-		}
-
-		state.page = normalisePage( state.page, pages, step );
-		const { first, last, both, percent } = indicatorParts( state.page, pages, step );
-
-		// The progress line has no visible text: the position is its accessible value.
-		els.bar.setAttribute( 'aria-valuetext', positionText( words, first, both ? last : first, pages ) );
-		els.bar.firstElementChild.style.width = `${ percent }%`;
-		els.bar.setAttribute( 'aria-valuenow', String( Math.round( percent ) ) );
-		els.indicator.hidden = false;
-		els.footer.hidden = false;
-
-		// Rebuilding the pager removes the button that was just clicked; without this the focus falls to
-		// the page and the arrow keys stop reaching the dialog. Put it back on the same control.
-		const focused = els.pager.contains( document.activeElement ) ? document.activeElement : null;
-		const focusKey = focused ? [ 'data-turn', 'data-page' ].map( ( name ) => [ name, focused.getAttribute( name ) ] ).find( ( pair ) => pair[ 1 ] !== null ) : null;
-
-		els.pager.replaceChildren();
-
-		const { backOff, nextOff } = pagerState( state.page, pages, step );
-		const visible = visiblePages( state.page, pages, step );
-		els.pager.append(
-			makeButton( 'documents-modal__pg documents-modal__pg--nav', '‹ Back', {
-				'data-turn': '-1',
-				'aria-disabled': String( backOff ),
-			} ),
-			...pagerItems( pages, state.page, step ).map( ( item ) => {
-				if ( item === '…' ) {
-					const gap = document.createElement( 'span' );
-					gap.className = 'documents-modal__gap';
-					gap.setAttribute( 'aria-hidden', 'true' );
-					gap.textContent = '···';
-					return gap;
-				}
-				const on = visible.includes( item );
-				const attrs = { 'data-page': String( item ), 'aria-label': `${ words.one } ${ item }` };
-				if ( on ) {
-					attrs[ 'aria-current' ] = 'page';
-				}
-				return makeButton(
-					'documents-modal__pg documents-modal__pg--num' + ( on ? ' is-on' : '' ),
-					String( item ),
-					attrs
-				);
-			} ),
-			makeButton( 'documents-modal__pg documents-modal__pg--nav', 'Next ›', {
-				'data-turn': '1',
-				'aria-disabled': String( nextOff ),
-			} )
-		);
-		els.pager.hidden = false;
-
-		if ( focusKey ) {
-			const again = els.pager.querySelector( `[${ focusKey[ 0 ] }="${ focusKey[ 1 ] }"]` );
-			if ( again ) {
-				again.focus();
-			}
-		}
-	};
+	const emit = pager.emit;
 
 	const drawHeader = ( doc ) => {
 		els.title.textContent = doc.title;
@@ -195,41 +107,22 @@ if ( dialog && dataEl ) {
 		applyDownload( els.download, doc );
 	};
 
-	/** Page changes made inside the book (drag, corner click) come back here. */
-	const syncFromViewer = ( page ) => {
-		const next = normalisePage( page, state.pages, state.step );
-		if ( next !== state.page ) {
-			state.page = next;
-			drawFooter();
-			emit();
-		}
-	};
-
-	/** The viewer knows the real page count and orientation once it has the pages. */
-	const setGeometry = ( { pages, step } ) => {
-		state.pages = pages;
-		state.step = step;
-		state.page = pages > 0 ? normalisePage( state.page, pages, step ) : 1;
-		drawFooter();
-		emit();
-		return state.page;
-	};
-
 	units = readJson( 'data-units' );
-	words = wording( 'page', units );
 
 	const viewer = createViewer( {
+		prefix: 'documents-modal',
 		stage: els.stage,
 		status: els.status,
 		units,
 		pdfjs: readJson( 'data-pdfjs' ),
 		limits: mergeLimits( readJson( 'data-limits' ) ),
 		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
-		onGeometry: setGeometry,
-		onFlip: syncFromViewer,
+		onGeometry: pager.setGeometry,
+		onFlip: pager.syncFromViewer,
 		// A swipe on a touch screen turns the view like Back / Next (DPD-024).
-		onSwipe: ( direction ) => turn( direction ),
+		onSwipe: ( direction ) => pager.turn( direction ),
 	} );
+	pager.attach( viewer );
 
 	// A Pages sheet entry left in the history when the viewer closes (DPD-020): `skipNextPop` makes the popstate
 	// that removing it causes do nothing but drop a stale `?document_slug` from the URL.
@@ -274,6 +167,10 @@ if ( dialog && dataEl ) {
 
 	const mobile = mobileDialog ? createMobileModal( {
 		dialog: mobileDialog,
+		prefix: 'documents-mobile',
+		viewPrefix: 'documents-modal',
+		eventPrefix: 'documents',
+		loadDetails: () => import( './details-sheet.js' ),
 		units,
 		strings: readJson( 'data-mobile-strings' ),
 		pdfjs: readJson( 'data-pdfjs' ),
@@ -308,37 +205,13 @@ if ( dialog && dataEl ) {
 		}
 	};
 
-	/** Goes to a page; `animate` flips the book one view, otherwise it jumps. */
-	const setPage = ( page, animate = false ) => {
-		state.page = normalisePage( page, state.pages, state.step );
-		drawFooter();
-		emit();
-		viewer.goTo( state.page, { animate } );
-	};
-
-	/** Back (-1) or Next (1), ignored while a page is still turning or at the ends. */
-	const turn = ( direction ) => {
-		if ( viewer.isTurning() ) {
-			return;
-		}
-		const target = turnPage( state.page, state.pages, state.step, direction );
-		if ( target !== state.page ) {
-			setPage( target, true );
-		}
-	};
-
 	const openDesktop = ( doc, page = 1 ) => {
-		state.id = doc.id;
-		words = wording( unitOf( doc ), units );
-		els.prev.setAttribute( 'aria-label', words.prev );
-		els.next.setAttribute( 'aria-label', words.next );
-		els.pager.setAttribute( 'aria-label', words.nav );
 		const stored = Array.isArray( doc.images ) ? doc.images.length : 0;
-		state.pages = stored || doc.pages;
-		state.step = stepFor( state.pages, ( stored && doc.ratio > 1 ) || viewerMode( doc ) === 'native' ? 'landscape' : 'portrait' );
-		state.page = normalisePage( page, state.pages, state.step );
+		const pages = stored || doc.pages;
+		const step = stepFor( pages, ( stored && doc.ratio > 1 ) || viewerMode( doc ) === 'native' ? 'landscape' : 'portrait' );
+		// What the open document's pieces are called: pages, or slides for a presentation (DPD-026).
+		pager.open( doc.id, { pages, step, page, words: wording( unitOf( doc ), units ) } );
 		drawHeader( doc );
-		drawFooter();
 		dialog.showModal();
 		els.close.focus();
 		emit();
@@ -421,43 +294,6 @@ if ( dialog && dataEl ) {
 	}
 
 	guardDisabledDownload( els.download );
-
-	[ els.prev, els.next ].forEach( ( arrow ) =>
-		arrow.addEventListener( 'click', () => {
-			if ( arrow.getAttribute( 'aria-disabled' ) !== 'true' ) {
-				turn( arrow === els.next ? 1 : -1 );
-			}
-		} )
-	);
-
-	// Left and Right turn the page, unless the key belongs to a form control.
-	dialog.addEventListener( 'keydown', ( event ) => {
-		if ( event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ) {
-			return;
-		}
-		if ( event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' ) {
-			return;
-		}
-		const target = event.target;
-		if ( target && target.closest && target.closest( 'input, textarea, select, [contenteditable], .documents-modal__grid' ) ) {
-			// Form controls and the spreadsheet grid (arrow keys move cells there) keep their own arrow keys.
-			return;
-		}
-		event.preventDefault();
-		turn( event.key === 'ArrowRight' ? 1 : -1 );
-	} );
-
-	els.pager.addEventListener( 'click', ( event ) => {
-		const turnButton = event.target.closest( '[data-turn]' );
-		const num = event.target.closest( '[data-page]' );
-		if ( turnButton ) {
-			if ( turnButton.getAttribute( 'aria-disabled' ) !== 'true' ) {
-				turn( Number( turnButton.dataset.turn ) );
-			}
-		} else if ( num && ! viewer.isTurning() ) {
-			setPage( Number( num.dataset.page ) );
-		}
-	} );
 
 	const swap = () => {
 		enforceSingleDialog();

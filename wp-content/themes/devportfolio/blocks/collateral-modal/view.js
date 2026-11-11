@@ -5,11 +5,18 @@
  * viewport. The sidebar is filled from the JSON payload with textContent only. Open, close, Back/Forward
  * and the swap to a Next collateral follow the Documents modal (document-modal/view.js), with the
  * parameter `collateral_slug`: a click pushes one history entry, a swap replaces it (one Back always closes).
- * The body (DPC-012) and footer (DPC-013) listen for `collaterals:modal-change` on the dialog.
+ * The body (DPC-012) and footer (DPC-013) are the shared book viewer and pager controller (shared/viewer.js,
+ * shared/pager-controller.js) with the `collaterals-modal` prefix. The desktop dialog emits
+ * `collaterals:modal-change` (id, page, step, pages) from the controller.
  */
 import { createRouting } from '../shared/routing.js';
+import { createViewer } from '../shared/viewer.js';
+import { createPagerController } from '../shared/pager-controller.js';
+import { mergeLimits } from '../shared/capability.js';
+import { unitOf, wording } from '../shared/mode.js';
 import { bindOpen } from '../shared/modal-trigger.js';
-import { createDeeplink } from '../shared/deeplink.js';
+import { createDeeplink, hasSheetState } from '../shared/deeplink.js';
+import { createMobileModal } from '../shared/mobile.js';
 import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 import { nextTwo } from './next.js';
 import { linkFor, copyText } from './copy-link.js';
@@ -55,36 +62,96 @@ if ( dialog && mobileDialog && dataEl ) {
 		stats: $( '.collaterals-modal__stats' ),
 		tools: $( '.collaterals-modal__tools' ),
 		toolList: $( '.collaterals-modal__toollist' ),
-		next: $( '.collaterals-modal__next' ),
+		nextSection: $( '.collaterals-modal__next' ),
 		nextList: $( '.collaterals-modal__nextlist' ),
 		download: $( '.collaterals-modal__download' ),
 		copy: $( '.collaterals-modal__copy' ),
 		copyField: $( '.collaterals-modal__copyfield' ),
 		live: $( '.collaterals-modal__live' ),
 		close: $( '.collaterals-modal__close' ),
+		prev: $( '.collaterals-modal__arrow--prev' ),
+		next: $( '.collaterals-modal__arrow--next' ),
+		stage: $( '.collaterals-modal__stage' ),
+		status: $( '.collaterals-modal__state' ),
+		tap: $( '.collaterals-modal__tap' ),
+		footer: $( '.collaterals-modal__footer' ),
+		pager: $( '.collaterals-modal__pager' ),
+		indicator: $( '.collaterals-modal__indicator' ),
+		bar: $( '.collaterals-modal__footer .collaterals-modal__bar' ),
 	};
+	const units = readJson( root.getAttribute( 'data-units' ) );
 	const copyLabel = els.copy.textContent;
-	const mobile = {
-		title: mobileDialog.querySelector( '.collaterals-mobile__title' ),
-		close: mobileDialog.querySelector( '.collaterals-mobile__close' ),
-	};
+
+	// The footer, pager, arrows and keys: the controller shared with the Documents modal (DPC-013). It owns the page state.
+	const pager = createPagerController( {
+		els: { footer: els.footer, pager: els.pager, indicator: els.indicator, bar: els.bar, prev: els.prev, next: els.next, tap: els.tap },
+		prefix: 'collaterals-modal',
+		target: dialog,
+		eventName: 'collaterals:modal-change',
+		ignore: '.collaterals-modal__grid',
+	} );
+	// The book (DPC-012): stored page images first, pdf.js behind the same render gate as Documents.
+	const viewer = createViewer( {
+		prefix: 'collaterals-modal',
+		stage: els.stage,
+		status: els.status,
+		units,
+		pdfjs: readJson( root.getAttribute( 'data-pdfjs' ) ),
+		limits: mergeLimits( readJson( root.getAttribute( 'data-limits' ) ) ),
+		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
+		singlePage: true,
+		onGeometry: pager.setGeometry,
+		onFlip: pager.syncFromViewer,
+		onSwipe: ( direction ) => pager.turn( direction ),
+		onTap: ( direction ) => pager.tap( direction ),
+	} );
+	pager.attach( viewer );
+	// The mobile dialog (DPC-015 to DPC-019): the shared mobile body (mobile.js), with the collateral's own markup
+	// prefix, events and Details sheet. It owns its page state; this file only opens it and closes it.
+	const mobile = createMobileModal( {
+		dialog: mobileDialog,
+		prefix: 'collaterals-mobile',
+		viewPrefix: 'collaterals-modal',
+		eventPrefix: 'collaterals',
+		loadDetails: () => import( './details-sheet.js' ),
+		units,
+		strings: readJson( root.getAttribute( 'data-mobile-strings' ) ),
+		pdfjs: readJson( root.getAttribute( 'data-pdfjs' ) ),
+		limits: mergeLimits( readJson( root.getAttribute( 'data-limits' ) ) ),
+		selectableText: root.getAttribute( 'data-selectable-text' ) === '1',
+		singlePage: true,
+		onClose: ( extra ) => finishClose( extra ),
+	} );
 
 	let currentId = 0;
 	let opener = null;
 	let pushed = false;
 	let closingFromHistory = false;
 	let swapping = false;
+	let skipNextPop = false;
+	let swapQueued = false;
 	let copyTimer = 0;
 
-	const isOpen = () => dialog.open || mobileDialog.open;
-	const shownDialog = () => ( dialog.open ? dialog : mobileDialog.open ? mobileDialog : null );
+	const isOpen = () => dialog.open || mobile.isOpen();
+	const shownDialog = () => ( dialog.open ? dialog : mobile.isOpen() ? mobileDialog : null );
 	const wantedDialog = () => ( routing.isDesktop() ? dialog : mobileDialog );
 
-	/** Announces the change on the dialog that is on screen (DPC-012 listens for it). */
+	/** Announces the change on the desktop dialog (DPC-012 listens for it). The mobile modal emits its own events. */
 	const emit = () => {
-		const target = wantedDialog();
-		const name = target === dialog ? 'collaterals:modal-change' : 'collaterals:mobile-change';
-		target.dispatchEvent( new CustomEvent( name, { detail: { id: currentId, page: 1 } } ) );
+		if ( wantedDialog() === dialog ) {
+			pager.emit();
+		}
+	};
+
+	/**
+	 * Sets the footer and the book's pages for one collateral before its dialog is shown (so the arrows are right
+	 * on first paint): the stored pages, else the typed page count. Collaterals always show one page at a time.
+	 */
+	const openPages = ( id, item, { page = 1, flipped = false } = {} ) => {
+		const stored = Array.isArray( item.images ) ? item.images.length : 0;
+		const pages = stored || Number( item.pages ) || 0;
+		const step = 1;
+		pager.open( Number( id ), { pages, step, page, words: wording( unitOf( item ), units ), flipped } );
 	};
 
 	/** The category the grid is filtered by (the pressed pill), '' for All. Read on open and swap only. */
@@ -135,10 +202,10 @@ if ( dialog && mobileDialog && dataEl ) {
 				return li;
 			} )
 		);
-		els.next.hidden = ids.length === 0;
+		els.nextSection.hidden = ids.length === 0;
 	};
 
-	/** Fills the sidebar and the mobile title from one payload item. textContent only. */
+	/** Fills the desktop sidebar from one payload item. textContent only (the mobile modal fills its own header). */
 	const fill = ( item ) => {
 		els.pillCat.textContent = item.category;
 		els.pillCat.hidden = ! item.category;
@@ -147,7 +214,6 @@ if ( dialog && mobileDialog && dataEl ) {
 		els.pills.hidden = ! item.category && ! item.pill;
 
 		els.title.textContent = item.title;
-		mobile.title.textContent = item.title;
 		els.desc.textContent = item.description;
 		els.desc.hidden = ! item.description;
 
@@ -190,10 +256,17 @@ if ( dialog && mobileDialog && dataEl ) {
 		return opener && document.contains( opener ) ? opener : null;
 	};
 
-	const finishClose = () => {
-		// The other dialog is taking over (a swap on resize): nothing to close for the visitor.
+	/**
+	 * A dialog closed (desktop, or the mobile modal's close with `extra` sheet entries still in the history).
+	 * Mirrors document-modal/view.js: a swap only reconciles, a sheet's entry is removed with the modal's.
+	 */
+	const finishClose = ( extra = 0 ) => {
 		if ( swapping ) {
 			swapping = false;
+			if ( extra > 0 ) {
+				// The sheet's entry has the same URL as the modal's: step back onto it; the other dialog is open.
+				window.history.go( -extra );
+			}
 			return;
 		}
 		document.documentElement.style.overflow = '';
@@ -204,7 +277,11 @@ if ( dialog && mobileDialog && dataEl ) {
 			pushed = false;
 		} else if ( pushed ) {
 			pushed = false;
-			window.history.back();
+			// Also removes the Details or Pages sheet's entry when one was left open.
+			window.history.go( -( 1 + extra ) );
+		} else if ( extra > 0 ) {
+			skipNextPop = true;
+			window.history.go( -extra );
 		} else if ( deeplink.slugFromUrl( window.location.href ) ) {
 			window.history.replaceState( window.history.state, '', deeplink.urlWithoutSlug( window.location.href ) );
 		}
@@ -222,7 +299,7 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	/** Never both dialogs at once: the one that does not belong on this screen is closed (view.js of Documents, same rule). */
 	const enforceSingleDialog = () => {
-		if ( ! dialog.open || ! mobileDialog.open ) {
+		if ( ! dialog.open || ! mobile.isOpen() ) {
 			return;
 		}
 		swapping = true;
@@ -246,11 +323,18 @@ if ( dialog && mobileDialog && dataEl ) {
 		opener = trigger;
 		document.documentElement.style.overflow = 'hidden';
 		fill( item );
-		const target = wantedDialog();
-		target.showModal();
-		( target === dialog ? els.close : mobile.close ).focus();
+		if ( wantedDialog() === dialog ) {
+			openPages( id, item );
+			dialog.showModal();
+			els.close.focus();
+			enforceSingleDialog();
+			emit();
+			viewer.show( item, 1 );
+			return;
+		}
+		// The mobile modal opens on its first page and announces its own state (mobile.js).
+		mobile.show( item, 1 );
 		enforceSingleDialog();
-		emit();
 	};
 
 	/** Next collateral (D8): the sidebar and URL change, the modal stays open and the entry is replaced. */
@@ -262,25 +346,47 @@ if ( dialog && mobileDialog && dataEl ) {
 		currentId = Number( id );
 		fill( item );
 		window.history.replaceState( window.history.state, '', deeplink.urlWithSlug( window.location.href, item.slug ) );
-		( wantedDialog() === dialog ? els.title : mobile.title ).focus();
+		if ( wantedDialog() !== dialog ) {
+			mobile.show( item, 1 );
+			return;
+		}
+		els.title.focus();
+		// A Next collateral starts on its first page, with the Tap to Flip hint off (DPC-012, D7).
+		openPages( id, item, { flipped: true } );
 		emit();
+		viewer.show( item, 1 );
 	};
 
 	/** The dialog changes between desktop and mobile in place (same collateral, page and URL). */
 	const swapDialogs = () => {
+		// One swap at a time: a second media change while the first one is queued or still closing must not swap
+		// again from the dialog that is closing (its page has already collapsed; the first swap has the right page).
+		if ( swapping || swapQueued ) {
+			return;
+		}
 		enforceSingleDialog();
 		const shown = shownDialog();
 		if ( ! shown || ( shown === dialog ) === routing.isDesktop() ) {
 			return;
 		}
+		// The page is kept across the swap (DPC-019), read now: the desktop book can collapse while the viewport changes.
+		const page = shown === dialog ? pager.state.page : mobile.state().page;
 		const run = () => {
 			swapping = true;
+			swapQueued = false;
 			shown.close();
-			const next = wantedDialog();
-			next.showModal();
-			( next === dialog ? els.close : mobile.close ).focus();
-			emit();
+			if ( wantedDialog() === dialog ) {
+				fill( current() );
+				openPages( currentId, current(), { page } );
+				dialog.showModal();
+				els.close.focus();
+				emit();
+				viewer.show( current(), page );
+				return;
+			}
+			mobile.show( current(), page );
 		};
+		swapQueued = true;
 		if ( ! document.startViewTransition || reduceMotion() ) {
 			run();
 			return;
@@ -304,9 +410,9 @@ if ( dialog && mobileDialog && dataEl ) {
 		}
 	} );
 	els.close.addEventListener( 'click', closeFromButton );
-	mobile.close.addEventListener( 'click', closeFromButton );
-	dialog.addEventListener( 'close', finishClose );
-	mobileDialog.addEventListener( 'close', finishClose );
+	// The book stops with its dialog (a swap to the mobile dialog stops it too, DPC-012).
+	dialog.addEventListener( 'close', () => viewer.destroy() );
+	dialog.addEventListener( 'close', () => finishClose() );
 
 	els.nextList.addEventListener( 'click', ( event ) => {
 		const button = event.target.closest ? event.target.closest( '[data-collateral-next]' ) : null;
@@ -355,10 +461,19 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	// Back and Forward open or close the modal to match the URL, without adding entries. Registered in the capture
 	// phase at module top level and stopping the event whenever it acts: the Interactivity Router answers every
-	// popstate and reloads the page for a URL it has not cached (see document-modal/view.js).
+	// popstate and reloads the page for a URL it has not cached (see document-modal/view.js). A sheet's own entry
+	// (shared/sheet-back.js) has the same URL; the sheet listener runs first and this one leaves it alone.
 	window.addEventListener(
 		'popstate',
 		( event ) => {
+			if ( skipNextPop ) {
+				skipNextPop = false;
+				if ( deeplink.slugFromUrl( window.location.href ) && ! isOpen() ) {
+					window.history.replaceState( window.history.state, '', deeplink.urlWithoutSlug( window.location.href ) );
+				}
+				event.stopImmediatePropagation();
+				return;
+			}
 			if ( swapping ) {
 				event.stopImmediatePropagation();
 				return;
@@ -372,6 +487,9 @@ if ( dialog && mobileDialog && dataEl ) {
 				event.stopImmediatePropagation();
 				pushed = true;
 				show( idBySlug[ slug ], { push: false, trigger: null } );
+			} else if ( slug && isOpen() && hasSheetState( event.state ) ) {
+				// Forward onto a sheet's old entry: same URL, nothing to do (and nothing for the router to reload).
+				event.stopImmediatePropagation();
 			}
 		},
 		true

@@ -67,33 +67,33 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_mobile_viewer_reuses_the_desktop_sources_and_gate(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( "from './page-source.js'", $js );
 		$this->assertStringContainsString( 'acquireSource( doc, alive', $js );
 		$this->assertStringContainsString( 'selectableText', $js );
 		$this->assertStringNotContainsString( 'loadFlipLibrary', $js, 'The mobile viewer never loads the page-flip library.' );
 		$this->assertStringNotContainsString( 'import( pdfjs', $js, 'pdf.js is imported by page-source.js only.' );
 
-		$sources = $this->read( 'blocks/document-modal/page-source.js' );
+		$sources = $this->read( 'blocks/shared/page-source.js' );
 		$this->assertStringContainsString( 'await import( pdfjs.module )', $sources );
 		$this->assertStringContainsString( 'clientRenderTier( readEnvironment(', $sources );
 		$this->assertStringContainsString( 'export async function acquireSource', $sources );
 	}
 
 	public function test_every_known_kind_is_drawn_on_mobile(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( '! canShowOnMobile( doc )', $js );
 		$this->assertLessThan( strpos( $js, 'acquireSource( doc, alive' ), strpos( $js, '! canShowOnMobile( doc )' ), 'The gate comes before anything is fetched.' );
-		$mode = $this->read( 'blocks/document-modal/mode.js' );
-		$this->assertStringContainsString( "doc.kind === 'pdf' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) || isWord( doc )", $mode );
+		$mode = $this->read( 'blocks/shared/mode.js' );
+		$this->assertStringContainsString( "doc.kind === 'pdf' || doc.kind === 'image' || unitOf( doc ) === 'slide' || isSpreadsheet( doc ) || isWord( doc )", $mode );
 		$this->assertStringNotContainsString( 'isMobilePdf', $mode, 'The strict PDF check was dropped with the last doctype.' );
 		$this->assertStringNotContainsString( 'canDrawPresentations', $mode, 'The old alias is gone.' );
 	}
 
 	public function test_the_native_powerpoint_viewer_on_mobile_shares_the_desktop_mount(): void {
-		$mobile  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$desktop = $this->read( 'blocks/document-modal/viewer.js' );
-		$mount   = $this->read( 'blocks/document-modal/native-pptx.js' );
+		$mobile  = $this->read( 'blocks/shared/mobile-viewer.js' );
+		$desktop = $this->read( 'blocks/shared/viewer.js' );
+		$mount   = $this->read( 'blocks/shared/native-pptx.js' );
 
 		$this->assertStringContainsString( "from './native-pptx.js'", $mobile );
 		$this->assertStringContainsString( "from './native-pptx.js'", $desktop );
@@ -110,9 +110,9 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_native_excel_grid_on_mobile_shares_the_desktop_mount_and_its_limits(): void {
-		$mobile  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$desktop = $this->read( 'blocks/document-modal/viewer.js' );
-		$mount   = $this->read( 'blocks/document-modal/native-xlsx.js' );
+		$mobile  = $this->read( 'blocks/shared/mobile-viewer.js' );
+		$desktop = $this->read( 'blocks/shared/viewer.js' );
+		$mount   = $this->read( 'blocks/shared/native-xlsx.js' );
 
 		$this->assertStringContainsString( "from './native-xlsx.js'", $mobile );
 		$this->assertStringContainsString( "from './native-xlsx.js'", $desktop );
@@ -132,8 +132,8 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_native_grid_is_one_piece_with_no_footer_no_page_gestures_and_no_zoom_buttons(): void {
-		$js  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$app = $this->read( 'blocks/document-modal/mobile.js' );
+		$js  = $this->read( 'blocks/shared/mobile-viewer.js' );
+		$app = $this->read( 'blocks/shared/mobile.js' );
 		$body = substr( $js, (int) strpos( $js, 'const showScroll' ), (int) strpos( $js, '/* ---- public' ) - (int) strpos( $js, 'const showScroll' ) );
 
 		// One piece: mobile.js hides the footer and progress bar when pages < 2, as on desktop.
@@ -145,19 +145,19 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 			$this->assertStringNotContainsString( $page_only, $body, $page_only );
 		}
 		$this->assertStringContainsString( 'makeDetails()', $body, 'Only the details button is kept.' );
-		$this->assertStringContainsString( "documents-mobile__scroll", $body );
+		$this->assertStringContainsString( '${ prefix }__scroll', $body );
 		$this->assertStringContainsString( 'if ( ui && scrollView )', $js );
 
 		// Closing frees the workers and the stage loses its grid class and variable.
 		$this->assertStringContainsString( 'scrollView.instance.destroy()', $js );
-		$this->assertStringContainsString( "stage.classList.remove( 'documents-mobile__stage--scroll', 'documents-mobile__stage--doc' )", $js );
-		$this->assertStringContainsString( "stage.style.removeProperty( '--documents-grid-bar' )", $js );
+		$this->assertStringContainsString( "stage.classList.remove( `\${ prefix }__stage--scroll`, `\${ prefix }__stage--doc` )", $js );
+		$this->assertStringContainsString( "stage.style.removeProperty( '--grid-bar' )", $js );
 
 		// A failed grid falls back to the stored sheets, else "can't be previewed".
 		$this->assertStringContainsString( 'The native viewer could not draw it: use the stored slides when there are some.', $js );
 
 		// The grid owns the arrow, zoom and 0 keys while it has the focus.
-		$this->assertStringContainsString( "closest( '.documents-mobile__scroll' )", $app );
+		$this->assertStringContainsString( "closest( `.\${ prefix }__scroll` )", $app );
 	}
 
 	public function test_the_grid_keeps_clear_of_the_floating_buttons_in_portrait_and_landscape(): void {
@@ -173,23 +173,23 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__stage--scroll \.documents-mobile__fabs\s*\{[^}]*bottom:\s*calc\(\s*var\(--documents-grid-bar, 30px\) \+ 12px#', $css );
 
 		// Thumb-sized tab bar on touch screens.
-		$this->assertMatchesRegularExpression( '#\(pointer: coarse\)\s*\{\s*\.documents-mobile__scroll :has\( > \.xlsx-tab-strip \)\s*\{\s*height:\s*40px !important#', $css );
+		$this->assertMatchesRegularExpression( '#\(pointer: coarse\)\s*\{\s*(?:\.collaterals-mobile__scroll :has\( > \.xlsx-tab-strip \),\s*)?\.documents-mobile__scroll :has\( > \.xlsx-tab-strip \)\s*\{\s*height:\s*40px !important#', $css );
 
 		// Held sideways Close and Download float over the top corners: the grid starts below them.
-		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
+		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*(?:\.collaterals-mobile__scroll,\s*)?\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
 
 		// A workbook gets no zoom buttons (its tab bar has its own zoom), so nothing sits over the bar's left end:
 		// they are built only for a document, and only after the 'isDoc' check.
-		$js   = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js   = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$body = substr( $js, (int) strpos( $js, 'const showScroll' ), (int) strpos( $js, '/* ---- public' ) - (int) strpos( $js, 'const showScroll' ) );
 		$this->assertMatchesRegularExpression( '#if \( isDoc \) \{\s*buildZoom\(\);#', $body );
 	}
 
 	public function test_the_native_word_scroller_on_mobile_shares_the_desktop_mount_and_its_limits(): void {
-		$mobile  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$desktop = $this->read( 'blocks/document-modal/viewer.js' );
-		$mount   = $this->read( 'blocks/document-modal/native-docx.js' );
-		$mode    = $this->read( 'blocks/document-modal/mode.js' );
+		$mobile  = $this->read( 'blocks/shared/mobile-viewer.js' );
+		$desktop = $this->read( 'blocks/shared/viewer.js' );
+		$mount   = $this->read( 'blocks/shared/native-docx.js' );
+		$mode    = $this->read( 'blocks/shared/mode.js' );
 
 		$this->assertStringContainsString( "from './native-docx.js'", $mobile );
 		$this->assertStringContainsString( "from './native-docx.js'", $desktop );
@@ -209,13 +209,13 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_word_scroller_zoom_buttons_call_the_library_and_stop_at_its_limits(): void {
-		$js  = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js  = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$css = $this->read( 'blocks/document-modal/style.css' );
 
 		$this->assertStringContainsString( "stepBy( 'zoomIn' )", $js );
 		$this->assertStringContainsString( "stepBy( 'zoomOut' )", $js );
 		$this->assertStringContainsString( 'instance.getScale()', $js );
-		$this->assertStringContainsString( 'documents-mobile__scroll--doc', $js );
+		$this->assertStringContainsString( '${ prefix }__scroll--doc', $js );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__stage--doc \.documents-mobile__fabs,\s*\.documents-mobile__stage--doc \.documents-mobile__zoomfabs\s*\{[^}]*bottom:\s*calc\(12px \+ env\(safe-area-inset-bottom#', $css, 'No tab bar: both buttons keep the normal inset.' );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__scroll--doc\s*\{[^}]*overflow:\s*auto#', $css );
 	}
@@ -224,14 +224,14 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 
 		// A spreadsheet grid starts below the floating Close and Download buttons (its tab bar sits at the bottom).
-		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
+		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*(?:\.collaterals-mobile__scroll,\s*)?\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
 
 		// A Word document scrolls under the round buttons like the page viewer: no visible bar across the top.
 		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{[^@]*\.documents-mobile__scroll--doc\s*\{\s*top:\s*0;#', $css, 'The Word viewer must start at the very top held sideways.' );
 	}
 
 	public function test_the_native_canvas_is_redrawn_in_place_freed_on_close_and_falls_back_to_the_slides(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 
 		$this->assertStringContainsString( 'native.instance.goToSlide( target - 1 )', $js );
 		$this->assertStringContainsString( 'created.destroy()', $js, 'Closing frees the workers (reset() calls source.destroy()).' );
@@ -245,7 +245,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_zoom_buttons_and_the_native_canvas_is_refitted_after_every_slide(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 
 		// The library resets the canvas's CSS size to its drawing size on each render: a turn must fit it again.
 		$this->assertMatchesRegularExpression( '#native\.instance\.goToSlide\( target - 1 \)\.then\(\s*\(\) => \{.*?fitNative\(\);#s', $js );
@@ -262,33 +262,33 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_crop_and_the_text_layer_are_honoured(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
-		$this->assertStringContainsString( "'documents-modal__book--cropped'", $js );
-		$this->assertStringContainsString( "'--documents-crop'", $js );
-		$this->assertStringContainsString( "'documents-modal__book--selectable'", $js );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
+		$this->assertStringContainsString( "`\${ viewPrefix }__book--cropped`", $js );
+		$this->assertStringContainsString( "'--book-crop'", $js );
+		$this->assertStringContainsString( "`\${ viewPrefix }__book--selectable`", $js );
 	}
 
 	public function test_gestures_follow_the_ticket(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 		foreach ( array( 'classifyTap(', 'swipeDirection(', 'verticalIntent(', 'touchZoom.movePinch(', 'touchZoom.tap(', 'touchZoom.movePan(' ) as $call ) {
 			$this->assertStringContainsString( $call, $js, $call );
 		}
 		// The zoom state is shared with the desktop book's touch handling.
-		$zoom = $this->read( 'blocks/document-modal/touch-zoom.js' );
+		$zoom = $this->read( 'blocks/shared/touch-zoom.js' );
 		foreach ( array( 'pinchScale(', 'doubleTapTarget(', 'isDoubleTap(', 'clampPan(', 'zoomAround(' ) as $call ) {
 			$this->assertStringContainsString( $call, $zoom, $call );
 		}
-		$this->assertStringContainsString( "from './touch-zoom.js'", $this->read( 'blocks/document-modal/viewer.js' ) );
+		$this->assertStringContainsString( "from './touch-zoom.js'", $this->read( 'blocks/shared/viewer.js' ) );
 		$this->assertStringContainsString( "addEventListener( 'pointerdown'", $js );
 		$this->assertStringContainsString( "addEventListener( 'pointercancel'", $js );
-		$gestures = $this->read( 'blocks/document-modal/gestures.js' );
+		$gestures = $this->read( 'blocks/shared/gestures.js' );
 		$this->assertStringContainsString( 'EDGE_ZONE = 0.2', $gestures );
 		$this->assertStringContainsString( 'DEAD_STRIP = 8', $gestures );
 		$this->assertStringContainsString( 'ZOOM_MAX = 4', $gestures );
 	}
 
 	public function test_zoom_keys_and_arrow_keys_are_wired_in_the_mobile_modal(): void {
-		$js = $this->read( 'blocks/document-modal/mobile.js' );
+		$js = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertStringContainsString( 'viewer.zoomStep( 1 )', $js );
 		$this->assertStringContainsString( 'viewer.zoomStep( -1 )', $js );
 		$this->assertStringContainsString( 'viewer.resetZoom()', $js );
@@ -296,12 +296,12 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'els.pages.hidden = state.pages < 2', $js );
 		$this->assertStringContainsString( 'els.footer.hidden = footerGone', $js, 'One page: no footer.' );
 		$this->assertStringContainsString( 'els.bar.hidden = state.pages < 2', $js, 'One page: no progress bar.' );
-		$this->assertStringContainsString( "els.details.addEventListener( 'click', () => emit( 'documents:mobile-details' ) )", $js, 'The footer Details button opens the Details sheet.' );
+		$this->assertStringContainsString( "els.details.addEventListener( 'click', () => emit( `\${ eventPrefix }:mobile-details` ) )", $js, 'The footer Details button opens the Details sheet.' );
 		$this->assertStringNotContainsString( 'toggleDetails', $js );
 	}
 
 	public function test_the_details_button_hides_on_a_swipe_down_and_returns(): void {
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( "intent === 'down'", $js );
 		$this->assertStringContainsString( "intent === 'up'", $js );
 		$this->assertStringContainsString( 'setFabAway( false ), 2000 )', $js, 'It also returns after 2s of quiet.' );
@@ -311,28 +311,28 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'details-panel', $js );
 		$this->assertStringNotContainsString( 'setDetails', $js );
 		$this->assertStringContainsString( "'aria-haspopup': 'dialog'", $js );
-		$this->assertStringContainsString( 'documents-mobile__hint-text', $js );
+		$this->assertStringContainsString( '${ prefix }__hint-text', $js );
 		$this->assertStringContainsString( "// Any touch in the body counts as having read the hint.", $js );
 		$this->assertMatchesRegularExpression( "#fab\\.addEventListener\\( 'click', \\(\\) => \\{\\s*dismissHint\\(\\);\\s*if \\( onDetails \\) \\{\\s*onDetails\\(\\);#", $js, 'Opening the details counts as an action.' );
 		$this->assertStringContainsString( "'aria-live': 'polite'", $js );
 	}
 
 	public function test_the_spread_follows_the_space_on_touch_devices_too(): void {
-		$layout = $this->read( 'blocks/document-modal/layout.js' );
+		$layout = $this->read( 'blocks/shared/layout.js' );
 		$this->assertStringContainsString( 'export function spreadFits', $layout );
 		$this->assertStringContainsString( 'stageW ) >= 2 * Number( stageH ) * r', $layout );
 
-		$mobile = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$mobile = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( 'spreadFits( {', $mobile );
 		$this->assertStringContainsString( 'new ResizeObserver( onResize )', $mobile );
 
-		$viewer = $this->read( 'blocks/document-modal/viewer.js' );
+		$viewer = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( "matchMedia( '(pointer: coarse)' )", $viewer );
 		$this->assertStringContainsString( 'useMouseEvents: ! source.textLayer && ! coarse.matches', $viewer );
 		$this->assertStringContainsString( 'stepForStage( source )', $viewer );
 
-		$view = $this->read( 'blocks/document-modal/view.js' );
-		$this->assertStringContainsString( 'onSwipe: ( direction ) => turn( direction )', $view );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
+		$this->assertStringContainsString( 'onSwipe: ( direction ) => pager.turn( direction )', $view );
 		$this->assertStringContainsString( "readJson( 'data-mobile-strings' )", $view );
 	}
 
@@ -349,20 +349,20 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_a_touch_screen_held_sideways_gets_the_mobile_dialog_with_round_buttons(): void {
-		$view = $this->read( 'blocks/document-modal/view.js' );
+		$view = ( $this->read( 'blocks/document-modal/view.js' ) . $this->read( 'blocks/shared/pager-controller.js' ) );
 		$routing = $this->read( 'blocks/shared/routing.js' );
 		$this->assertStringContainsString( "'(pointer: coarse) and (orientation: landscape) and (max-height: 520px)'", $routing );
 		$this->assertStringContainsString( 'Boolean( wide.matches ) && ! sideways.matches', $routing );
 		$this->assertStringContainsString( 'routing.onChange( swap )', $view );
 		$this->assertStringContainsString( 'enforceSingleDialog', $view, 'Never both dialogs at once.' );
-		$this->assertStringContainsString( 'SIDEWAYS_QUERY', $this->read( 'blocks/document-modal/mobile.js' ) );
+		$this->assertStringContainsString( 'SIDEWAYS_QUERY', $this->read( 'blocks/shared/mobile.js' ) );
 
-		$mobile = $this->read( 'blocks/document-modal/mobile.js' );
+		$mobile = $this->read( 'blocks/shared/mobile.js' );
 		$this->assertStringContainsString( 'const footerGone = state.pages < 2 || landscape.matches', $mobile );
 		$this->assertStringContainsString( 'info: footerGone,', $mobile, 'The details button is shown whenever the footer is gone, even with no pages (DPD-023).' );
 		$this->assertStringContainsString( 'pages: landscape.matches && state.pages > 1', $mobile );
 
-		$js = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$js = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( 'fabs.append( pagesFab, fab )', $js, 'Pages on top of details.' );
 		$this->assertStringContainsString( 'ui.fab.hidden = ! chrome.info', $js );
 
@@ -372,7 +372,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_rotating_fades_the_pages_out_and_back_in(): void {
-		$mobile = $this->read( 'blocks/document-modal/mobile-viewer.js' );
+		$mobile = $this->read( 'blocks/shared/mobile-viewer.js' );
 		$this->assertStringContainsString( 'fade( true )', $mobile );
 		$this->assertStringContainsString( 'fade( false )', $mobile );
 		$this->assertStringContainsString( "'opacity 120ms ease-out'", $mobile );
@@ -380,7 +380,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'reducedMotion.matches', $mobile, 'No fade with reduced motion.' );
 		$this->assertStringContainsString( '}, 250 );', $mobile, 'It waits for the rotation to settle.' );
 
-		$viewer = $this->read( 'blocks/document-modal/viewer.js' );
+		$viewer = $this->read( 'blocks/shared/viewer.js' );
 		$this->assertStringContainsString( 'fadeBook( true )', $viewer );
 		$this->assertStringContainsString( 'fadeBook( false )', $viewer );
 	}

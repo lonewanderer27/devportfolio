@@ -1,23 +1,29 @@
 import { normalisePage, mobileFooterParts } from './pager.js';
 import { unitOf, wording, positionText } from './mode.js';
-import { applyDownload, guardDisabledDownload } from '../shared/download.js';
+import { applyDownload, guardDisabledDownload } from './download.js';
 import { createMobileViewer } from './mobile-viewer.js';
-import { SIDEWAYS_QUERY } from '../shared/routing.js';
+import { SIDEWAYS_QUERY } from './routing.js';
 import { createSheetController } from './sheet-controller.js';
 
-export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {}, limits = {}, selectableText = false, onClose } ) {
+/**
+ * The mobile dialog body (DPD-017 to DPD-024; DPC-015 to DPC-019). Shared by the Documents and the Collaterals
+ * modals: the markup classes come from `prefix` (`documents-mobile` or `collaterals-mobile`), the viewer's
+ * classes from `viewPrefix`, the events from `eventPrefix`, and `loadDetails()` returns the modal's own Details sheet
+ * factory (a lazy import in its own folder, so it resolves there).
+ */
+export function createMobileModal( { dialog, prefix = 'documents-mobile', viewPrefix = 'documents-modal', eventPrefix = 'documents', loadDetails = null, units = {}, strings = {}, pdfjs = {}, limits = {}, selectableText = false, singlePage = false, onClose } ) {
 	const $ = ( selector ) => dialog.querySelector( selector );
 	const els = {
-		title: $( '.documents-mobile__title' ),
-		close: $( '.documents-mobile__close' ),
-		download: $( '.documents-mobile__download' ),
-		pages: $( '.documents-mobile__pages' ),
-		details: $( '.documents-mobile__details' ),
-		position: $( '.documents-mobile__position' ),
-		bar: $( '.documents-mobile__bar' ),
-		footer: $( '.documents-mobile__footer' ),
-		stage: $( '.documents-mobile__stage' ),
-		status: $( '.documents-mobile__state' ),
+		title: $( `.${ prefix }__title` ),
+		close: $( `.${ prefix }__close` ),
+		download: $( `.${ prefix }__download` ),
+		pages: $( `.${ prefix }__pages` ),
+		details: $( `.${ prefix }__details` ),
+		position: $( `.${ prefix }__position` ),
+		bar: $( `.${ prefix }__bar` ),
+		footer: $( `.${ prefix }__footer` ),
+		stage: $( `.${ prefix }__stage` ),
+		status: $( `.${ prefix }__state` ),
 	};
 	const state = { id: 0, page: 1, pages: 0, step: 1 };
 	// The bottom sheets (Pages, DPD-020; Details, DPD-023): each one's code is loaded with import() on its first
@@ -54,7 +60,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 	const turned = ( page ) => {
 		state.page = normalisePage( page, state.pages, state.step );
 		drawFooter();
-		emit( 'documents:mobile-change' );
+		emit( `${ eventPrefix }:mobile-change` );
 	};
 
 	/** The viewer knows the real page count and whether two pages fit once it has the pages and a size. */
@@ -63,7 +69,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		state.step = step;
 		state.page = pages > 0 ? normalisePage( state.page, pages, step ) : 1;
 		drawFooter();
-		emit( 'documents:mobile-change' );
+		emit( `${ eventPrefix }:mobile-change` );
 		return state.page;
 	};
 
@@ -73,6 +79,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 			const mod = await import( './pages-sheet.js' );
 			return mod.createPagesSheet( {
 				dialog: host,
+				prefix,
 				strings,
 				onSelect: ( page ) => {
 					sheets.close();
@@ -85,7 +92,8 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 	// The Details sheet keeps its place when the phone is rotated: it only re-lays out (CSS).
 	sheets.register( 'details', {
 		create: async ( { dialog: host, onClose: closed } ) => {
-			const mod = await import( './details-sheet.js' );
+			// The modal's own Details content (the document or collateral sheet), loaded on the first tap.
+			const mod = await loadDetails();
 			return mod.createDetailsSheet( { dialog: host, strings, units, onClose: closed } );
 		},
 	} );
@@ -103,6 +111,8 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 	};
 
 	const viewer = createMobileViewer( {
+		prefix,
+		viewPrefix,
 		stage: els.stage,
 		status: els.status,
 		pdfjs,
@@ -110,30 +120,31 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 		units,
 		strings,
 		selectableText,
+		singlePage,
 		onGeometry: setGeometry,
 		onTurn: turned,
-		onPages: () => emit( 'documents:mobile-pages' ),
-		onDetails: () => emit( 'documents:mobile-details' ),
+		onPages: () => emit( `${ eventPrefix }:mobile-pages` ),
+		onDetails: () => emit( `${ eventPrefix }:mobile-details` ),
 	} );
 	landscape.addEventListener( 'change', () => {
 		sheets.closeOnRotate();
 		drawFooter();
 	} );
-	dialog.addEventListener( 'documents:mobile-pages', openPages );
-	dialog.addEventListener( 'documents:mobile-details', openDetails );
+	dialog.addEventListener( `${ eventPrefix }:mobile-pages`, openPages );
+	dialog.addEventListener( `${ eventPrefix }:mobile-details`, openDetails );
 
 
 	const setPage = ( page ) => {
 		state.page = normalisePage( page, state.pages, state.step );
 		drawFooter();
-		emit( 'documents:mobile-change' );
+		emit( `${ eventPrefix }:mobile-change` );
 		viewer.goTo( state.page );
 	};
 
 	guardDisabledDownload( els.download );
 	els.close.addEventListener( 'click', () => dialog.close() );
-	els.pages.addEventListener( 'click', () => emit( 'documents:mobile-pages' ) );
-	els.details.addEventListener( 'click', () => emit( 'documents:mobile-details' ) );
+	els.pages.addEventListener( 'click', () => emit( `${ eventPrefix }:mobile-pages` ) );
+	els.details.addEventListener( 'click', () => emit( `${ eventPrefix }:mobile-details` ) );
 	dialog.addEventListener( 'close', () => {
 		// The viewer closed with the sheet open: its history entry is still there; view.js removes it too.
 		const extra = sheets.release();
@@ -156,7 +167,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 			return;
 		}
 		// The native workbook grid and Word scroller (DPD-030, DPD-031) own the arrow, zoom and 0 keys while it has the focus.
-		if ( event.target && event.target.closest && event.target.closest( '.documents-mobile__scroll' ) ) {
+		if ( event.target && event.target.closest && event.target.closest( `.${ prefix }__scroll` ) ) {
 			return;
 		}
 		if ( ! event.shiftKey && ( event.key === 'ArrowLeft' || event.key === 'ArrowRight' ) ) {
@@ -191,7 +202,7 @@ export function createMobileModal( { dialog, units = {}, strings = {}, pdfjs = {
 			drawFooter();
 			dialog.showModal();
 			els.close.focus();
-			emit( 'documents:mobile-change' );
+			emit( `${ eventPrefix }:mobile-change` );
 			viewer.show( doc, state.page );
 		},
 		close() {

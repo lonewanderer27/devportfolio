@@ -394,6 +394,7 @@ Built on `feat/DPC-006-014-Collateral-Item-Masonry` (not yet merged to `main`; t
 
 **Changed after build:**
 - Close button changed from a filled to an outline button (same size, ink ring and X), on request (DPC-007 item 12 now says outline).
+- Download and Copy link now have the same height (42px) and padding: the Download link is an `<a>`, which sized from content (44px with its borders), so both use `box-sizing: border-box`.
 - Empty gap under Copy link removed: the status span was a grid item and took its own row. It is now visually hidden, and the fallback hint is shown on the Copy link button.
 - Footer buttons pinned to the bottom of the sidebar. Placing the sidebar on the right (explicit `grid-column`) had put the body in a second grid row, so the sidebar stopped short of the dialog's bottom edge. Both now share row 1 (see 5.5). Measured in headless Chrome at 1440x900 and 1440x560: the actions end on the sidebar's bottom edge.
 

@@ -56,9 +56,9 @@ const NATIVE_ZOOM_MAX = 4;
  * @param {Function} options.onPages     Called when the round Pages button is tapped.
  * @param {Function} options.onDetails   Called when the round Info button is tapped (mobile.js opens the Details sheet).
  */
-export function createMobileViewer( { stage, status, pdfjs, limits, units = null, strings = {}, selectableText = false, onGeometry, onTurn, onPages = null, onDetails = null } ) {
+export function createMobileViewer( { stage, status, prefix = 'documents-mobile', viewPrefix = 'documents-modal', pdfjs, limits, units = null, strings = {}, selectableText = false, singlePage = false, onGeometry, onTurn, onPages = null, onDetails = null } ) {
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
-	const statusView = createStatus( { stage, status } );
+	const statusView = createStatus( { stage, status, prefix: viewPrefix } );
 	const setStatus = ( kind ) => statusView.set( kind );
 	const text = ( key, fallback = '' ) => ( typeof strings[ key ] === 'string' && strings[ key ] !== '' ? strings[ key ] : fallback );
 
@@ -117,8 +117,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			}
 			scrollView = null;
 		}
-		stage.classList.remove( 'documents-mobile__stage--scroll', 'documents-mobile__stage--doc' );
-		stage.style.removeProperty( '--documents-grid-bar' );
+		stage.classList.remove( `${ prefix }__stage--scroll`, `${ prefix }__stage--doc` );
+		stage.style.removeProperty( '--grid-bar' );
 		pageEls = [];
 		layout = null;
 		ui = null;
@@ -146,7 +146,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	/* ---- pages ---------------------------------------------------------------------------- */
 
 	const buildPages = ( count ) => {
-		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ) );
+		pageEls = buildPageEls( count, ( index, total ) => pieceLabel( words, index, total ), viewPrefix );
 	};
 
 	const ensureWindow = ( page ) => {
@@ -180,11 +180,11 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	/* ---- view track ----------------------------------------------------------------------- */
 
 	const makeBook = ( first ) => {
-		const book = el( 'div', 'documents-modal__book documents-mobile__book' );
-		book.classList.toggle( 'documents-modal__book--selectable', Boolean( source.textLayer ) );
+		const book = el( 'div', `${ viewPrefix }__book ${ prefix }__book` );
+		book.classList.toggle( `${ viewPrefix }__book--selectable`, Boolean( source.textLayer ) );
 		if ( source.crop > 0 ) {
-			book.classList.add( 'documents-modal__book--cropped' );
-			book.style.setProperty( '--documents-crop', String( source.crop ) );
+			book.classList.add( `${ viewPrefix }__book--cropped` );
+			book.style.setProperty( '--book-crop', String( source.crop ) );
 		}
 		const last = Math.min( source.count, first + step - 1 );
 		const across = last - first + 1;
@@ -194,8 +194,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			const page = pageEls[ index - 1 ];
 			page.style.width = `${ layout.pageW }px`;
 			page.style.height = `${ layout.pageH }px`;
-			page.classList.toggle( 'documents-modal__page--left', step === 2 && index === first );
-			page.classList.toggle( 'documents-modal__page--right', step === 2 && index === last && across === 2 );
+			page.classList.toggle( `${ viewPrefix }__page--left`, step === 2 && index === first );
+			page.classList.toggle( `${ viewPrefix }__page--right`, step === 2 && index === last && across === 2 );
 			book.appendChild( page );
 		}
 		return book;
@@ -217,12 +217,12 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		// The native canvas is one element: only the middle view holds it, the neighbours stay empty.
 		const firsts = native ? [ null, current, null ] : [ hasPrev() ? Math.max( 1, current - step ) : null, current, hasNext() ? current + step : null ];
 		const views = firsts.map( ( first, position ) => {
-			const view = el( 'div', 'documents-mobile__view' );
+			const view = el( 'div', `${ prefix }__view` );
 			view.style.width = `${ size.w }px`;
 			view.style.height = `${ size.h }px`;
 			view.style.left = `${ position * size.w }px`;
 			if ( first !== null ) {
-				const wrap = el( 'div', 'documents-mobile__zoom' );
+				const wrap = el( 'div', `${ prefix }__zoom` );
 				wrap.appendChild( native ? native.box : makeBook( first ) );
 				view.appendChild( wrap );
 				if ( position === 1 ) {
@@ -319,12 +319,12 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	 */
 	const makeDetails = () => {
 		// The round "i" button opens the Details sheet (what the desktop header shows, plus category and Download).
-		const fab = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-haspopup': 'dialog' } );
+		const fab = el( 'button', `${ prefix }__fab`, { type: 'button', 'aria-label': text( 'details', 'Document details' ), 'aria-haspopup': 'dialog' } );
 		fab.appendChild( svgIcon( 'M12 11v6M12 7.5v.01', 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z' ) );
-		const pagesFab = el( 'button', 'documents-mobile__fab documents-mobile__fab--pages', { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ), 'aria-haspopup': 'dialog' } );
+		const pagesFab = el( 'button', `${ prefix }__fab ${ prefix }__fab--pages`, { type: 'button', 'aria-label': text( 'pagesLabel', 'Pages' ), 'aria-haspopup': 'dialog' } );
 		pagesFab.appendChild( svgIcon( 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' ) );
 
-		const fabs = el( 'div', 'documents-mobile__fabs' );
+		const fabs = el( 'div', `${ prefix }__fabs` );
 		fabs.append( pagesFab, fab );
 		fab.addEventListener( 'click', () => {
 			dismissHint();
@@ -342,25 +342,25 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	};
 
 	const buildUi = () => {
-		const frame = el( 'div', 'documents-mobile__frame' );
-		const track = el( 'div', 'documents-mobile__track' );
+		const frame = el( 'div', `${ prefix }__frame` );
+		const track = el( 'div', `${ prefix }__track` );
 		frame.appendChild( track );
 
-		const prev = el( 'button', 'documents-mobile__edge documents-mobile__edge--prev', { type: 'button', 'aria-label': words.prev } );
+		const prev = el( 'button', `${ prefix }__edge ${ prefix }__edge--prev`, { type: 'button', 'aria-label': words.prev } );
 		prev.appendChild( svgIcon( 'M15 5l-7 7 7 7' ) );
-		const next = el( 'button', 'documents-mobile__edge documents-mobile__edge--next', { type: 'button', 'aria-label': words.next } );
+		const next = el( 'button', `${ prefix }__edge ${ prefix }__edge--next`, { type: 'button', 'aria-label': words.next } );
 		next.appendChild( svgIcon( 'M9 5l7 7-7 7' ) );
 
-		const hint = el( 'div', 'documents-mobile__hint', { 'aria-hidden': 'true' } );
+		const hint = el( 'div', `${ prefix }__hint`, { 'aria-hidden': 'true' } );
 		if ( landscapeDoc ) {
-			const rotate = el( 'span', 'documents-mobile__pill documents-mobile__pill--dark' );
+			const rotate = el( 'span', `${ prefix }__pill ${ prefix }__pill--dark` );
 			rotate.append( svgIcon( 'M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5' ), document.createTextNode( text( 'rotate', 'Rotate for a bigger view' ) ) );
-			const pinch = el( 'span', 'documents-mobile__pill' );
+			const pinch = el( 'span', `${ prefix }__pill` );
 			pinch.textContent = text( 'pinch', 'Pinch to zoom' );
 			hint.append( rotate, pinch );
 		} else {
 			// Plain floating text under the document; it goes away at the first action in the body.
-			const line = el( 'span', 'documents-mobile__hint-text' );
+			const line = el( 'span', `${ prefix }__hint-text` );
 			line.textContent = text( 'hint', 'swipe or tap edges' );
 			hint.appendChild( line );
 		}
@@ -368,14 +368,14 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		const { fab, pagesFab, fabs } = makeDetails();
 
 		// Round zoom buttons, bottom left: the same steps as the + and - keys, for people who do not pinch.
-		const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
+		const zoomIn = el( 'button', `${ prefix }__fab`, { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
 		zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
-		const zoomOut = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
+		const zoomOut = el( 'button', `${ prefix }__fab`, { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
 		zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
-		const zoomFabs = el( 'div', 'documents-mobile__zoomfabs', { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
+		const zoomFabs = el( 'div', `${ prefix }__zoomfabs`, { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
 		zoomFabs.append( zoomIn, zoomOut );
 
-		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
+		const live = el( 'div', `${ prefix }__live`, { 'aria-live': 'polite', role: 'status' } );
 
 		stage.append( frame, prev, next, hint, fabs, zoomFabs, live );
 		stage.setAttribute( 'role', 'region' );
@@ -608,7 +608,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		if ( size.w < 40 || size.h < 40 ) {
 			return false;
 		}
-		step = ! native && spreadFits( { stageW: size.w, stageH: size.h, ratio: source.ratio, pages: source.count } ) ? 2 : 1;
+		step = ! native && ! singlePage && spreadFits( { stageW: size.w, stageH: size.h, ratio: source.ratio, pages: source.count } ) ? 2 : 1;
 		const { pageW, pageH } = fitPage( { stageW: size.w, stageH: size.h, ratio: source.ratio, step, maxPageW: source.maxPageW } );
 		layout = {
 			pageW,
@@ -692,8 +692,8 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		const mine = session;
 		let opened = false;
 		let instance = null;
-		const box = el( 'div', 'documents-mobile__native' );
-		const canvas = el( 'canvas', 'documents-modal__native-canvas', { role: 'img', 'aria-label': doc.title || '' } );
+		const box = el( 'div', `${ prefix }__native` );
+		const canvas = el( 'canvas', `${ viewPrefix }__native-canvas`, { role: 'img', 'aria-label': doc.title || '' } );
 		box.appendChild( canvas );
 		try {
 			if ( ! measure().w ) {
@@ -792,7 +792,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 	 * scrolling, zoom and selection, so each is mounted OUTSIDE the swipe/zoom frame: no page gestures, edge
 	 * taps or hints are built, and it reports one piece, so the footer and progress bar stay hidden, as on
 	 * desktop. The details button is kept. A workbook's tab bar is lifted clear of it (CSS,
-	 * --documents-grid-bar); a document gets round zoom buttons wired to the library's zoom instead.
+	 * --grid-bar); a document gets round zoom buttons wired to the library's zoom instead.
 	 * Returns false when it cannot be drawn: the caller then shows the stored pages, or "can't be previewed".
 	 */
 	const showScroll = async ( doc, alive ) => {
@@ -803,23 +803,23 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 		const mine = session;
 		let opened = false;
 		let instance = null;
-		const box = el( 'div', `documents-mobile__scroll${ isDoc ? ' documents-mobile__scroll--doc' : '' }`, { role: 'group', 'aria-label': doc.title || '' } );
+		const box = el( 'div', `${ prefix }__scroll${ isDoc ? ` ${ prefix }__scroll--doc` : '' }`, { role: 'group', 'aria-label': doc.title || '' } );
 		box.style.visibility = 'hidden';
-		const live = el( 'div', 'documents-mobile__live', { 'aria-live': 'polite', role: 'status' } );
+		const live = el( 'div', `${ prefix }__live`, { 'aria-live': 'polite', role: 'status' } );
 		const { fab, pagesFab, fabs } = makeDetails();
 		pagesFab.hidden = true;
-		stage.classList.add( 'documents-mobile__stage--scroll' );
-		stage.classList.toggle( 'documents-mobile__stage--doc', isDoc );
+		stage.classList.add( `${ prefix }__stage--scroll` );
+		stage.classList.toggle( `${ prefix }__stage--doc`, isDoc );
 		stage.append( box, fabs, live );
 		ui = { fab, pagesFab, fabs, live };
 
 		/** A document: round zoom buttons call the library's zoom (text stays sharp, selection stays aligned). */
 		const buildZoom = () => {
-			const zoomIn = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
+			const zoomIn = el( 'button', `${ prefix }__fab`, { type: 'button', 'aria-label': text( 'zoomIn', 'Zoom in' ) } );
 			zoomIn.appendChild( svgIcon( 'M12 5v14M5 12h14' ) );
-			const zoomOut = el( 'button', 'documents-mobile__fab', { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
+			const zoomOut = el( 'button', `${ prefix }__fab`, { type: 'button', 'aria-label': text( 'zoomOut', 'Zoom out' ) } );
 			zoomOut.appendChild( svgIcon( 'M5 12h14' ) );
-			const group = el( 'div', 'documents-mobile__zoomfabs', { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
+			const group = el( 'div', `${ prefix }__zoomfabs`, { role: 'group', 'aria-label': text( 'zoomControls', 'Zoom controls' ) } );
 			group.append( zoomIn, zoomOut );
 			const sync = () => {
 				if ( typeof instance.getScale === 'function' ) {
@@ -845,7 +845,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 			const strip = box.querySelector( '.xlsx-tab-strip' );
 			const bar = strip && strip.parentElement ? strip.parentElement.offsetHeight : 0;
 			if ( bar > 0 ) {
-				stage.style.setProperty( '--documents-grid-bar', `${ bar }px` );
+				stage.style.setProperty( '--grid-bar', `${ bar }px` );
 			}
 		};
 
@@ -928,7 +928,7 @@ export function createMobileViewer( { stage, status, pdfjs, limits, units = null
 
 			let got = null;
 			try {
-				got = await acquireSource( doc, alive, { pdfjs, limits, selectableText } );
+				got = await acquireSource( doc, alive, { pdfjs, limits, selectableText, prefix: viewPrefix } );
 				if ( ! alive() ) {
 					if ( got ) {
 						got.source.destroy();
