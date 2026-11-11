@@ -140,6 +140,35 @@ if ( ! function_exists( 'cptdp_document_admin_thumb_html' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'cptdp_collateral_admin_loading_html' ) ) :
+	/**
+	 * The static loading image of a collateral whose page images are still being made (DPC-025).
+	 *
+	 * `''` unless the post is a collateral in the `pending` state. It is the same SVG the site shows,
+	 * 50px wide at the paper-size ratio, decorative (`alt=""`) and named by its title. Nothing here
+	 * starts or retries work: it only shows the state.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @param int $width   Width in pixels.
+	 */
+	function cptdp_collateral_admin_loading_html( int $post_id, int $width = 50 ): string {
+		if ( CPTDP_Page_Store::STATUS_PENDING !== cptdp_get_collateral_pages_status( $post_id ) ) {
+			return '';
+		}
+
+		$paper_size = (string) get_post_meta( $post_id, 'cptdp_paper_size', true );
+		$height     = (int) round( $width * ( false !== stripos( $paper_size, 'landscape' ) ? 1 / M_SQRT2 : M_SQRT2 ) );
+
+		return sprintf(
+			'<img src="%1$s" alt="" width="%2$d" height="%3$d" title="%4$s" loading="lazy" decoding="async" fetchpriority="low" style="width:%2$dpx;height:%3$dpx;border:1px solid #c3c4c7;background:#fff;display:block">',
+			esc_url( cptdp_collateral_loading_image_url() ),
+			$width,
+			$height,
+			esc_attr__( 'Preview is being prepared', 'custom-post-types-dp' )
+		);
+	}
+endif;
+
 if ( ! function_exists( 'cptdp_document_pdf_url' ) ) :
 	/**
 	 * URL of a document's PDF, or '' when its file is not a PDF.
@@ -397,8 +426,12 @@ function cptdp_document_pages_render_box( WP_Post $post ): void {
 		<?php
 		$cptdp_thumb = CPTDP_Page_Store::STATUS_READY === $status ? cptdp_document_admin_thumb_html( $post->ID, 80 ) : '';
 
+		if ( '' === $cptdp_thumb && 'collateral' === $post->post_type && CPTDP_Page_Store::STATUS_PENDING === $status ) {
+			$cptdp_thumb = cptdp_collateral_admin_loading_html( $post->ID, 80 );
+		}
+
 		if ( '' !== $cptdp_thumb ) {
-			echo '<p>' . $cptdp_thumb . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by cptdp_document_admin_thumb_html().
+			echo '<p>' . $cptdp_thumb . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built by cptdp_document_admin_thumb_html()/cptdp_collateral_admin_loading_html().
 		}
 		?>
 		<p>

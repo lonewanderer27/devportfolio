@@ -114,7 +114,12 @@ function cptdp_collateral_column_content( string $column, int $post_id ): void {
 
 			if ( ! $thumb && function_exists( 'cptdp_document_admin_thumb_html' ) ) {
 				$thumb = cptdp_document_admin_thumb_html( $post_id );
-				echo '' !== $thumb ? $thumb : '&mdash;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_document_admin_thumb_html().
+
+				if ( '' === $thumb && function_exists( 'cptdp_collateral_admin_loading_html' ) ) {
+					$thumb = cptdp_collateral_admin_loading_html( $post_id );
+				}
+
+				echo '' !== $thumb ? $thumb : '&mdash;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped by cptdp_document_admin_thumb_html()/cptdp_collateral_admin_loading_html().
 				break;
 			}
 
