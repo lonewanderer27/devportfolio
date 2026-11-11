@@ -515,14 +515,15 @@
 
 .collaterals-mobile__details-copy {
 	width: 100%;
-	min-height: 44px;
+	min-height: 48px;
 	margin-top: 8px;
 	color: var( --cm-ink );
 	font: inherit;
-	font-weight: 700;
+	font-size: 14px;
+	font-weight: 600;
 	background: transparent;
 	border: 1px solid var( --cm-ink );
-	border-radius: 999px;
+	border-radius: 10px;
 	cursor: pointer;
 }
 
