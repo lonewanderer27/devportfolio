@@ -91,6 +91,21 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * An attachment with a mime type and an attached file name (no real file needed for the payload).
+	 */
+	private function make_attachment( string $mime, string $file = 'file.bin' ): int {
+		$id = self::factory()->attachment->create(
+			array(
+				'post_mime_type' => $mime,
+				'post_title'     => 'file',
+				'post_status'    => 'inherit',
+			)
+		);
+		update_post_meta( $id, '_wp_attached_file', $file );
+		return (int) $id;
+	}
+
 	private function render_modal(): string {
 		return trim( do_blocks( '<!-- wp:devportfolio/collateral-modal /-->' ) );
 	}
@@ -245,6 +260,42 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 		$this->assertSame( array(), $item['stats'] );
 		$this->assertSame( array(), $item['tools'] );
 	}
+
+	public function test_the_payload_carries_the_preview_state(): void {
+		$pdf = $this->make_attachment( 'application/pdf', 'report.pdf' );
+		$id  = $this->make_collateral( array( 'meta' => array( 'cptdp_collateral_file' => $pdf ) ) );
+
+		// A PDF can be drawn by pdf.js even when no page images exist: it is ready, not unavailable.
+		$this->assertSame( 'ready', devportfolio_collateral_modal_payload( $id )['previewState'] );
+
+		$image = $this->make_attachment( 'image/png', 'poster.png' );
+		$id    = $this->make_collateral( array( 'meta' => array( 'cptdp_collateral_file' => $image ) ) );
+
+		CPTDP_Page_Store::set_status( $id, CPTDP_Page_Store::STATUS_PENDING );
+		$this->assertSame( 'pending', devportfolio_collateral_modal_payload( $id )['previewState'] );
+
+		CPTDP_Page_Store::set_status( $id, CPTDP_Page_Store::STATUS_FAILED );
+		$this->assertSame( 'unavailable', devportfolio_collateral_modal_payload( $id )['previewState'] );
+
+		$this->assertSame( 'unavailable', devportfolio_collateral_modal_payload( $this->make_collateral() )['previewState'] );
+	}
+
+	public function test_the_document_payload_has_no_preview_state(): void {
+		$payload = devportfolio_document_modal_payload( $this->make_document() );
+
+		$this->assertArrayNotHasKey( 'previewState', $payload );
+	}
+
+	public function test_a_pending_thumb_uses_the_loading_image(): void {
+		$image = $this->make_attachment( 'image/png', 'poster.png' );
+		$id    = $this->make_collateral( array( 'meta' => array( 'cptdp_collateral_file' => $image ) ) );
+		CPTDP_Page_Store::set_status( $id, CPTDP_Page_Store::STATUS_PENDING );
+
+		$item = devportfolio_collateral_modal_payload( $id );
+
+		$this->assertStringContainsString( 'assets/collateral-loading.svg', $item['thumb']['src'] );
+	}
+
 
 	public function test_thumb_is_the_featured_image_when_there_is_no_page_set(): void {
 		$attachment = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg' );

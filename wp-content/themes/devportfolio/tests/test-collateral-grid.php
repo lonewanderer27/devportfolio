@@ -114,7 +114,15 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->make_collateral( array( 'status' => 'draft' ) );
 		self::factory()->post->create( array( 'post_type' => 'document', 'post_status' => 'publish', 'post_title' => 'A document' ) );
 
-		$this->assertSame( '', $this->render_grid() );
+		$html  = $this->render_grid();
+		$xpath = $this->xpath( $html );
+
+		$this->assertStringContainsString( 'No collaterals yet.', $html );
+		$this->assertSame( 0, $xpath->query( '//*[@data-collaterals-grid]' )->length );
+		$this->assertSame( 1, $xpath->query( '//p[contains(@class, "collaterals-empty--none")]' )->length );
+		$line = $xpath->query( '//p[contains(@class, "collaterals-empty--none")]' )->item( 0 );
+		$this->assertSame( 'status', $line->getAttribute( 'role' ) );
+		$this->assertFalse( $line->hasAttribute( 'hidden' ) );
 	}
 
 	public function test_items_follow_menu_order_then_title_and_drafts_are_excluded(): void {
@@ -190,6 +198,82 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertSame( 'Open Plain Sheet', $button->getAttribute( 'aria-label' ) );
 		$this->assertSame( 0, $this->xpath( $this->render_grid() )->query( '//p[contains(@class, "collaterals-item__meta")]' )->length );
 	}
+
+	// ---- Empty states (DPC-025) ----
+
+	public function test_with_collaterals_the_empty_line_follows_the_grid_hidden_and_is_a_status(): void {
+		$this->make_collateral( array( 'title' => 'One' ) );
+
+		$html  = $this->render_grid();
+		$xpath = $this->xpath( $html );
+		$grid  = $xpath->query( '//*[@data-collaterals-grid]' )->item( 0 );
+		$line  = $xpath->query( '//*[@data-collaterals-empty]' )->item( 0 );
+
+		$this->assertInstanceOf( DOMElement::class, $line );
+		$this->assertSame( $grid->nextElementSibling, $line, 'the empty line is the grid’s next sibling' );
+		$this->assertTrue( $line->hasAttribute( 'hidden' ) );
+		$this->assertSame( 'status', $line->getAttribute( 'role' ) );
+		$this->assertSame( 'No collaterals in this category', trim( $line->textContent ) );
+	}
+
+	public function test_the_empty_state_has_no_grid(): void {
+		$this->make_collateral( array( 'status' => 'draft' ) );
+
+		$html = $this->render_grid();
+
+		$this->assertStringContainsString( 'collaterals-empty--none', $html );
+		$this->assertStringNotContainsString( 'data-collaterals-grid', $html );
+	}
+
+	public function test_a_pending_collateral_shows_the_loading_image_and_says_so_in_its_name(): void {
+		$id = $this->make_collateral( array( 'title' => 'Product Launch Flyer', 'category' => 'Flyer', 'paper' => 'A4', 'pages' => 2 ) );
+		CPTDP_Page_Store::set_status( $id, CPTDP_Page_Store::STATUS_PENDING );
+
+		$html  = $this->render_grid();
+		$xpath = $this->xpath( $html );
+
+		$img = $xpath->query( '//img[contains(@class, "collaterals-item__loading")]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $img );
+		$this->assertStringContainsString( 'assets/collateral-loading.svg', $img->getAttribute( 'src' ) );
+		$this->assertSame( '', $img->getAttribute( 'alt' ) );
+		$this->assertSame( 'true', $img->getAttribute( 'aria-hidden' ) );
+
+		$button = $xpath->query( '//button[@data-collateral-id="' . $id . '"]' )->item( 0 );
+		$this->assertSame( 'Open Product Launch Flyer, Flyer · A4 · 2 pp (preview is being prepared)', $button->getAttribute( 'aria-label' ) );
+	}
+
+	public function test_a_failed_or_needs_browser_collateral_keeps_the_numbered_blank(): void {
+		$ids = array();
+		foreach ( array( CPTDP_Page_Store::STATUS_FAILED, CPTDP_Page_Store::STATUS_NEEDS_BROWSER, CPTDP_Page_Store::STATUS_NONE ) as $status ) {
+			$id = $this->make_collateral( array( 'title' => $status ) );
+			CPTDP_Page_Store::set_status( $id, $status );
+			$ids[ $status ] = $id;
+		}
+
+		$xpath = $this->xpath( $this->render_grid() );
+
+		foreach ( $ids as $status => $id ) {
+			$item = $xpath->query( '//article[.//button[@data-collateral-id="' . $id . '"]]' )->item( 0 );
+			$this->assertInstanceOf( DOMElement::class, $item, $status );
+			$this->assertSame( 0, $xpath->query( './/img[contains(@class, "collaterals-item__loading")]', $item )->length, $status );
+			$this->assertSame( 1, $xpath->query( './/span[contains(@class, "collaterals-item__blank")]', $item )->length, $status );
+			$button = $xpath->query( './/button[@data-collateral-id="' . $id . '"]', $item )->item( 0 );
+			$this->assertSame( 'Open ' . $status, $button->getAttribute( 'aria-label' ) );
+		}
+	}
+
+	public function test_a_featured_image_beats_the_loading_image(): void {
+		$id = $this->make_collateral( array( 'title' => 'With Image' ) );
+		$image = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg', $id );
+		set_post_thumbnail( $id, $image );
+		CPTDP_Page_Store::set_status( $id, CPTDP_Page_Store::STATUS_PENDING );
+
+		$xpath = $this->xpath( $this->render_grid() );
+
+		$this->assertSame( 0, $xpath->query( '//img[contains(@class, "collaterals-item__loading")]' )->length );
+		$this->assertSame( 1, $xpath->query( '//img[contains(@class, "collaterals-item__img")]' )->length );
+	}
+
 
 	public function test_title_is_escaped_as_text(): void {
 		$this->make_collateral( array( 'title' => 'Tom & Jerry "Quoted" <i>x</i>' ) );
@@ -301,6 +385,30 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertSame( 1.4142, devportfolio_collateral_preview_from( null, 0, 'a3 landscape' )['ratio'] );
 		$this->assertSame( 0.7071, devportfolio_collateral_preview_from( null, 0, '' )['ratio'] );
 	}
+
+	public function test_a_pending_set_without_a_page_or_image_becomes_the_loading_preview(): void {
+		$portrait  = devportfolio_collateral_preview_from( null, 0, 'A4', 'pending' );
+		$landscape = devportfolio_collateral_preview_from( null, 0, 'A4 Landscape', 'pending' );
+
+		$this->assertSame( 'loading', $portrait['kind'] );
+		$this->assertSame( 'loading', $landscape['kind'] );
+		$this->assertSame( 0.7071, $portrait['ratio'] );
+		$this->assertSame( 1.4142, $landscape['ratio'] );
+	}
+
+	public function test_a_pending_set_with_a_page_or_a_featured_image_keeps_the_real_preview(): void {
+		$this->assertSame( 'page', devportfolio_collateral_preview_from( $this->stored(), 0, 'A4', 'pending' )['kind'] );
+
+		$image = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg' );
+		$this->assertSame( 'featured', devportfolio_collateral_preview_from( null, $image, 'A4', 'pending' )['kind'] );
+	}
+
+	public function test_every_other_state_stays_blank(): void {
+		foreach ( array( '', 'none', 'ready', 'needs_browser', 'failed' ) as $state ) {
+			$this->assertSame( 'blank', devportfolio_collateral_preview_from( null, 0, 'A4', $state )['kind'], $state );
+		}
+	}
+
 
 	// ---- Preview, rendered ----
 
@@ -450,6 +558,42 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertStringContainsString( '::view-transition-group(*.collaterals-item)', $css );
 		$this->assertStringContainsString( 'animation: none', $this->media_block( $css, '(prefers-reduced-motion: reduce)' ) );
 		$this->assertMatchesRegularExpression( '/\.collaterals-item\s*\{[^}]*view-transition-class:\s*collaterals-item/', $css );
+	}
+
+	public function test_the_empty_line_is_greyscale_centred_and_reserves_space(): void {
+		$rule = $this->rule( '.collaterals-empty' );
+
+		$this->assertStringContainsString( 'color: var(--wp--preset--color--mid)', $rule );
+		$this->assertStringContainsString( 'font-size: 14px', $rule );
+		$this->assertStringContainsString( 'text-align: center', $rule );
+		$this->assertStringContainsString( 'min-height: 160px', $rule );
+		$this->assertStringContainsString( '[hidden]', $this->css() );
+	}
+
+	public function test_the_pills_are_hidden_when_there_are_no_collaterals_at_all(): void {
+		$css = preg_replace( '#/\*.*?\*/#s', '', $this->css() );
+
+		$this->assertMatchesRegularExpression(
+			'/\.documents-page__content:has\(\.collaterals-empty--none\)\s+\.wp-block-devportfolio-document-categories\s*\{[^}]*display:\s*none/',
+			(string) $css
+		);
+	}
+
+	public function test_the_loading_image_covers_the_preview_and_pulses_but_not_with_reduced_motion(): void {
+		$css  = $this->css();
+		$rule = $this->rule( '.collaterals-item__loading' );
+
+		$this->assertStringContainsString( 'position: absolute', $rule );
+		$this->assertStringContainsString( 'object-fit: cover', $rule );
+		$this->assertStringContainsString( 'animation: collaterals-loading-pulse 2s ease-in-out infinite', $rule );
+		$this->assertMatchesRegularExpression( '/@keyframes collaterals-loading-pulse\s*\{/', $css );
+		$this->assertStringContainsString( 'animation: none', $this->media_block( $css, '(prefers-reduced-motion: reduce)' ) );
+	}
+
+	public function test_forced_colors_hides_the_loading_image_so_the_numbered_blank_shows(): void {
+		$forced = $this->media_block( $this->css(), '(forced-colors: active)' );
+
+		$this->assertMatchesRegularExpression( '/\.collaterals-item__loading\s*\{[^}]*display:\s*none/', $forced );
 	}
 
 	// ---- Scripts (text contracts) ----
