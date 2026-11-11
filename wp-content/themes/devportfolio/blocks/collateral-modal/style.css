@@ -286,6 +286,7 @@
 
 .collaterals-modal__download,
 .collaterals-modal__copy {
+	box-sizing: border-box;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
