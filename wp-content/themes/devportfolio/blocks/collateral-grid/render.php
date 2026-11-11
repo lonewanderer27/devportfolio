@@ -3,9 +3,11 @@
  * Server render of the Brand Collaterals masonry (DPC-006, DPC-014).
  *
  * Contract with view.js: the grid carries `data-collaterals-grid`, every item is a direct child
- * `article.collaterals-item` with `data-collateral-categories` and `data-ratio`. The title button is
- * the one real control of an item (`data-collateral-id`, its ::after covers the item). Each item has
- * its own `view-transition-name`, so a category change animates the items (see style.css).
+ * `article.collaterals-item` with `data-collateral-categories` and `data-ratio`. The one real control of
+ * an item is the `button.collaterals-item__open` overlay (`data-collateral-id`); it is a direct child of
+ * the item, not of the info band, because the band's backdrop-filter would otherwise shrink its hit area
+ * to the band (a filter is a containing block). Each item has its own `view-transition-name`, so a
+ * category change animates the items (see style.css).
  *
  * @package devportfolio
  *
@@ -77,11 +79,12 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 				<?php endif; ?>
 			</div>
 			<div class="collaterals-item__info">
-				<h3 class="collaterals-item__title"><button type="button" class="collaterals-item__open" data-collateral-id="<?php echo esc_attr( (string) $devportfolio_id ); ?>" aria-label="<?php echo esc_attr( $devportfolio_label ); ?>"><?php echo esc_html( $devportfolio_title ); ?></button></h3>
+				<h3 class="collaterals-item__title"><?php echo esc_html( $devportfolio_title ); ?></h3>
 				<?php if ( '' !== $devportfolio_meta ) : ?>
 					<p class="collaterals-item__meta"><?php echo esc_html( $devportfolio_meta ); ?></p>
 				<?php endif; ?>
 			</div>
+			<button type="button" class="collaterals-item__open" data-collateral-id="<?php echo esc_attr( (string) $devportfolio_id ); ?>" aria-label="<?php echo esc_attr( $devportfolio_label ); ?>"></button>
 		</article>
 	<?php endforeach; ?>
 </div>

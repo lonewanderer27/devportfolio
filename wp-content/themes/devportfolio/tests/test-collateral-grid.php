@@ -94,6 +94,20 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		return preg_match( $pattern, $css, $match ) ? $match[1] : '';
 	}
 
+	/**
+	 * The declarations of the first `selector { ... }` block, whitespace collapsed.
+	 */
+	private function rule( string $selector ): string {
+		$css = preg_replace( '#/\*.*?\*/#s', '', $this->css() );
+		$css = trim( preg_replace( '/\s+/', ' ', (string) $css ) );
+
+		if ( preg_match( '/(?:^|[{}] )' . preg_quote( $selector, '/' ) . ' \{([^{}]*)\}/', $css, $match ) ) {
+			return $match[1];
+		}
+
+		return '';
+	}
+
 	// ---- Query ----
 
 	public function test_nothing_is_rendered_without_published_collaterals(): void {
@@ -134,15 +148,23 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertNotSame( '', $item->getAttribute( 'data-ratio' ) );
 	}
 
-	public function test_each_item_has_exactly_one_button_in_its_title(): void {
+	public function test_each_item_has_exactly_one_button_that_is_a_direct_child_of_the_item(): void {
 		$this->make_collateral( array( 'title' => 'One' ) );
 		$this->make_collateral( array( 'title' => 'Two' ) );
 
 		$xpath = $this->xpath( $this->render_grid() );
 
 		$this->assertSame( 2, $xpath->query( '//button' )->length );
-		$this->assertSame( 2, $xpath->query( '//h3/button[@data-collateral-id]' )->length );
+		$this->assertSame( 2, $xpath->query( '//button[@data-collateral-id]' )->length );
+		$this->assertSame( 2, $xpath->query( '//article/button[@data-collateral-id]' )->length );
 		$this->assertSame( 2, $xpath->query( '//button[contains(concat(" ", normalize-space(@class), " "), " collaterals-item__open ")]' )->length );
+
+		// The button is not inside the band: the band blurs (a filter is a containing block) and the
+		// button has to cover the whole item.
+		$this->assertSame( 0, $xpath->query( '//*[contains(@class, "collaterals-item__info")]//button' )->length );
+
+		// The title keeps its heading, as text.
+		$this->assertSame( 2, $xpath->query( '//h3[contains(concat(" ", normalize-space(@class), " "), " collaterals-item__title ")]' )->length );
 	}
 
 	public function test_aria_label_names_the_item_with_its_details(): void {
@@ -170,15 +192,15 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 	}
 
 	public function test_title_is_escaped_as_text(): void {
-		$id = $this->make_collateral( array( 'title' => 'Tom & Jerry "Quoted" <i>x</i>' ) );
+		$this->make_collateral( array( 'title' => 'Tom & Jerry "Quoted" <i>x</i>' ) );
 
-		$xpath  = $this->xpath( $this->render_grid() );
-		$button = $xpath->query( '//button[@data-collateral-id="' . $id . '"]' )->item( 0 );
+		$xpath = $this->xpath( $this->render_grid() );
+		$title = $xpath->query( '//h3[contains(@class, "collaterals-item__title")]' )->item( 0 );
 
 		// The markup text is the title as typed: the tags are text, not elements.
-		$this->assertStringContainsString( 'Tom & Jerry', $button->textContent );
-		$this->assertStringContainsString( '<i>x</i>', $button->textContent );
-		$this->assertSame( 0, $xpath->query( '//button[@data-collateral-id="' . $id . '"]//i' )->length );
+		$this->assertStringContainsString( 'Tom & Jerry', $title->textContent );
+		$this->assertStringContainsString( '<i>x</i>', $title->textContent );
+		$this->assertSame( 0, $xpath->query( '//h3[contains(@class, "collaterals-item__title")]//i' )->length );
 	}
 
 	// ---- Meta line ----
@@ -365,8 +387,41 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertSame( 1, preg_match_all( '/opacity:\s*0[;\s]/', $this->css() ) );
 	}
 
-	public function test_the_title_button_covers_the_whole_item(): void {
-		$this->assertMatchesRegularExpression( '/\.collaterals-item__open::after\s*\{[^}]*inset:\s*0/', $this->css() );
+	public function test_the_open_button_covers_the_whole_item(): void {
+		$open = $this->rule( '.collaterals-item__open' );
+
+		$this->assertStringContainsString( 'position: absolute', $open );
+		$this->assertStringContainsString( 'inset: 0', $open );
+		$this->assertStringNotContainsString( '.collaterals-item__open::after', preg_replace( '#/\*.*?\*/#s', '', $this->css() ) );
+	}
+
+	public function test_the_info_band_blurs_what_is_behind_it(): void {
+		$info = $this->rule( '.collaterals-item__info' );
+
+		$this->assertStringContainsString( 'background: var(--wp--custom--glass--tint)', $info );
+		$this->assertStringContainsString( '-webkit-backdrop-filter: var(--wp--custom--glass--filter)', $info );
+		$this->assertStringContainsString( 'backdrop-filter: var(--wp--custom--glass--filter)', $info );
+	}
+
+	public function test_the_blur_is_dropped_when_the_browser_asks_for_less_transparency_or_more_contrast(): void {
+		$css   = $this->css();
+		$block = $this->media_block( $css, '(prefers-reduced-transparency: reduce), (prefers-contrast: more)' );
+
+		$this->assertStringContainsString( 'background: var(--wp--preset--color--base)', $block );
+		$this->assertStringContainsString( 'backdrop-filter: none', $block );
+	}
+
+	public function test_the_blur_is_dropped_in_forced_colors_and_without_backdrop_filter_support(): void {
+		$css = $this->css();
+
+		$forced = $this->media_block( $css, '(forced-colors: active)' );
+		$this->assertStringContainsString( 'background: Canvas', $forced );
+		$this->assertStringContainsString( 'backdrop-filter: none', $forced );
+
+		$this->assertMatchesRegularExpression(
+			'/@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\)\s*\{\s*\.collaterals-item__info\s*\{[^}]*background: var\(--wp--preset--color--base\)/',
+			$css
+		);
 	}
 
 	public function test_the_masonry_items_are_absolutely_positioned(): void {

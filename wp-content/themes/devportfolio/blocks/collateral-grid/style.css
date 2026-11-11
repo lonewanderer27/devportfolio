@@ -3,10 +3,11 @@
  * the multi-column rules below are the no-JS fallback and stop applying once
  * `data-masonry` is set on the grid.
  *
- * The info band shares the preview's grid cell (it is drawn over the bottom of the preview).
- * It must not be a containing block: a transform, backdrop-filter or other positioned box there would
- * make the title button's ::after cover only the band instead of the whole item. So the hover reveal
- * fades (opacity) and the band has no blur (its tint is 80% white).
+ * The info band shares the preview's grid cell (it is drawn over the bottom of the preview) and is a
+ * frosted band: the shared glass tint over the page image, blurred with the shared glass filter.
+ * The blur is what makes the band a containing block (any filter is), so the item's one control is a
+ * separate button over the whole item (`collaterals-item__open`), not the title's ::after: a stretched
+ * ::after inside the band would cover only the band.
  */
 
 .collaterals-grid {
@@ -86,18 +87,31 @@
 .collaterals-item__info {
 	grid-area: 1 / 1;
 	align-self: end;
-	/* A grid item honours z-index while static: keeps the band above the positioned preview once the reveal ends (opacity 1 is no stacking context) without making it a containing block. */
+	/* A grid item honours z-index while static: keeps the band above the positioned preview once the reveal ends (opacity 1 is no stacking context). The blur below makes it a containing block, which nothing inside it needs to escape. */
 	z-index: 1;
 	min-width: 0;
 	padding: 8px 10px;
 	border-radius: 0 0 6px 6px;
 	background: var(--wp--custom--glass--tint);
+	-webkit-backdrop-filter: var(--wp--custom--glass--filter);
+	backdrop-filter: var(--wp--custom--glass--filter);
 	color: var(--wp--preset--color--contrast);
 }
 
+/* Browser accessibility settings: an opaque band wherever the blur would get in the way of reading it. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
 	.collaterals-item__info {
 		background: var(--wp--preset--color--base);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.collaterals-item__info {
+		background: Canvas;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
 	}
 }
 
@@ -109,28 +123,25 @@
 
 .collaterals-item__title {
 	margin: 0;
+	overflow: hidden;
 	font-size: 13.5px;
 	font-weight: 600;
 	line-height: 1.3;
 	letter-spacing: -0.01em;
-}
-
-/* The one real control of the item. Its ::after covers the whole item, so a click anywhere opens it. */
-.collaterals-item__open {
-	all: unset;
-	display: block;
-	max-width: 100%;
-	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
-	color: inherit;
-	cursor: pointer;
 }
 
-.collaterals-item__open::after {
-	content: "";
+/*
+ * The one real control of the item, drawn over all of it (the band included), so a click or tap anywhere
+ * opens it. It is a sibling of the band, never a child: the band's backdrop-filter is a containing block.
+ */
+.collaterals-item__open {
+	all: unset;
 	position: absolute;
 	inset: 0;
+	z-index: 2;
+	cursor: pointer;
 }
 
 .collaterals-item:has(.collaterals-item__open:focus-visible) {
