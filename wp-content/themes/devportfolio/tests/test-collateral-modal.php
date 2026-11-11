@@ -484,6 +484,15 @@ class Devportfolio_Test_Collateral_Modal extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'text-transform', $this->rule( $css, '.collaterals-modal__stats dd' ) );
 	}
 
+	public function test_the_desktop_body_has_the_same_dotted_stage_as_the_documents_modal(): void {
+		$css  = $this->read( 'blocks/collateral-modal/style.css' );
+		$body = $this->rule( $css, '.collaterals-modal__body' );
+
+		$this->assertStringContainsString( 'radial-gradient', $body );
+		$this->assertStringContainsString( 'background-size: 22px 22px', $body );
+		$this->assertStringContainsString( 'var( --cm-surface-alt )', $body );
+	}
+
 	/**
 	 * The bodies of the rules whose selector line is exactly $selector (top level, not inside @media).
 	 */

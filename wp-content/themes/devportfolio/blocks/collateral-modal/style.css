@@ -378,7 +378,10 @@
 	position: relative;
 	min-height: 0;
 	min-width: 0;
-	background: var( --cm-surface-alt );
+	background-color: var( --cm-surface-alt );
+	/* The same dotted stage as the Documents modal body. */
+	background-image: radial-gradient( rgb( 0 0 0 / 0.1 ) 1px, transparent 1px );
+	background-size: 22px 22px;
 }
 
 /* Tap to Flip (DPC-012, D7): a hint under the spread on touch screens; the script shows it, never a tap target. */

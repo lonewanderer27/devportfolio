@@ -434,6 +434,17 @@ class Devportfolio_Test_Collateral_Grid extends WP_UnitTestCase {
 		$this->assertStringContainsString( '--collaterals-gap: 8px', $this->media_block( $css, '(max-width: 700px)' ) );
 	}
 
+	public function test_dot_grid_sits_behind_the_grid_full_width(): void {
+		$before = $this->rule( '.collaterals-grid::before' );
+
+		$this->assertStringContainsString( 'radial-gradient', $before );
+		$this->assertStringContainsString( 'background-size: 22px 22px', $before );
+		$this->assertStringContainsString( 'z-index: -1', $before );
+		$this->assertStringContainsString( 'left: -100vw', $before );
+		$this->assertStringContainsString( 'pointer-events: none', $before );
+		$this->assertStringContainsString( 'top: -44px', $before );
+	}
+
 	public function test_items_have_a_view_transition_class_and_reduced_motion_turns_the_animation_off(): void {
 		$css = $this->css();
 		$this->assertStringContainsString( '::view-transition-group(*.collaterals-item)', $css );

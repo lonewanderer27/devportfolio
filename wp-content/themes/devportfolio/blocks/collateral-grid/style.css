@@ -12,15 +12,40 @@
 
 .collaterals-grid {
 	--collaterals-gap: 12px;
+	--collaterals-dot: rgb(0 0 0 / 0.1);
 
+	position: relative;
+	isolation: isolate;
 	column-width: 220px;
 	column-gap: var(--collaterals-gap);
+	/* Room for the dot field above the first row, as on the Documents shelf. */
+	margin-top: 44px;
+}
+
+/* Dot grid behind the masonry, full width of the viewport, with a line below (same as the Documents shelf). */
+.collaterals-grid::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: -44px;
+	right: -100vw;
+	bottom: -96px;
+	left: -100vw;
+	border-bottom: 1px solid var(--wp--preset--color--line);
+	background-image: radial-gradient(var(--collaterals-dot) 1px, transparent 1px);
+	background-size: 22px 22px;
+	pointer-events: none;
 }
 
 @media (max-width: 700px) {
 	.collaterals-grid {
 		--collaterals-gap: 8px;
 		column-width: 150px;
+		margin-top: 28px;
+	}
+
+	.collaterals-grid::before {
+		top: -28px;
 	}
 }
 
