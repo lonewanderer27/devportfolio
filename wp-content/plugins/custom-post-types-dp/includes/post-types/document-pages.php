@@ -50,6 +50,35 @@ if ( ! function_exists( 'cptdp_get_collateral_pages' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'cptdp_get_collateral_pages_status' ) ) :
+	/**
+	 * Status of a collateral's page image set (DPC-025): `none|pending|ready|needs_browser|failed`.
+	 *
+	 * `''` for a post that is not a collateral. Read-only: never converts and never writes, so the
+	 * theme can show a loading or error state without reading the plugin's private meta key.
+	 *
+	 * @param int $post_id Collateral ID.
+	 * @return string
+	 */
+	function cptdp_get_collateral_pages_status( int $post_id ): string {
+		return 'collateral' === get_post_type( $post_id ) ? CPTDP_Page_Store::get_status( $post_id ) : '';
+	}
+endif;
+
+if ( ! function_exists( 'cptdp_collateral_loading_image_url' ) ) :
+	/**
+	 * URL of the sample loading image shown while a collateral's page images are being made (DPC-025).
+	 *
+	 * The file ships in the plugin so both the site and wp-admin can use it; it is a static
+	 * greyscale SVG drawn from the theme palette, with no script or external reference.
+	 *
+	 * @return string
+	 */
+	function cptdp_collateral_loading_image_url(): string {
+		return CPTDP_URL . 'assets/collateral-loading.svg';
+	}
+endif;
+
 if ( ! function_exists( 'cptdp_document_admin_thumb' ) ) :
 	/**
 	 * The picture of a document for the admin (DPB-031): page 1, the same file the Pages sheet draws.
