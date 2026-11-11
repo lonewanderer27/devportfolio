@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FALLBACK_RATIO, MIN_COLUMNS, columnCount, layout, minTileWidth } from '../masonry.js';
+import { FALLBACK_RATIO, MIN_COLUMNS, columnCount, layout, matchesCategory, minTileWidth, visibleCount } from '../masonry.js';
 
 // The padding and gap the CSS gives each viewport (phones: 700px and below).
 function contentWidth( viewport ) {
@@ -145,6 +145,16 @@ test( 'a bad ratio uses the A4 fallback, and width 0 does not throw', () => {
 
 test( 'no tiles means height 0', () => {
 	assert.equal( layout( 500, 8, [] ).height, 0 );
+} );
+
+test( 'a category matches the items in it, and All matches everything', () => {
+	assert.equal( matchesCategory( 'flyer logo', 'logo' ), true );
+	assert.equal( matchesCategory( 'flyer logo', 'poster' ), false );
+	assert.equal( matchesCategory( '', 'logo' ), false );
+	assert.equal( matchesCategory( 'flyer', '' ), true );
+	assert.equal( visibleCount( [ 'flyer', 'logo flyer', '' ], 'flyer' ), 2 );
+	assert.equal( visibleCount( [ 'flyer', '' ], 'poster' ), 0 );
+	assert.equal( visibleCount( [ 'flyer', 'logo' ], '' ), 2 );
 } );
 
 test( 'height is the tallest column without its last gap', () => {

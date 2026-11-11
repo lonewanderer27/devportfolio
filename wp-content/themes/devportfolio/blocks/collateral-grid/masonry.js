@@ -53,6 +53,28 @@ function usableRatio( ratio ) {
 }
 
 /**
+ * Whether an item belongs in the view of `slug`. '' (All) matches every item.
+ *
+ * @param {string} categories The item's `data-collateral-categories` (space-separated slugs).
+ * @param {string} slug       The pressed pill's slug, '' for All.
+ * @return {boolean}
+ */
+export function matchesCategory( categories, slug ) {
+	return '' === slug || ( categories || '' ).split( /\s+/ ).includes( slug );
+}
+
+/**
+ * How many items a category shows, in the order given (used for the empty line).
+ *
+ * @param {string[]} categories One `data-collateral-categories` value per item.
+ * @param {string}   slug       The pressed pill's slug, '' for All.
+ * @return {number}
+ */
+export function visibleCount( categories, slug ) {
+	return categories.filter( ( value ) => matchesCategory( value, slug ) ).length;
+}
+
+/**
  * Places tiles in columns.
  *
  * @param {number}   width  Content-area width in px. 0 or less gives an empty layout.

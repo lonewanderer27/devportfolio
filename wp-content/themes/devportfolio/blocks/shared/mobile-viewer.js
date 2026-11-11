@@ -64,6 +64,8 @@ export function createMobileViewer( { stage, status, prefix = 'documents-mobile'
 
 	let session = 0;
 	let words = wording( 'page', units );
+	// Which message an empty stage shows (DPC-025): a pending collateral keeps "being prepared".
+	let emptyState = 'unavailable';
 	let source = null;
 	let budget = null;
 	let usedPdf = false;
@@ -133,7 +135,7 @@ export function createMobileViewer( { stage, status, prefix = 'documents-mobile'
 
 	const unavailable = () => {
 		reset();
-		setStatus( 'unavailable' );
+		setStatus( emptyState );
 		onGeometry( { pages: 0, step: 1 } );
 	};
 
@@ -901,6 +903,7 @@ export function createMobileViewer( { stage, status, prefix = 'documents-mobile'
 			const alive = () => mine === session;
 			const unit = unitOf( doc );
 			statusView.setHintKey( hintKeyFor( doc ) );
+			emptyState = doc.previewState === 'pending' ? 'pending' : 'unavailable';
 			words = wording( unit, units );
 			current = page;
 			usedPdf = false;

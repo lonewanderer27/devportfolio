@@ -1239,17 +1239,19 @@ if ( ! function_exists( 'devportfolio_collateral_preview_from' ) ) :
 	 * Chooses what a collateral tile shows, from already-read data (DPC-006).
 	 *
 	 * In order: page 1 of a valid page set (its thumbnail, with page 1 as the larger candidate), the featured
-	 * image, then a numbered blank page. The tile ratio is the uncropped page ratio (DPC-014 D7); the blank
-	 * is A4 (portrait), or landscape when the paper size says so.
+	 * image, then the numbered blank page. A `pending` page set with neither becomes `loading` instead of the
+	 * blank, while every other state keeps the blank (DPC-025). The tile ratio is the uncropped page ratio
+	 * (DPC-014 D7); the placeholder is A4 (portrait), or landscape when the paper size says so.
 	 *
 	 * Pure except for wp_get_attachment_image_src() when a featured image is given.
 	 *
 	 * @param array|null $stored     Result of cptdp_get_collateral_pages(), or null.
 	 * @param int        $featured_id Featured image attachment ID, 0 for none.
 	 * @param string     $paper_size  Paper size, e.g. "A4 Landscape".
+	 * @param string     $state      Page set status (DPC-025): none, pending, ready, needs_browser or failed.
 	 * @return array{kind:string,src:string,srcset:string,width:int,height:int,ratio:float,featured_id:int}
 	 */
-	function devportfolio_collateral_preview_from( $stored, int $featured_id, string $paper_size ) {
+	function devportfolio_collateral_preview_from( $stored, int $featured_id, string $paper_size, string $state = '' ) {
 		if ( is_array( $stored ) ) {
 			$page   = $stored['pages'][0] ?? '';
 			$width  = (int) ( $stored['width'] ?? 0 );
@@ -1290,7 +1292,7 @@ if ( ! function_exists( 'devportfolio_collateral_preview_from' ) ) :
 		$landscape = false !== stripos( $paper_size, 'landscape' );
 
 		return array(
-			'kind'        => 'blank',
+			'kind'        => 'pending' === $state ? 'loading' : 'blank',
 			'src'         => '',
 			'srcset'      => '',
 			'width'       => 0,
@@ -1303,7 +1305,7 @@ endif;
 
 if ( ! function_exists( 'devportfolio_collateral_preview' ) ) :
 	/**
-	 * The preview of a collateral, read from its stored page images, featured image and paper size.
+	 * The preview of a collateral, read from its stored page images, featured image, paper size and status.
 	 *
 	 * @param int $post_id Collateral ID.
 	 * @return array{kind:string,src:string,srcset:string,width:int,height:int,ratio:float,featured_id:int}
@@ -1316,11 +1318,13 @@ if ( ! function_exists( 'devportfolio_collateral_preview' ) ) :
 			$post_id,
 			static function () use ( $post_id ) {
 				$stored = function_exists( 'cptdp_get_collateral_pages' ) ? cptdp_get_collateral_pages( $post_id ) : null;
+				$state  = function_exists( 'cptdp_get_collateral_pages_status' ) ? cptdp_get_collateral_pages_status( $post_id ) : '';
 
 				return devportfolio_collateral_preview_from(
 					$stored,
 					(int) get_post_thumbnail_id( $post_id ),
-					(string) get_post_meta( $post_id, 'cptdp_paper_size', true )
+					(string) get_post_meta( $post_id, 'cptdp_paper_size', true ),
+					(string) $state
 				);
 			}
 		);
@@ -1414,7 +1418,8 @@ if ( ! function_exists( 'devportfolio_collateral_thumb' ) ) :
 	 * The thumbnail of a Next collaterals item, from a collateral preview (DPC-010).
 	 *
 	 * A stored page uses its thumbnail set; a featured image its medium size (the full size when there is none);
-	 * a blank page has no `src`, so the script draws the numbered blank.
+	 * a pending page set uses the loading image (DPC-025); a blank page has no `src`, so the script draws the
+	 * numbered blank.
 	 *
 	 * @param array $preview Result of devportfolio_collateral_preview().
 	 * @return array{src:string,srcset:string,ratio:float}
@@ -1429,6 +1434,8 @@ if ( ! function_exists( 'devportfolio_collateral_thumb' ) ) :
 			$srcset = (string) $preview['srcset'];
 		} elseif ( 'featured' === $kind ) {
 			$src = (string) wp_get_attachment_image_url( (int) $preview['featured_id'], 'medium' );
+		} elseif ( 'loading' === $kind && function_exists( 'cptdp_collateral_loading_image_url' ) ) {
+			$src = cptdp_collateral_loading_image_url();
 		}
 
 		return array(
@@ -1467,6 +1474,16 @@ if ( ! function_exists( 'devportfolio_collateral_modal_payload' ) ) :
 		}
 		$total = (int) get_post_meta( $post_id, 'cptdp_total_pages', true );
 
+		// What the viewer can show (DPC-025): a real preview, one on its way, or nothing.
+		$page_status = function_exists( 'cptdp_get_collateral_pages_status' ) ? cptdp_get_collateral_pages_status( $post_id ) : '';
+		if ( ! empty( $viewer['images'] ) || '' !== $viewer['viewerUrl'] ) {
+			$preview_state = 'ready';
+		} elseif ( 'pending' === $page_status ) {
+			$preview_state = 'pending';
+		} else {
+			$preview_state = 'unavailable';
+		}
+
 		return devportfolio_media_payload_base(
 			$post_id,
 			'collateral_category',
@@ -1493,6 +1510,7 @@ if ( ! function_exists( 'devportfolio_collateral_modal_payload' ) ) :
 			'viewerUrl'    => $viewer['viewerUrl'],
 			'nativeUrl'    => $viewer['nativeUrl'],
 			'pdfBytes'     => $viewer['pdfBytes'],
+			'previewState' => $preview_state,
 			'thumb'        => devportfolio_collateral_thumb( devportfolio_collateral_preview( $post_id ) ),
 		) + devportfolio_document_pages_extras( $post_id );
 	}
@@ -1535,10 +1553,12 @@ if ( ! function_exists( 'devportfolio_viewer_status_strings' ) ) :
 			return array(
 				'loading'    => _x( 'Loading pages…', 'collateral modal viewer', 'devportfolio' ),
 				'unavailable' => _x( 'This collateral can’t be previewed.', 'collateral modal viewer', 'devportfolio' ),
+				'pending'    => _x( 'Preview is being prepared. You can still download the file.', 'collateral modal viewer', 'devportfolio' ),
 				'hint'       => _x( 'Use Download to open it.', 'collateral modal viewer', 'devportfolio' ),
 				'hintSheet'  => _x( 'Spreadsheets can’t always be previewed here. Download the file to open it in Excel.', 'collateral modal viewer', 'devportfolio' ),
 				'hintSlide'  => _x( 'Presentations can’t always be previewed here. Download the file to open it in PowerPoint.', 'collateral modal viewer', 'devportfolio' ),
 				'hintDoc'    => _x( 'Documents can’t always be previewed here. Download the file to open it in Word.', 'collateral modal viewer', 'devportfolio' ),
+				'loadingImage' => function_exists( 'cptdp_collateral_loading_image_url' ) ? cptdp_collateral_loading_image_url() : '',
 			);
 		}
 		return array(
@@ -1568,18 +1588,21 @@ if ( ! function_exists( 'devportfolio_viewer_status' ) ) :
 	 */
 	function devportfolio_viewer_status( $prefix, array $strings, $extra = '' ) {
 		$attr = static function ( $name, $key ) use ( $strings ) {
-			return sprintf( ' %s="%s"', $name, esc_attr( (string) ( $strings[ $key ] ?? '' ) ) );
+			$value = (string) ( $strings[ $key ] ?? '' );
+			return '' !== $value ? sprintf( ' %s="%s"', $name, esc_attr( $value ) ) : '';
 		};
 		return sprintf(
-			'<div class="%1$s__state%2$s" role="status" hidden%3$s%4$s%5$s%6$s%7$s%8$s><span class="%1$s__spinner" aria-hidden="true"></span><span class="%1$s__state-text"></span><span class="%1$s__state-hint"></span></div>',
+			'<div class="%1$s__state%2$s" role="status" hidden%3$s%4$s%5$s%6$s%7$s%8$s%9$s%10$s><span class="%1$s__spinner" aria-hidden="true"></span><img class="%1$s__state-image" alt="" hidden><span class="%1$s__state-text"></span><span class="%1$s__state-hint"></span></div>',
 			esc_attr( $prefix ),
 			'' !== $extra ? ' ' . esc_attr( $extra ) : '',
 			$attr( 'data-loading', 'loading' ),
 			$attr( 'data-unavailable', 'unavailable' ),
+			$attr( 'data-pending', 'pending' ),
 			$attr( 'data-hint', 'hint' ),
 			$attr( 'data-hint-sheet', 'hintSheet' ),
 			$attr( 'data-hint-slide', 'hintSlide' ),
-			$attr( 'data-hint-doc', 'hintDoc' )
+			$attr( 'data-hint-doc', 'hintDoc' ),
+			$attr( 'data-loading-image', 'loadingImage' )
 		);
 	}
 endif;
