@@ -490,6 +490,14 @@ html[data-documents-swapping] .documents-shelf__plank {
 	background-size: 22px 22px;
 }
 
+/* Where the page arrows sit and how big they are, in one place: the zoom buttons line up with the Next
+   arrow's column from these too (BF-DPD-038). The media queries below change only the values. */
+.documents-modal__body,
+.collaterals-modal__body {
+	--dm-arrow-inset: 18px;
+	--dm-arrow-size: 38px;
+}
+
 /* The viewer (viewer.js) puts the book in the stage, centred, and measures the stage to size it. */
 .documents-modal__stage,
 .collaterals-modal__stage {
@@ -848,8 +856,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 	z-index: 2;
 	display: grid;
 	place-items: center;
-	width: 38px;
-	height: 38px;
+	width: var(--dm-arrow-size);
+	height: var(--dm-arrow-size);
 	padding: 0;
 	color: var(--dm-ink);
 	cursor: pointer;
@@ -871,12 +879,12 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 .documents-modal__arrow--prev,
 	.collaterals-modal__arrow--prev {
-	left: 18px;
+	left: var(--dm-arrow-inset);
 }
 
 .documents-modal__arrow--next,
 	.collaterals-modal__arrow--next {
-	right: 18px;
+	right: var(--dm-arrow-inset);
 }
 
 /*
@@ -945,20 +953,10 @@ html[data-documents-swapping] .documents-shelf__plank {
 		padding: 12px;
 	}
 
-	.documents-modal__arrow,
-.collaterals-modal__arrow {
-		width: 34px;
-		height: 34px;
-	}
-
-	.documents-modal__arrow--prev,
-	.collaterals-modal__arrow--prev {
-		left: 10px;
-	}
-
-	.documents-modal__arrow--next,
-	.collaterals-modal__arrow--next {
-		right: 10px;
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 10px;
+		--dm-arrow-size: 34px;
 	}
 }
 
@@ -967,14 +965,9 @@ html[data-documents-swapping] .documents-shelf__plank {
 		padding: 0;
 	}
 
-	.documents-modal__arrow--prev,
-	.collaterals-modal__arrow--prev {
-		left: 8px;
-	}
-
-	.documents-modal__arrow--next,
-	.collaterals-modal__arrow--next {
-		right: 8px;
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 8px;
 	}
 }
 

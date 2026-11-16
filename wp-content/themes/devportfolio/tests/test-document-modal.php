@@ -195,8 +195,9 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	public function test_css_arrows_are_round_centred_and_hover_only(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow[^{]*\{[^}]*top: 50%[^}]*border-radius: 50%[^}]*translateY\(-50%\)#s', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left: 18px#', $css );
-		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next(?:,\s*\.collaterals-modal__arrow--next)?\s*\{\s*right: 18px#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left: var\(--dm-arrow-inset\);#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__body,\s*\.collaterals-modal__body\s*\{\s*--dm-arrow-inset: 18px;\s*--dm-arrow-size: 38px;#', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next(?:,\s*\.collaterals-modal__arrow--next)?\s*\{\s*right: var\(--dm-arrow-inset\);#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow\[aria-disabled="true"\]\s*\{[^}]*opacity: 0\.3#', $css );
 		$this->assertMatchesRegularExpression( '#@media \(hover: hover\)\s*\{\s*\.documents-modal__arrow[^{]*\{\s*opacity: 0;#', $css );
 		$this->assertStringContainsString( '.documents-modal__body:hover .documents-modal__arrow', $css );
@@ -355,7 +356,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#@media \(max-height: 700px\) and \(max-width: 900px\)\s*\{\s*\.documents-modal__body\s*\{\s*padding-block:\s*0;#', $css );
 
 		// The arrows float over the page edges instead of sitting in a gutter.
-		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left:\s*10px;#', $css );
+		$this->assertMatchesRegularExpression( '#@media \(max-width: 1100px\)\s*\{[^@]*\.documents-modal__body,\s*\.collaterals-modal__body\s*\{\s*--dm-arrow-inset:\s*10px;#', $css );
 	}
 
 	public function test_header_is_a_grid_on_medium_windows_with_the_tools_on_their_own_row(): void {
