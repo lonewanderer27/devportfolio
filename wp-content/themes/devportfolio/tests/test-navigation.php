@@ -145,6 +145,24 @@ class Devportfolio_Test_Navigation extends WP_UnitTestCase {
 		$this->assertSame( get_post_type_archive_link( 'collateral' ), $collaterals[0]['href'] );
 	}
 
+	public function test_videos_link_is_current_on_its_archive_only(): void {
+		$active = $this->active_labels( $this->nav_items( get_post_type_archive_link( 'video' ) ) );
+		$this->assertSame( array( 'Videos' ), $active );
+
+		foreach ( array( 'document', 'collateral' ) as $type ) {
+			$active = $this->active_labels( $this->nav_items( get_post_type_archive_link( $type ) ) );
+			$this->assertNotContains( 'Videos', $active );
+		}
+	}
+
+	public function test_videos_link_targets_the_video_archive(): void {
+		$items  = $this->nav_items( get_post_type_archive_link( 'video' ) );
+		$videos = array_values( array_filter( $items, static fn( array $item ): bool => 'Videos' === $item['label'] ) );
+		$this->assertCount( 1, $videos );
+		$this->assertSame( get_post_type_archive_link( 'video' ), $videos[0]['href'] );
+		$this->assertTrue( $videos[0]['aria_current'] );
+	}
+
 	public function test_header_part_stores_no_hardcoded_domain(): void {
 		$this->assertStringNotContainsString( 'http', $this->header_markup() );
 		$this->assertStringNotContainsString( 'ddev.site', $this->header_markup() );
