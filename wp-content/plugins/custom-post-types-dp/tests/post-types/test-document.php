@@ -125,9 +125,25 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 
 	public function test_cover_styles_match_the_theme_list(): void {
 		$this->assertSame(
-			array( 'midnight', 'pinstripe', 'horizon', 'split-sky', 'dot-grid', 'two-tone' ),
+			array( 'midnight', 'pinstripe', 'horizon', 'split-sky', 'dot-grid', 'two-tone', 'certificate' ),
 			array_keys( cptdp_document_cover_styles() )
 		);
+	}
+
+	public function test_certificate_cover_style_is_accepted_and_offered(): void {
+		$this->assertSame( 'certificate', cptdp_document_sanitize_cover_style( ' Certificate ' ) );
+
+		$this->acting_as( 'editor' );
+		$id = $this->make_post();
+		$this->save( $id, array( 'cptdp_cover_style' => 'certificate' ) );
+		$this->assertSame( 'certificate', get_post_meta( $id, 'cptdp_cover_style', true ) );
+
+		$html = $this->capture(
+			static function () use ( $id ) {
+				cptdp_document_render_details_box( get_post( $id ) );
+			}
+		);
+		$this->assertMatchesRegularExpression( '/<option value="certificate"\s+selected=\'selected\'>Certificate<\/option>/', $html );
 	}
 
 	public function test_text_meta_is_sanitized_on_update(): void {
