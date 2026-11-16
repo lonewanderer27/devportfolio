@@ -504,4 +504,19 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'onScaleChange', $js );
 		$this->assertStringContainsString( 'onScaleChange,', $this->read( 'blocks/shared/native-pptx.js' ) );
 	}
+
+	/**
+	 * BF-DPD-038: the zoom buttons live in the body, centred on the Next arrow's column and as wide as it,
+	 * so the first zoom (which stops the stage being their containing block) does not move them.
+	 */
+	public function test_the_zoom_buttons_sit_under_the_next_arrow_at_its_width(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+		$js  = $this->read( 'blocks/shared/viewer.js' );
+
+		$this->assertStringContainsString( '( stage.closest( `.${ prefix }__body` ) || stage ).appendChild( zoomFab )', $js );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next,[^{]*\{\s*right: var\(--dm-arrow-inset\);#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-fab\s*\{[^}]*right: calc\(var\(--dm-arrow-inset, 12px\) \+ var\(--dm-arrow-size, 38px\) / 2\)[^}]*transform: translateX\(50%\)#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-fab\s*\{[^}]*box-sizing: border-box[^}]*width: var\(--dm-arrow-size, 38px\)[^}]*padding: 0#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-button\s*\{[^}]*width: 100%[^}]*aspect-ratio: 1#s', $css );
+	}
 }
