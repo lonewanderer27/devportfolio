@@ -1,0 +1,178 @@
+/*
+ * Videos grid (DPV-006, DPV-007, DPV-008): fixed 9:16 poster tiles in a fluid grid.
+ * Page width and gutter come from the shared .documents-page shell (assets/css/page.css).
+ */
+.videos-grid {
+	--videos-gap: 6px;
+
+	display: grid;
+	gap: var(--videos-gap);
+	grid-template-columns: repeat(auto-fill, minmax(clamp(104px, 72px + 8vw, 180px), 1fr));
+	margin-top: 20px;
+}
+
+@media (max-width: 620px) {
+	.videos-grid {
+		--videos-gap: 4px;
+	}
+}
+
+.videos-item {
+	position: relative;
+	box-sizing: border-box;
+	aspect-ratio: 9 / 16;
+	border: 1.5px solid var(--wp--preset--color--contrast);
+	border-radius: 4px;
+	background: var(--wp--preset--color--fill);
+	cursor: pointer;
+	view-transition-class: videos-item;
+}
+
+.videos-item[hidden] {
+	display: none;
+}
+
+/*
+ * Category change (document-categories/view.js runs the filter inside document.startViewTransition): each tile
+ * has its own transition name (set in render.php), so a tile that stays glides to its new place, a new one
+ * fades in and a hidden one fades out.
+ */
+::view-transition-group(*.videos-item) {
+	animation-duration: 0.4s;
+	animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(*.videos-item),
+::view-transition-new(*.videos-item) {
+	animation-duration: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*.videos-item),
+	::view-transition-old(*.videos-item),
+	::view-transition-new(*.videos-item) {
+		animation: none;
+	}
+}
+
+.videos-item__img,
+.videos-item__video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 2.5px;
+	object-fit: cover;
+	object-position: center;
+}
+
+.videos-item__img[hidden] {
+	display: none;
+}
+
+.videos-item__video {
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 120ms linear;
+}
+
+.videos-item.is-previewing .videos-item__video {
+	opacity: 1;
+}
+
+.videos-item__bar {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: 3px;
+	border-radius: 0 0 2.5px 2.5px;
+	background: #fff;
+	opacity: 0;
+	pointer-events: none;
+	transform: scaleX(var(--p, 0));
+	transform-origin: left;
+	transition: transform 250ms linear;
+}
+
+.videos-item__mute {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.videos-item.is-previewing .videos-item__bar,
+.videos-item.is-previewing .videos-item__mute {
+	opacity: 1;
+}
+
+.videos-item__open {
+	position: absolute;
+	inset: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	cursor: pointer;
+}
+
+.videos-item__open:focus-visible {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: 3px;
+}
+
+/*
+ * Page veil while a preview plays (lo-fi B2): the rest of the page blurs about 7px under a 40% white veil.
+ * The veil does not take the pointer, and the playing tile sits above it.
+ */
+body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	background: rgba(255, 255, 255, 0.4);
+	opacity: 0;
+	transition: opacity 200ms linear;
+}
+
+body.is-videos-previewing::after {
+	opacity: 1;
+	-webkit-backdrop-filter: blur(7px);
+	backdrop-filter: blur(7px);
+}
+
+.videos-item.is-previewing {
+	z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.videos-item__video,
+	.videos-item__bar {
+		transition: none;
+	}
+
+	body::after {
+		transition: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.videos-item {
+		border-color: CanvasText;
+	}
+
+	.videos-item__bar {
+		background: CanvasText;
+	}
+}
