@@ -583,12 +583,12 @@ class CPTDP_Page_REST {
 	}
 
 	/**
-	 * Validate an uploaded image: real WebP or JPEG, sane size.
+	 * Validate an uploaded image: real WebP or JPEG, sane size (the video poster route reuses it).
 	 *
 	 * @param string $body Raw bytes.
 	 * @return array{ext:string,width:int,height:int}|WP_Error
 	 */
-	private static function inspect( string $body ) {
+	public static function inspect( string $body ) {
 		$size = getimagesizefromstring( $body );
 
 		if ( ! $size || '' === self::mime_ext( (string) $size['mime'] ) ) {

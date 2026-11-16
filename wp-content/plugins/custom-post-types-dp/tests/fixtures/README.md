@@ -40,3 +40,12 @@ The demo entry is Document post `129`, titled `Q4 2026 Operations Playbook`,
 with attachment `128`. Its local upload path is
 `wp-content/uploads/2026/11/dave-operations-playbook.docx` (uploads are
 runtime data and are not committed); use the committed fixture to recreate it.
+
+## preview.mp4, preview.webm (DPV-041)
+
+Real 1 second, 64x112 test-pattern clips used by `post-types/test-video-autofill.php` for the video preview route. Made once on a developer machine (ffmpeg is not needed to run the tests):
+
+```bash
+ffmpeg -f lavfi -i testsrc=duration=1:size=64x112:rate=10 -c:v libx264 -pix_fmt yuv420p -movflags +faststart preview.mp4
+ffmpeg -f lavfi -i testsrc=duration=1:size=64x112:rate=10 -c:v libvpx-vp9 -b:v 50k preview.webm
+```

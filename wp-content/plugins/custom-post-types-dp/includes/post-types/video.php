@@ -6,6 +6,7 @@
  * `cptdp_video_file` (attachment ID), `cptdp_embed_url`, `cptdp_post_url`,
  * `cptdp_length` (seconds), `cptdp_software_tools` (software_tool IDs),
  * `cptdp_highlight`, `cptdp_post_statistics` (rows of label/value strings). Callers must escape meta on output (esc_url, esc_html).
+ * Thumbnail and length are autofilled, see video-autofill.php (DPV-041).
  *
  * @package CustomPostTypesDP
  */
@@ -288,6 +289,20 @@ function cptdp_register_video_meta(): void {
 		)
 	);
 
+	// The 6 second preview clip (DPV-041): an attachment ID written by the preview route, never by the form.
+	register_post_meta(
+		'video',
+		'cptdp_video_preview',
+		array(
+			'type'              => 'integer',
+			'single'            => true,
+			'default'           => 0,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_video_sanitize_file',
+			'auth_callback'     => $auth,
+		)
+	);
+
 	foreach ( array( 'cptdp_embed_url', 'cptdp_post_url' ) as $key ) {
 		register_post_meta(
 			'video',
@@ -438,6 +453,14 @@ function cptdp_video_render_details_box( WP_Post $post ): void {
 		<button type="button" class="button" id="cptdp-video-file-select"><?php esc_html_e( 'Select video', 'custom-post-types-dp' ); ?></button>
 		<span id="cptdp-video-file-name"><?php echo esc_html( $file_name ); ?></span>
 		<a href="#" id="cptdp-video-file-remove" <?php echo $file_id ? '' : 'style="display:none"'; ?>><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></a>
+		<br>
+		<span class="description">
+			<?php
+			/* translators: %s: largest upload this server accepts, e.g. 1 GB. */
+			printf( esc_html__( 'Maximum upload: %s.', 'custom-post-types-dp' ), esc_html( size_format( wp_max_upload_size() ) ) );
+			?>
+		</span>
+		<span id="cptdp-video-size-note" class="description" style="display:block"><?php echo esc_html( cptdp_video_big_note( $file_id ? (int) filesize( (string) get_attached_file( $file_id ) ) : 0 ) ); ?></span>
 	</p>
 	<p>
 		<label for="cptdp_embed_url"><strong><?php esc_html_e( 'Embed URL', 'custom-post-types-dp' ); ?></strong></label><br>
@@ -450,8 +473,30 @@ function cptdp_video_render_details_box( WP_Post $post ): void {
 	<p>
 		<label for="cptdp_length"><strong><?php esc_html_e( 'Length (seconds)', 'custom-post-types-dp' ); ?></strong></label><br>
 		<input type="number" id="cptdp_length" name="cptdp_length" min="0" step="1" value="<?php echo $length > 0 ? esc_attr( (string) $length ) : ''; ?>">
+		<span class="description"><?php esc_html_e( 'Generated automatically when possible, from the uploaded file or the video link. If it stays empty, enter it by hand.', 'custom-post-types-dp' ); ?></span>
 	</p>
 	<?php
+}
+
+/**
+ * Size (bytes) from which a video file gets the "quite big" warning. Filter: `cptdp_video_warn_bytes`.
+ */
+function cptdp_video_warn_bytes(): int {
+	return max( 1, (int) apply_filters( 'cptdp_video_warn_bytes', 100 * MB_IN_BYTES ) );
+}
+
+/**
+ * The warning for a big video file, '' when it is not big.
+ *
+ * @param int $bytes File size.
+ */
+function cptdp_video_big_note( int $bytes ): string {
+	if ( $bytes < cptdp_video_warn_bytes() ) {
+		return '';
+	}
+
+	/* translators: %s: file size, e.g. 210 MB. */
+	return sprintf( __( 'This file is big (%s). Consider hosting it on YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' ), size_format( $bytes ) );
 }
 
 /**
@@ -583,6 +628,8 @@ function cptdp_video_save_meta( int $post_id ): void {
 	$stats ? update_post_meta( $post_id, 'cptdp_post_statistics', $stats ) : delete_post_meta( $post_id, 'cptdp_post_statistics' );
 
 	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
+
+	cptdp_video_autofill( $post_id );
 }
 add_action( 'save_post_video', 'cptdp_video_save_meta' );
 
@@ -603,20 +650,56 @@ function cptdp_video_enqueue_admin( string $hook ): void {
 	}
 
 	wp_enqueue_media();
+
+	// DPV-041: the preview clip is cut in the browser. Only this screen loads the library.
+	wp_enqueue_script( 'cptdp-mediabunny', CPTDP_URL . 'assets/vendor/mediabunny/mediabunny.min.js', array(), '1.66.0', true );
+	wp_enqueue_script( 'cptdp-admin-video-preview', CPTDP_URL . 'assets/admin-video-preview.js', array( 'cptdp-mediabunny' ), CPTDP_VERSION, true );
 	wp_enqueue_script(
 		'cptdp-admin-video',
 		CPTDP_URL . 'assets/admin-video.js',
-		array( 'jquery' ),
+		array( 'jquery', 'cptdp-admin-video-preview' ),
 		CPTDP_VERSION,
 		true
 	);
-	wp_localize_script(
-		'cptdp-admin-video',
-		'cptdpVideo',
-		array(
-			'selectTitle'  => esc_html__( 'Select video', 'custom-post-types-dp' ),
-			'selectButton' => esc_html__( 'Use this video', 'custom-post-types-dp' ),
-		)
+
+	$data = array(
+		'selectTitle'  => esc_html__( 'Select video', 'custom-post-types-dp' ),
+		'selectButton' => esc_html__( 'Use this video', 'custom-post-types-dp' ),
 	);
+	$post = get_post();
+
+	// DPV-041: the script draws a frame of the chosen file and uploads it (needs the auto-draft's ID).
+	if ( $post instanceof WP_Post ) {
+		$file_id = (int) get_post_meta( $post->ID, 'cptdp_video_file', true );
+		$file_id = $file_id > 0 && wp_attachment_is( 'video', $file_id ) ? $file_id : 0;
+
+		$data['posterUrl']   = esc_url_raw( rest_url( 'cptdp/v1/videos/' . $post->ID . '/poster' ) );
+		$data['nonce']       = wp_create_nonce( 'wp_rest' );
+		$data['fileId']      = $file_id;
+		$data['fileUrl']     = $file_id ? (string) wp_get_attachment_url( $file_id ) : '';
+		$data['needsPoster'] = $file_id > 0
+			&& 'editor' !== CPTDP_Generated_Image::owner( $post->ID )
+			&& CPTDP_Generated_Image::source_of( $post->ID ) !== 'file:' . $file_id;
+		$data['warnBytes']   = cptdp_video_warn_bytes();
+		$data['bigNote']     = esc_html__( 'This file is big (%s). Consider hosting it on YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' );
+		$data['bigConfirm']  = esc_html__( 'Use this file anyway?', 'custom-post-types-dp' );
+		$data['failed']      = esc_html__( 'The thumbnail could not be made from this video. Set it by hand.', 'custom-post-types-dp' );
+
+		$data['previewUrl']    = esc_url_raw( rest_url( 'cptdp/v1/videos/' . $post->ID . '/preview' ) );
+		$data['previewMax']    = cptdp_video_preview_max_bytes();
+		$data['previewNeeded'] = $file_id > 0
+			&& 'editor' !== cptdp_video_preview_owner( $post->ID )
+			&& cptdp_video_preview_source( $post->ID ) !== 'file:' . $file_id;
+		$data['previewText']   = array(
+			'making'      => esc_html__( 'Making the preview clip...', 'custom-post-types-dp' ),
+			'ready'       => esc_html__( 'Preview clip ready', 'custom-post-types-dp' ),
+			'kept'        => esc_html__( 'A preview you chose is kept.', 'custom-post-types-dp' ),
+			'failed'      => esc_html__( 'The preview clip could not be made from this video.', 'custom-post-types-dp' ),
+			'unsupported' => esc_html__( 'This browser cannot make the preview clip. The video still saves.', 'custom-post-types-dp' ),
+			'leave'       => esc_html__( 'The preview clip is still being made. Leave anyway?', 'custom-post-types-dp' ),
+		);
+	}
+
+	wp_localize_script( 'cptdp-admin-video', 'cptdpVideo', $data );
 }
 add_action( 'admin_enqueue_scripts', 'cptdp_video_enqueue_admin' );

@@ -32,6 +32,7 @@ class CPTDP_Test_Video extends CPTDP_Media_CPT_Test_Case {
 			'cptdp_embed_url'       => array( 'string', '' ),
 			'cptdp_post_url'        => array( 'string', '' ),
 			'cptdp_length'          => array( 'integer', 0 ),
+			'cptdp_video_preview'   => array( 'integer', 0 ),
 			'cptdp_highlight'       => array( 'boolean', false ),
 			'cptdp_software_tools'  => array( 'array', array() ),
 			'cptdp_post_statistics' => array( 'array', array() ),
