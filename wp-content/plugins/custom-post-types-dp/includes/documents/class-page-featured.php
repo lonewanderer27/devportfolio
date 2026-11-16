@@ -19,16 +19,16 @@ defined( 'ABSPATH' ) || exit;
  */
 class CPTDP_Page_Featured {
 
-	const META           = 'cptdp_featured_generated';
-	const META_FOR       = '_cptdp_generated_for';
-	const META_FROM      = '_cptdp_generated_from';
-	const ERROR_PREFIX   = 'Featured image: ';
+	const META         = CPTDP_Generated_Image::META;
+	const META_FOR     = CPTDP_Generated_Image::META_FOR;
+	const META_FROM    = CPTDP_Generated_Image::META_FROM;
+	const ERROR_PREFIX = 'Featured image: ';
 
 	/**
 	 * Attach the hooks.
 	 */
 	public static function init(): void {
-		add_action( 'delete_attachment', array( __CLASS__, 'on_delete_attachment' ) );
+		CPTDP_Generated_Image::init();
 	}
 
 	/**
@@ -44,9 +44,7 @@ class CPTDP_Page_Featured {
 	 * @param int $post_id Post ID.
 	 */
 	public static function generated_id( int $post_id ): int {
-		$id = (int) get_post_meta( $post_id, self::META, true );
-
-		return $id > 0 && 'attachment' === get_post_type( $id ) ? $id : 0;
+		return CPTDP_Generated_Image::generated_id( $post_id );
 	}
 
 	/**
@@ -55,13 +53,7 @@ class CPTDP_Page_Featured {
 	 * @param int $post_id Post ID.
 	 */
 	public static function owner( int $post_id ): string {
-		$thumb = (int) get_post_thumbnail_id( $post_id );
-
-		if ( $thumb < 1 ) {
-			return '';
-		}
-
-		return self::generated_id( $post_id ) === $thumb ? 'generated' : 'editor';
+		return CPTDP_Generated_Image::owner( $post_id );
 	}
 
 	/**
@@ -108,13 +100,7 @@ class CPTDP_Page_Featured {
 			return 'failed';
 		}
 
-		set_post_thumbnail( $post_id, $created );
-		update_post_meta( $post_id, self::META, $created );
-
-		// The new image is in place first, so the shelf never shows a blank.
-		if ( $ours > 0 ) {
-			wp_delete_attachment( $ours, true );
-		}
+		CPTDP_Generated_Image::adopt( $post_id, $created, (string) $manifest['dir'] );
 
 		return 'created';
 	}
@@ -126,17 +112,7 @@ class CPTDP_Page_Featured {
 	 * @param bool $deleting The post itself is being deleted.
 	 */
 	public static function remove( int $post_id, bool $deleting = false ): void {
-		$ours = self::generated_id( $post_id );
-
-		if ( $ours < 1 ) {
-			delete_post_meta( $post_id, self::META );
-
-			return;
-		}
-
-		if ( $deleting || (int) get_post_thumbnail_id( $post_id ) === $ours ) {
-			self::delete( $post_id, $ours );
-		}
+		CPTDP_Generated_Image::remove( $post_id, $deleting );
 	}
 
 	/**
@@ -146,11 +122,7 @@ class CPTDP_Page_Featured {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public static function on_delete_attachment( $attachment_id ): void {
-		$post_id = (int) get_post_meta( (int) $attachment_id, self::META_FOR, true );
-
-		if ( $post_id > 0 && (int) get_post_meta( $post_id, self::META, true ) === (int) $attachment_id ) {
-			delete_post_meta( $post_id, self::META );
-		}
+		CPTDP_Generated_Image::on_delete_attachment( $attachment_id );
 	}
 
 	/**
@@ -160,8 +132,7 @@ class CPTDP_Page_Featured {
 	 * @param int $attachment_id Our attachment.
 	 */
 	private static function delete( int $post_id, int $attachment_id ): void {
-		delete_post_meta( $post_id, self::META );
-		wp_delete_attachment( $attachment_id, true );
+		CPTDP_Generated_Image::delete( $post_id, $attachment_id );
 	}
 
 	/**
@@ -182,40 +153,10 @@ class CPTDP_Page_Featured {
 			return new WP_Error( 'cptdp_featured_missing', __( 'Page 1 is missing.', 'custom-post-types-dp' ) );
 		}
 
-		// Cron and WP-CLI do not load the admin media functions.
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-
 		$post = get_post( $post_id );
-		$tmp  = wp_tempnam( 'cptdp-featured' );
+		$slug = $post instanceof WP_Post && '' !== $post->post_name ? $post->post_name : ( $post instanceof WP_Post ? sanitize_title( $post->post_title ) : '' );
+		$name = ( '' !== $slug ? $slug : 'post-' . $post_id ) . '-page-1.' . $ext;
 
-		if ( ! $post instanceof WP_Post || '' === $tmp || ! copy( $page, $tmp ) ) {
-			return new WP_Error( 'cptdp_featured_copy', __( 'Page 1 could not be copied.', 'custom-post-types-dp' ) );
-		}
-
-		$slug = '' !== $post->post_name ? $post->post_name : sanitize_title( $post->post_title );
-		$name = sanitize_file_name( ( '' !== $slug ? $slug : 'post-' . $post_id ) . '-page-1.' . $ext );
-		$id   = media_handle_sideload(
-			array(
-				'name'     => $name,
-				'tmp_name' => $tmp,
-			),
-			$post_id,
-			$post->post_title
-		);
-
-		if ( is_file( $tmp ) ) {
-			wp_delete_file( $tmp );
-		}
-
-		if ( is_wp_error( $id ) ) {
-			return $id;
-		}
-
-		update_post_meta( (int) $id, self::META_FOR, $post_id );
-		update_post_meta( (int) $id, self::META_FROM, (string) $manifest['dir'] );
-
-		return (int) $id;
+		return CPTDP_Generated_Image::sideload( $post_id, $page, $name );
 	}
 }
