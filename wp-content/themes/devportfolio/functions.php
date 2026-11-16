@@ -60,6 +60,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/document-shelf' );
 		register_block_type( __DIR__ . '/blocks/collateral-grid' );
 		register_block_type( __DIR__ . '/blocks/collateral-modal' );
+		register_block_type( __DIR__ . '/blocks/video-grid' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -1352,6 +1353,74 @@ if ( ! function_exists( 'devportfolio_collateral_item' ) ) :
 			'meta'       => devportfolio_collateral_meta_line( $post_id ),
 			'categories' => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
 			'preview'    => devportfolio_collateral_preview( $post_id ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_preview_url' ) ) :
+	/**
+	 * Source of a video's hover preview (DPV-007).
+	 *
+	 * The stored preview clip when it is an MP4 or WebM attachment, else the uploaded video file, else nothing
+	 * (an embed-only video never previews). `clip` says which of the two it is.
+	 *
+	 * @param mixed $clip_id Attachment ID of the preview clip (`cptdp_video_preview`).
+	 * @param mixed $file_id Attachment ID of the uploaded file (`cptdp_video_file`).
+	 * @return array{url:string,clip:bool}
+	 */
+	function devportfolio_video_preview_url( $clip_id, $file_id ) {
+		$clip_id = (int) $clip_id;
+		if ( $clip_id > 0 && in_array( get_post_mime_type( $clip_id ), array( 'video/mp4', 'video/webm' ), true ) ) {
+			$url = wp_get_attachment_url( $clip_id );
+			if ( $url ) {
+				return array(
+					'url'  => $url,
+					'clip' => true,
+				);
+			}
+		}
+
+		$file_id = (int) $file_id;
+		if ( $file_id > 0 && 0 === strpos( (string) get_post_mime_type( $file_id ), 'video/' ) ) {
+			$url = wp_get_attachment_url( $file_id );
+			if ( $url ) {
+				return array(
+					'url'  => $url,
+					'clip' => false,
+				);
+			}
+		}
+
+		return array(
+			'url'  => '',
+			'clip' => false,
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_item' ) ) :
+	/**
+	 * Everything the Videos grid needs for one video (DPV-006, DPV-007).
+	 *
+	 * @param int $post_id Video ID.
+	 * @return array{title:string,categories:string[],poster_id:int,preview:array{url:string,clip:bool}}|null Null when the post is not a video.
+	 */
+	function devportfolio_video_item( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( 'video' !== get_post_type( $post_id ) ) {
+			return null;
+		}
+
+		$slugs = devportfolio_term_slugs( $post_id, 'video_category' );
+
+		return array(
+			'title'      => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
+			'categories' => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
+			'poster_id'  => (int) get_post_thumbnail_id( $post_id ),
+			'preview'    => devportfolio_video_preview_url(
+				get_post_meta( $post_id, 'cptdp_video_preview', true ),
+				get_post_meta( $post_id, 'cptdp_video_file', true )
+			),
 		);
 	}
 endif;
