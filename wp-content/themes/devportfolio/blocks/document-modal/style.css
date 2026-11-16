@@ -717,16 +717,23 @@ html[data-documents-swapping] .documents-shelf__plank {
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
 }
 
-/* Shared native-viewer zoom controls: the library's zoom API keeps text, canvases and scrolling in sync. */
+/* Shared native-viewer zoom controls: the library's zoom API keeps text, canvases and scrolling in sync.
+   They sit in the body (viewer.js), centred under the Next arrow's column: the right edge is the arrow's
+   centre line and translateX(50%) moves the group's own centre onto it, whatever its width. Being placed
+   against the body from the start, they stay put when a zoom spreads the slide over the body. */
 .documents-modal__zoom-fab {
 	position: absolute;
 	z-index: 3;
-	right: calc(12px + env(safe-area-inset-right));
+	right: calc(var(--dm-arrow-inset, 12px) + var(--dm-arrow-size, 38px) / 2);
 	bottom: calc(12px + env(safe-area-inset-bottom));
+	transform: translateX(50%);
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
-	padding: 4px;
+	/* As wide as the Next arrow above it (border included, like the arrow's), at every breakpoint. */
+	box-sizing: border-box;
+	width: var(--dm-arrow-size, 38px);
+	padding: 0;
 	border: 1px solid var(--dm-line);
 	border-radius: 999px;
 	background: var(--dm-surface, #fff);
@@ -736,8 +743,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 .documents-modal__zoom-button {
 	display: grid;
 	place-items: center;
-	width: 36px;
-	height: 36px;
+	width: 100%;
+	aspect-ratio: 1;
 	padding: 0;
 	border: 0;
 	border-radius: 50%;

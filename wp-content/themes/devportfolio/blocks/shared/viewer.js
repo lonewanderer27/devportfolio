@@ -146,7 +146,9 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 		zoomFab.className = `${ prefix }__zoom-fab`;
 		zoomFab.setAttribute( 'aria-label', 'Zoom controls' );
 		zoomFab.append( zoomOut, zoomIn );
-		stage.appendChild( zoomFab );
+		// In the body, not the stage: the stage stops being their containing block while zoomed, so the
+		// buttons would jump to the body's edge on the first click (BF-DPD-038).
+		( stage.closest( `.${ prefix }__body` ) || stage ).appendChild( zoomFab );
 
 		zoomOut.addEventListener( 'click', () => {
 			if ( typeof viewer.zoomOut === 'function' ) {
