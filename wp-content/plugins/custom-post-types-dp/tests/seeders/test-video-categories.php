@@ -114,8 +114,8 @@ class CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case {
 		$rows = cptdp_seed_read_csv( $this->seeder()['csv'], $this->seeder()['columns'] );
 
 		$this->assertIsArray( $rows );
-		$this->assertSame( array( 'Content Creation', 'Short Form', 'AI-Generated' ), wp_list_pluck( $rows, 'title' ) );
-		$this->assertSame( array( 'content-creation', 'short-form', 'ai-generated' ), wp_list_pluck( $rows, 'slug' ) );
+		$this->assertSame( array( 'AI Generated', 'Short Form', 'Video Edits' ), wp_list_pluck( $rows, 'title' ) );
+		$this->assertSame( array( 'ai-generated', 'short-form', 'video-edits' ), wp_list_pluck( $rows, 'slug' ) );
 
 		foreach ( $rows as $row ) {
 			$this->assertSame( sanitize_title( $row['slug'] ), $row['slug'] );
@@ -125,12 +125,12 @@ class CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case {
 	public function test_creates_every_term_with_name_and_slug(): void {
 		$result = $this->run_seeder();
 
-		$this->assertSame( array( 'Content Creation', 'Short Form', 'AI-Generated' ), $result['created'] );
+		$this->assertSame( array( 'AI Generated', 'Short Form', 'Video Edits' ), $result['created'] );
 		$this->assertSame( array(), $result['skipped'] );
 
 		$term = get_term_by( 'slug', 'ai-generated', 'video_category' );
 		$this->assertInstanceOf( WP_Term::class, $term );
-		$this->assertSame( 'AI-Generated', $term->name );
+		$this->assertSame( 'AI Generated', $term->name );
 	}
 
 	public function test_dry_run_writes_nothing(): void {
@@ -155,8 +155,8 @@ class CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case {
 		$result = $this->run_seeder();
 
 		$this->assertSame( array( 'Short Form' ), $result['skipped'] );
-		$this->assertSame( array( 'Content Creation', 'AI-Generated' ), $result['created'] );
-		$this->assertSame( array( 'ai-generated', 'content-creation', 'short-form' ), $this->slugs() );
+		$this->assertSame( array( 'AI Generated', 'Video Edits' ), $result['created'] );
+		$this->assertSame( array( 'ai-generated', 'short-form', 'video-edits' ), $this->slugs() );
 		$this->assertSame( $existing['term_id'], get_term_by( 'slug', 'short-form', 'video_category' )->term_id );
 	}
 
@@ -166,7 +166,7 @@ class CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case {
 		$result = $this->run_seeder();
 
 		$this->assertContains( 'Short Form', $result['skipped'] );
-		$this->assertSame( array( 'ai-generated', 'content-creation', 'shorts' ), $this->slugs() );
+		$this->assertSame( array( 'ai-generated', 'shorts', 'video-edits' ), $this->slugs() );
 	}
 
 	public function test_existing_term_is_not_modified(): void {
@@ -191,7 +191,7 @@ class CPTDP_Test_Seeder_Video_Categories extends CPTDP_Test_Case {
 
 		$result = $this->run_seeder();
 
-		$this->assertSame( array( 'AI-Generated' ), $result['created'] );
+		$this->assertSame( array( 'AI Generated' ), $result['created'] );
 		$this->assertSame( $keep, get_term_by( 'slug', 'short-form', 'video_category' )->term_id );
 		$this->assertCount( 3, $this->slugs() );
 	}

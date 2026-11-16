@@ -66,10 +66,10 @@ add_action( 'init', 'devportfolio_register_blocks' );
 
 if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 	/**
-	 * Enqueue styles shared by the Documents and Collaterals archives.
+	 * Enqueue styles shared by the Documents, Collaterals and Videos archives.
 	 */
 	function devportfolio_enqueue_page_styles() {
-		if ( ! is_post_type_archive( array( 'document', 'collateral' ) ) ) {
+		if ( ! is_post_type_archive( array( 'document', 'collateral', 'video' ) ) ) {
 			return;
 		}
 

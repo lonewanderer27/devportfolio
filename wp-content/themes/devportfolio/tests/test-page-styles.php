@@ -40,10 +40,10 @@ class Devportfolio_Test_Page_Styles extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '.documents-page .documents-page__title', $css );
 	}
 
-	public function test_page_css_is_enqueued_on_both_archives_only(): void {
+	public function test_page_css_is_enqueued_on_the_page_archives_only(): void {
 		require_once $this->theme_dir() . '/functions.php';
 		add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
-		foreach ( array( 'document', 'collateral' ) as $type ) {
+		foreach ( array( 'document', 'collateral', 'video' ) as $type ) {
 			wp_dequeue_style( 'devportfolio-page' );
 			wp_deregister_style( 'devportfolio-page' );
 			$this->go_to( get_post_type_archive_link( $type ) );
