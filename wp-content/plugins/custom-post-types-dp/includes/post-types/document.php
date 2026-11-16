@@ -284,6 +284,33 @@ function cptdp_document_sanitize_statistics( $rows ): array {
 }
 
 /**
+ * Cover styles of the Documents shelf book (slug => label). The theme draws them; the first is the default.
+ *
+ * @return array<string, string>
+ */
+function cptdp_document_cover_styles(): array {
+	return array(
+		'midnight'  => esc_html__( 'Midnight', 'custom-post-types-dp' ),
+		'pinstripe' => esc_html__( 'Pinstripe', 'custom-post-types-dp' ),
+		'horizon'   => esc_html__( 'Horizon', 'custom-post-types-dp' ),
+		'split-sky' => esc_html__( 'Split Sky', 'custom-post-types-dp' ),
+		'dot-grid'  => esc_html__( 'Dot Grid', 'custom-post-types-dp' ),
+		'two-tone'  => esc_html__( 'Two-Tone', 'custom-post-types-dp' ),
+	);
+}
+
+/**
+ * Sanitize a cover style: a known slug, else an empty string (the theme then uses the default).
+ *
+ * @param mixed $value Raw value.
+ */
+function cptdp_document_sanitize_cover_style( $value ): string {
+	$slug = is_string( $value ) ? strtolower( trim( $value ) ) : '';
+
+	return array_key_exists( $slug, cptdp_document_cover_styles() ) ? $slug : '';
+}
+
+/**
  * Register Document meta.
  */
 function cptdp_register_document_meta(): void {
@@ -359,6 +386,19 @@ function cptdp_register_document_meta(): void {
 				),
 			),
 			'sanitize_callback' => 'cptdp_document_sanitize_software_tools',
+			'auth_callback'     => $auth,
+		)
+	);
+
+	register_post_meta(
+		'document',
+		'cptdp_cover_style',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'default'           => '',
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'cptdp_document_sanitize_cover_style',
 			'auth_callback'     => $auth,
 		)
 	);
@@ -459,6 +499,7 @@ function cptdp_document_render_details_box( WP_Post $post ): void {
 	$filetype  = (string) get_post_meta( $post->ID, 'cptdp_filetype', true );
 	$author    = (string) get_post_meta( $post->ID, 'cptdp_author', true );
 	$pages     = (int) get_post_meta( $post->ID, 'cptdp_total_pages', true );
+	$cover     = cptdp_document_sanitize_cover_style( get_post_meta( $post->ID, 'cptdp_cover_style', true ) );
 
 	wp_nonce_field( 'cptdp_document', 'cptdp_document_nonce' );
 	?>
@@ -485,6 +526,15 @@ function cptdp_document_render_details_box( WP_Post $post ): void {
 	<p>
 		<label for="cptdp_total_pages"><strong><?php esc_html_e( 'Total Pages', 'custom-post-types-dp' ); ?></strong></label><br>
 		<input type="number" id="cptdp_total_pages" name="cptdp_total_pages" min="0" step="1" value="<?php echo $pages > 0 ? esc_attr( (string) $pages ) : ''; ?>">
+	</p>
+	<p>
+		<label for="cptdp_cover_style"><strong><?php esc_html_e( 'Cover Style', 'custom-post-types-dp' ); ?></strong></label><br>
+		<select id="cptdp_cover_style" name="cptdp_cover_style">
+			<?php foreach ( cptdp_document_cover_styles() as $slug => $label ) : ?>
+				<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $slug, '' !== $cover ? $cover : 'midnight' ); ?>><?php echo esc_html( $label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<span class="description"><?php esc_html_e( 'How the book looks on the Documents page.', 'custom-post-types-dp' ); ?></span>
 	</p>
 	<?php
 }
@@ -611,6 +661,9 @@ function cptdp_document_save_meta( int $post_id ): void {
 
 	$pages = isset( $_POST['cptdp_total_pages'] ) ? absint( wp_unslash( $_POST['cptdp_total_pages'] ) ) : 0;
 	$pages > 0 ? update_post_meta( $post_id, 'cptdp_total_pages', $pages ) : delete_post_meta( $post_id, 'cptdp_total_pages' );
+
+	$cover = isset( $_POST['cptdp_cover_style'] ) ? cptdp_document_sanitize_cover_style( wp_unslash( $_POST['cptdp_cover_style'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
+	'' !== $cover ? update_post_meta( $post_id, 'cptdp_cover_style', $cover ) : delete_post_meta( $post_id, 'cptdp_cover_style' );
 
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
 	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_document_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
