@@ -33,6 +33,7 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 			'cptdp_filetype'        => array( 'string', '' ),
 			'cptdp_author'          => array( 'string', '' ),
 			'cptdp_total_pages'     => array( 'integer', 0 ),
+			'cptdp_cover_style'     => array( 'string', '' ),
 			'cptdp_software_tools'  => array( 'array', array() ),
 			'cptdp_highlight'       => array( 'boolean', false ),
 			'cptdp_post_statistics' => array( 'array', array() ),
@@ -109,6 +110,24 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 
 		$this->assertSame( 'PDF', get_post_meta( $id, 'cptdp_filetype', true ) );
 		$this->assertSame( 'Jane', get_post_meta( $id, 'cptdp_author', true ) );
+	}
+
+	public function test_cover_style_is_saved_only_when_known(): void {
+		$this->acting_as( 'editor' );
+		$id = $this->make_post();
+
+		$this->save( $id, array( 'cptdp_cover_style' => 'Horizon' ) );
+		$this->assertSame( 'horizon', get_post_meta( $id, 'cptdp_cover_style', true ) );
+
+		$this->save( $id, array( 'cptdp_cover_style' => 'neon' ) );
+		$this->assertFalse( metadata_exists( 'post', $id, 'cptdp_cover_style' ) );
+	}
+
+	public function test_cover_styles_match_the_theme_list(): void {
+		$this->assertSame(
+			array( 'midnight', 'pinstripe', 'horizon', 'split-sky', 'dot-grid', 'two-tone' ),
+			array_keys( cptdp_document_cover_styles() )
+		);
 	}
 
 	public function test_text_meta_is_sanitized_on_update(): void {
