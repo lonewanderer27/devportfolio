@@ -456,12 +456,8 @@ function cptdp_video_render_details_box( WP_Post $post ): void {
 		<br>
 		<span class="description">
 			<?php
-			printf(
-				/* translators: 1: largest upload this server accepts (e.g. 256 MB), 2: size from which a warning shows. */
-				esc_html__( 'Largest upload this server accepts: %1$s. Files over %2$s are better hosted on YouTube or Vimeo, then pasted as the Embed URL below.', 'custom-post-types-dp' ),
-				esc_html( size_format( wp_max_upload_size() ) ),
-				esc_html( size_format( cptdp_video_warn_bytes() ) )
-			);
+			/* translators: %s: largest upload this server accepts, e.g. 1 GB. */
+			printf( esc_html__( 'Maximum upload: %s.', 'custom-post-types-dp' ), esc_html( size_format( wp_max_upload_size() ) ) );
 			?>
 		</span>
 		<span id="cptdp-video-size-note" class="description" style="display:block"><?php echo esc_html( cptdp_video_big_note( $file_id ? (int) filesize( (string) get_attached_file( $file_id ) ) : 0 ) ); ?></span>
@@ -500,7 +496,7 @@ function cptdp_video_big_note( int $bytes ): string {
 	}
 
 	/* translators: %s: file size, e.g. 210 MB. */
-	return sprintf( __( 'This file is quite big (%s). Large videos load slowly for visitors and some hosts refuse them. Consider uploading it to YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' ), size_format( $bytes ) );
+	return sprintf( __( 'This file is big (%s). Consider hosting it on YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' ), size_format( $bytes ) );
 }
 
 /**
@@ -685,7 +681,7 @@ function cptdp_video_enqueue_admin( string $hook ): void {
 			&& 'editor' !== CPTDP_Generated_Image::owner( $post->ID )
 			&& CPTDP_Generated_Image::source_of( $post->ID ) !== 'file:' . $file_id;
 		$data['warnBytes']   = cptdp_video_warn_bytes();
-		$data['bigNote']     = esc_html__( 'This file is quite big (%s). Large videos load slowly for visitors and some hosts refuse them. Consider uploading it to YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' );
+		$data['bigNote']     = esc_html__( 'This file is big (%s). Consider hosting it on YouTube or Vimeo and pasting the embed URL instead.', 'custom-post-types-dp' );
 		$data['bigConfirm']  = esc_html__( 'Use this file anyway?', 'custom-post-types-dp' );
 		$data['failed']      = esc_html__( 'The thumbnail could not be made from this video. Set it by hand.', 'custom-post-types-dp' );
 
