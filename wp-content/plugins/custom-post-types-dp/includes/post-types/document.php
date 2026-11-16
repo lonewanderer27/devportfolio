@@ -290,12 +290,13 @@ function cptdp_document_sanitize_statistics( $rows ): array {
  */
 function cptdp_document_cover_styles(): array {
 	return array(
-		'midnight'  => esc_html__( 'Midnight', 'custom-post-types-dp' ),
-		'pinstripe' => esc_html__( 'Pinstripe', 'custom-post-types-dp' ),
-		'horizon'   => esc_html__( 'Horizon', 'custom-post-types-dp' ),
-		'split-sky' => esc_html__( 'Split Sky', 'custom-post-types-dp' ),
-		'dot-grid'  => esc_html__( 'Dot Grid', 'custom-post-types-dp' ),
-		'two-tone'  => esc_html__( 'Two-Tone', 'custom-post-types-dp' ),
+		'midnight'    => esc_html__( 'Midnight', 'custom-post-types-dp' ),
+		'pinstripe'   => esc_html__( 'Pinstripe', 'custom-post-types-dp' ),
+		'horizon'     => esc_html__( 'Horizon', 'custom-post-types-dp' ),
+		'split-sky'   => esc_html__( 'Split Sky', 'custom-post-types-dp' ),
+		'dot-grid'    => esc_html__( 'Dot Grid', 'custom-post-types-dp' ),
+		'two-tone'    => esc_html__( 'Two-Tone', 'custom-post-types-dp' ),
+		'certificate' => esc_html__( 'Certificate', 'custom-post-types-dp' ),
 	);
 }
 

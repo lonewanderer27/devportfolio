@@ -155,9 +155,9 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertSame( '', devportfolio_document_format_label( array( 'PDF' ), 0 ) );
 	}
 
-	public function test_cover_styles_are_the_six_in_order(): void {
+	public function test_cover_styles_are_the_seven_in_order(): void {
 		$this->assertSame(
-			array( 'midnight', 'pinstripe', 'horizon', 'split-sky', 'dot-grid', 'two-tone' ),
+			array( 'midnight', 'pinstripe', 'horizon', 'split-sky', 'dot-grid', 'two-tone', 'certificate' ),
 			array_keys( devportfolio_cover_styles() )
 		);
 	}
@@ -375,7 +375,7 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 	}
 
 	public function test_light_covers_use_dark_text_and_dark_covers_light_text(): void {
-		foreach ( array( 'pinstripe', 'dot-grid' ) as $slug ) {
+		foreach ( array( 'pinstripe', 'dot-grid', 'certificate' ) as $slug ) {
 			$this->assertStringContainsString( '--ct: var(--book-ink)', $this->rule( '.documents-book[data-cover-style="' . $slug . '"]' ), $slug );
 		}
 		foreach ( array( 'midnight', 'horizon', 'split-sky', 'two-tone' ) as $slug ) {
@@ -427,6 +427,34 @@ class Devportfolio_Test_Document_Book extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'radial-gradient(', $this->rule( '.documents-book[data-cover-style="dot-grid"] .documents-book__pat' ) );
 		$this->assertStringContainsString( '50%', $this->rule( '.documents-book[data-cover-style="two-tone"]' ) );
 		$this->assertStringContainsString( '30%', $this->rule( '.documents-book[data-cover-style="split-sky"]' ) );
+	}
+
+	public function test_certificate_shares_the_cover_layout_with_a_frame_and_seal(): void {
+		$sel   = '.documents-book[data-cover-style="certificate"]';
+		$cover = $this->rule( $sel );
+		// White paper with fine guilloche rings centred on the seal.
+		$this->assertStringContainsString( '--cv: repeating-radial-gradient(circle at 76% 24%, transparent 0 6px, color-mix(in srgb, var(--book-ink) 8%, transparent) 6px 7px), var(--book-surface)', $cover );
+		// Same skeleton as every other cover: no own padding or alignment.
+		$this->assertStringNotContainsString( 'padding', $cover );
+		$this->assertStringNotContainsString( $sel . ' .documents-book__ttl', $this->css() );
+		$this->assertStringNotContainsString( $sel . ' .documents-book__cat', $this->css() );
+
+		// Midnight's hairline frame, at the same inset, in ink.
+		$frame = $this->rule( $sel . ' .documents-book__pat' );
+		$this->assertStringContainsString( 'inset: 10px 10px 10px 26px', $frame );
+		$this->assertStringContainsString( 'border: 1px solid color-mix(in srgb, var(--book-ink) 24%, transparent)', $frame );
+
+		// The award seal sits top right, where Horizon has its sun.
+		$seal = $this->rule( $sel . ' .documents-book__pat::after' );
+		$this->assertStringContainsString( 'top: 11%', $seal );
+		$this->assertStringContainsString( 'right: 9%', $seal );
+		$this->assertStringContainsString( 'width: 26%', $seal );
+		$this->assertStringContainsString( 'url("data:image/svg+xml,', $seal );
+
+		$this->assertStringContainsString(
+			'.documents-book[data-cover-style="midnight"] .documents-book__pat, ' . $sel . ' .documents-book__pat { inset: 6px 6px 6px 18px; }',
+			$this->media( '(max-width: 820px)' )
+		);
 	}
 
 	public function test_cover_box_ratio_radius_and_flat_shadow(): void {

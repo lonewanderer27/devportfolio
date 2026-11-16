@@ -100,16 +100,16 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	}
 
 	public function test_has_no_dependency_on_other_seeders(): void {
-		$this->assertCount( 4, $this->run_seeder( true )['created'] );
+		$this->assertCount( 5, $this->run_seeder( true )['created'] );
 	}
 
 	public function test_csv_is_well_formed(): void {
 		$rows = cptdp_seed_read_csv( $this->seeder()['csv'], $this->seeder()['columns'] );
 
 		$this->assertIsArray( $rows );
-		$this->assertSame( array( 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' ), wp_list_pluck( $rows, 'title' ) );
-		$this->assertSame( array( 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), wp_list_pluck( $rows, 'slug' ) );
-		$this->assertSame( array( 'Executive Doc', 'Operations Doc', 'Presentation Deck', 'Report' ), wp_list_pluck( $rows, 'singular' ) );
+		$this->assertSame( array( 'Certificates', 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' ), wp_list_pluck( $rows, 'title' ) );
+		$this->assertSame( array( 'certificates', 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), wp_list_pluck( $rows, 'slug' ) );
+		$this->assertSame( array( 'Certificate', 'Executive Doc', 'Operations Doc', 'Presentation Deck', 'Report' ), wp_list_pluck( $rows, 'singular' ) );
 
 		foreach ( $rows as $row ) {
 			$this->assertSame( sanitize_title( $row['slug'] ), $row['slug'] );
@@ -119,7 +119,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	public function test_creates_every_term_with_name_and_slug(): void {
 		$result = $this->run_seeder();
 
-		$this->assertSame( array( 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' ), $result['created'] );
+		$this->assertSame( array( 'Certificates', 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' ), $result['created'] );
 		$this->assertSame( array(), $result['skipped'] );
 
 		$term = get_term_by( 'slug', 'reports', 'document_category' );
@@ -138,7 +138,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 			)
 		);
 
-		$expected = array( 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' );
+		$expected = array( 'Certificates', 'Executive Docs', 'Operations Docs', 'Presentation Decks', 'Reports' );
 		$this->assertSame( $expected, wp_list_pluck( $terms, 'name' ), 'Default get_terms() order.' );
 
 		$ids = wp_list_pluck( $terms, 'term_id' );
@@ -150,7 +150,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 	public function test_dry_run_writes_nothing(): void {
 		$result = $this->run_seeder( true );
 
-		$this->assertCount( 4, $result['created'] );
+		$this->assertCount( 5, $result['created'] );
 		$this->assertSame( array(), $this->slugs() );
 	}
 
@@ -159,8 +159,8 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 		$second = $this->run_seeder();
 
 		$this->assertSame( array(), $second['created'] );
-		$this->assertCount( 4, $second['skipped'] );
-		$this->assertCount( 4, $this->slugs() );
+		$this->assertCount( 5, $second['skipped'] );
+		$this->assertCount( 5, $this->slugs() );
 	}
 
 	public function test_matches_the_existing_hand_made_short_form_term(): void {
@@ -170,8 +170,8 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 
 		$this->assertSame( array( 'Executive Docs' ), $result['updated'] );
 		$this->assertSame( array(), $result['skipped'] );
-		$this->assertSame( array( 'Operations Docs', 'Presentation Decks', 'Reports' ), $result['created'] );
-		$this->assertSame( array( 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), $this->slugs() );
+		$this->assertSame( array( 'Certificates', 'Operations Docs', 'Presentation Decks', 'Reports' ), $result['created'] );
+		$this->assertSame( array( 'certificates', 'executive-docs', 'operations-docs', 'presentation-decks', 'reports' ), $this->slugs() );
 		$this->assertSame( $existing['term_id'], get_term_by( 'slug', 'executive-docs', 'document_category' )->term_id );
 		$this->assertSame( 'Executive Doc', get_term_meta( $existing['term_id'], 'cptdp_singular_name', true ) );
 	}
@@ -182,7 +182,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 		$result = $this->run_seeder();
 
 		$this->assertContains( 'Executive Docs', $result['updated'] );
-		$this->assertSame( array( 'operations-docs', 'presentation-decks', 'reports', 'shorts' ), $this->slugs() );
+		$this->assertSame( array( 'certificates', 'operations-docs', 'presentation-decks', 'reports', 'shorts' ), $this->slugs() );
 	}
 
 	public function test_existing_term_is_not_modified(): void {
@@ -210,7 +210,7 @@ class CPTDP_Test_Seeder_Document_Categories extends CPTDP_Test_Case {
 
 		$this->assertSame( array( 'Reports' ), $result['created'] );
 		$this->assertSame( $keep, get_term_by( 'slug', 'executive-docs', 'document_category' )->term_id );
-		$this->assertCount( 4, $this->slugs() );
+		$this->assertCount( 5, $this->slugs() );
 	}
 
 	public function test_missing_csv_errors(): void {

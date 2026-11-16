@@ -294,12 +294,13 @@ if ( ! function_exists( 'devportfolio_cover_styles' ) ) :
 	 */
 	function devportfolio_cover_styles() {
 		return array(
-			'midnight'  => _x( 'Midnight', 'document cover style', 'devportfolio' ),
-			'pinstripe' => _x( 'Pinstripe', 'document cover style', 'devportfolio' ),
-			'horizon'   => _x( 'Horizon', 'document cover style', 'devportfolio' ),
-			'split-sky' => _x( 'Split Sky', 'document cover style', 'devportfolio' ),
-			'dot-grid'  => _x( 'Dot Grid', 'document cover style', 'devportfolio' ),
-			'two-tone'  => _x( 'Two-Tone', 'document cover style', 'devportfolio' ),
+			'midnight'    => _x( 'Midnight', 'document cover style', 'devportfolio' ),
+			'pinstripe'   => _x( 'Pinstripe', 'document cover style', 'devportfolio' ),
+			'horizon'     => _x( 'Horizon', 'document cover style', 'devportfolio' ),
+			'split-sky'   => _x( 'Split Sky', 'document cover style', 'devportfolio' ),
+			'dot-grid'    => _x( 'Dot Grid', 'document cover style', 'devportfolio' ),
+			'two-tone'    => _x( 'Two-Tone', 'document cover style', 'devportfolio' ),
+			'certificate' => _x( 'Certificate', 'document cover style', 'devportfolio' ),
 		);
 	}
 endif;
