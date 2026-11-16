@@ -490,6 +490,14 @@ html[data-documents-swapping] .documents-shelf__plank {
 	background-size: 22px 22px;
 }
 
+/* Where the page arrows sit and how big they are, in one place: the zoom buttons line up with the Next
+   arrow's column from these too (BF-DPD-038). The media queries below change only the values. */
+.documents-modal__body,
+.collaterals-modal__body {
+	--dm-arrow-inset: 18px;
+	--dm-arrow-size: 38px;
+}
+
 /* The viewer (viewer.js) puts the book in the stage, centred, and measures the stage to size it. */
 .documents-modal__stage,
 .collaterals-modal__stage {
@@ -657,6 +665,45 @@ html[data-documents-swapping] .documents-shelf__plank {
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
 }
 
+/* Zoomed with the zoom buttons (BF-DPD-038): the library sets the canvas's width and height, so the clamp
+   above would shrink only the width. The slide keeps its size on both axes and the stage scrolls; auto
+   margins centre it without cutting off the top and left as `justify-content: center` would. */
+.documents-modal__native--zoomed,
+.collaterals-modal__native--zoomed {
+	align-items: flex-start;
+	justify-content: flex-start;
+	overflow: auto;
+}
+
+/* The zoomed slide fills the whole body, edge to edge, instead of scrolling inside the stage, which sits
+   in the body's padding (the gutters that keep the arrows clear of an unzoomed slide). The stage stops
+   being the containing block, so the scroll area, the arrows and the zoom buttons all place against the
+   body; the arrows (z-index 2) and zoom buttons (3) stay on top of the slide. */
+.documents-modal__stage--zoomed,
+.collaterals-modal__stage--zoomed {
+	position: static;
+}
+
+.documents-modal__stage--zoomed > .documents-modal__native--zoomed,
+.collaterals-modal__stage--zoomed > .collaterals-modal__native--zoomed {
+	position: absolute;
+	inset: 0;
+	width: auto;
+	height: auto;
+	padding: 12px;
+}
+
+.documents-modal__native--zoomed > *,
+.collaterals-modal__native--zoomed > * {
+	flex: none;
+	margin: auto;
+}
+
+.documents-modal__native--zoomed .documents-modal__native-canvas,
+.collaterals-modal__native--zoomed .collaterals-modal__native-canvas {
+	max-width: none;
+}
+
 /* A .xlsx the browser draws itself (DPD-027): the library's own grid, with its sheet tabs and zoom control,
    fills the stage. The modal's pager and arrows are hidden (the workbook reports one piece). */
 .documents-modal__grid,
@@ -670,16 +717,23 @@ html[data-documents-swapping] .documents-shelf__plank {
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
 }
 
-/* Shared native-viewer zoom controls: the library's zoom API keeps text, canvases and scrolling in sync. */
+/* Shared native-viewer zoom controls: the library's zoom API keeps text, canvases and scrolling in sync.
+   They sit in the body (viewer.js), centred under the Next arrow's column: the right edge is the arrow's
+   centre line and translateX(50%) moves the group's own centre onto it, whatever its width. Being placed
+   against the body from the start, they stay put when a zoom spreads the slide over the body. */
 .documents-modal__zoom-fab {
 	position: absolute;
 	z-index: 3;
-	right: calc(12px + env(safe-area-inset-right));
+	right: calc(var(--dm-arrow-inset, 12px) + var(--dm-arrow-size, 38px) / 2);
 	bottom: calc(12px + env(safe-area-inset-bottom));
+	transform: translateX(50%);
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
-	padding: 4px;
+	/* As wide as the Next arrow above it (border included, like the arrow's), at every breakpoint. */
+	box-sizing: border-box;
+	width: var(--dm-arrow-size, 38px);
+	padding: 0;
 	border: 1px solid var(--dm-line);
 	border-radius: 999px;
 	background: var(--dm-surface, #fff);
@@ -689,8 +743,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 .documents-modal__zoom-button {
 	display: grid;
 	place-items: center;
-	width: 36px;
-	height: 36px;
+	width: 100%;
+	aspect-ratio: 1;
 	padding: 0;
 	border: 0;
 	border-radius: 50%;
@@ -809,8 +863,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 	z-index: 2;
 	display: grid;
 	place-items: center;
-	width: 38px;
-	height: 38px;
+	width: var(--dm-arrow-size);
+	height: var(--dm-arrow-size);
 	padding: 0;
 	color: var(--dm-ink);
 	cursor: pointer;
@@ -832,12 +886,12 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 .documents-modal__arrow--prev,
 	.collaterals-modal__arrow--prev {
-	left: 18px;
+	left: var(--dm-arrow-inset);
 }
 
 .documents-modal__arrow--next,
 	.collaterals-modal__arrow--next {
-	right: 18px;
+	right: var(--dm-arrow-inset);
 }
 
 /*
@@ -906,20 +960,10 @@ html[data-documents-swapping] .documents-shelf__plank {
 		padding: 12px;
 	}
 
-	.documents-modal__arrow,
-.collaterals-modal__arrow {
-		width: 34px;
-		height: 34px;
-	}
-
-	.documents-modal__arrow--prev,
-	.collaterals-modal__arrow--prev {
-		left: 10px;
-	}
-
-	.documents-modal__arrow--next,
-	.collaterals-modal__arrow--next {
-		right: 10px;
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 10px;
+		--dm-arrow-size: 34px;
 	}
 }
 
@@ -928,14 +972,9 @@ html[data-documents-swapping] .documents-shelf__plank {
 		padding: 0;
 	}
 
-	.documents-modal__arrow--prev,
-	.collaterals-modal__arrow--prev {
-		left: 8px;
-	}
-
-	.documents-modal__arrow--next,
-	.collaterals-modal__arrow--next {
-		right: 8px;
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 8px;
 	}
 }
 

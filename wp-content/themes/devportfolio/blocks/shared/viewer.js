@@ -146,7 +146,9 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 		zoomFab.className = `${ prefix }__zoom-fab`;
 		zoomFab.setAttribute( 'aria-label', 'Zoom controls' );
 		zoomFab.append( zoomOut, zoomIn );
-		stage.appendChild( zoomFab );
+		// In the body, not the stage: the stage stops being their containing block while zoomed, so the
+		// buttons would jump to the body's edge on the first click (BF-DPD-038).
+		( stage.closest( `.${ prefix }__body` ) || stage ).appendChild( zoomFab );
 
 		zoomOut.addEventListener( 'click', () => {
 			if ( typeof viewer.zoomOut === 'function' ) {
@@ -197,6 +199,7 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 
 	const reset = () => {
 		hideZoomFab();
+		stage.classList.remove( `${ prefix }__stage--zoomed` );
 		if ( grid ) {
 			destroyNative( grid );
 			grid = null;
@@ -557,8 +560,21 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 		wrap.append( canvas );
 		stage.replaceChildren( wrap );
 
-		/** The canvas is scaled with CSS to fit the stage. */
+		// The library zooms by drawing the slide larger and setting the canvas's CSS width and height. At the
+		// scale it loaded with the canvas is fitted to the stage with CSS; zoomed, the library's size is kept
+		// (both axes) and the wrapper scrolls (BF-DPD-038).
+		let fittedScale = null;
+		const isZoomed = () => null !== fittedScale && !! pptx && pptx.getScale() !== fittedScale;
+
+		/** The canvas is scaled with CSS to fit the stage, unless the visitor zoomed in or out. */
 		const fit = () => {
+			const zoomed = isZoomed();
+			wrap.classList.toggle( `${ prefix }__native--zoomed`, zoomed );
+			// Zoomed, the slide scrolls over the whole body, not only inside the stage's padded box.
+			stage.classList.toggle( `${ prefix }__stage--zoomed`, zoomed );
+			if ( zoomed ) {
+				return;
+			}
 			const ratio = canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9;
 			const room = fitPage( { stageW: stage.clientWidth, stageH: Math.max( 40, stage.clientHeight ), ratio } );
 			canvas.style.width = `${ room.pageW }px`;
@@ -590,6 +606,12 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 						fail( error, mine );
 					}
 				},
+				// Called after the zoomed slide is drawn, so fit() sees the new scale.
+				onScaleChange: () => {
+					if ( mine === session && opened ) {
+						fit();
+					}
+				},
 				// From here reset() can destroy it, so closing mid-load cannot leave a worker running.
 				onCreate: ( created ) => {
 					pptx = created;
@@ -609,6 +631,7 @@ export function createViewer( { stage, status, prefix = 'documents-modal', pdfjs
 				return false;
 			}
 
+			fittedScale = instance.getScale();
 			fit();
 			wrap.style.visibility = '';
 			setStatus( null );

@@ -193,8 +193,8 @@ class Devportfolio_Test_Collateral_Viewer extends WP_UnitTestCase {
 
 	public function test_collateral_arrows_have_their_own_left_and_right_position(): void {
 		$css = $this->read( 'blocks/document-modal/style.css' );
-		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--prev,\s*\.collaterals-modal__arrow--prev \{\s*left: 18px;/', $css, 'Previous sits on the left for collaterals too.' );
-		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--next,\s*\.collaterals-modal__arrow--next \{\s*right: 18px;/', $css, 'Next sits on the right for collaterals too.' );
+		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--prev,\s*\.collaterals-modal__arrow--prev \{\s*left: var\(--dm-arrow-inset\);/', $css, 'Previous sits on the left for collaterals too.' );
+		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--next,\s*\.collaterals-modal__arrow--next \{\s*right: var\(--dm-arrow-inset\);/', $css, 'Next sits on the right for collaterals too.' );
 	}
 
 	public function test_collaterals_always_show_one_page_at_a_time(): void {

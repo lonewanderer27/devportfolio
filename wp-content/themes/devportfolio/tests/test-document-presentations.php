@@ -481,4 +481,42 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'native-note', $css );
 		$this->assertStringNotContainsString( 'documents-modal--office', $css );
 	}
+
+	/**
+	 * BF-DPD-038: the library zooms by setting the canvas's width and height, so a zoomed slide must not
+	 * keep the width clamp (only the height would grow), and it scrolls over the whole body, not only
+	 * inside the stage in the body's padding.
+	 */
+	public function test_a_zoomed_slide_grows_on_both_axes_and_scrolls(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+		$js  = $this->read( 'blocks/shared/viewer.js' );
+
+		$this->assertMatchesRegularExpression( '#\.documents-modal__native--zoomed,[^{]*\{[^}]*justify-content: flex-start[^}]*overflow: auto#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__native--zoomed > \*,[^{]*\{[^}]*margin: auto#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__native--zoomed \.documents-modal__native-canvas,[^{]*\{[^}]*max-width: none#s', $css );
+
+		$this->assertMatchesRegularExpression( '#\.documents-modal__stage--zoomed,[^{]*\{[^}]*position: static#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__stage--zoomed > \.documents-modal__native--zoomed,[^{]*\{[^}]*position: absolute[^}]*inset: 0#s', $css );
+
+		$this->assertStringContainsString( '`${ prefix }__native--zoomed`', $js );
+		$this->assertStringContainsString( 'stage.classList.toggle( `${ prefix }__stage--zoomed`, zoomed )', $js );
+		$this->assertStringContainsString( 'stage.classList.remove( `${ prefix }__stage--zoomed` )', $js, 'The next document starts fitted.' );
+		$this->assertStringContainsString( 'onScaleChange', $js );
+		$this->assertStringContainsString( 'onScaleChange,', $this->read( 'blocks/shared/native-pptx.js' ) );
+	}
+
+	/**
+	 * BF-DPD-038: the zoom buttons live in the body, centred on the Next arrow's column and as wide as it,
+	 * so the first zoom (which stops the stage being their containing block) does not move them.
+	 */
+	public function test_the_zoom_buttons_sit_under_the_next_arrow_at_its_width(): void {
+		$css = $this->read( 'blocks/document-modal/style.css' );
+		$js  = $this->read( 'blocks/shared/viewer.js' );
+
+		$this->assertStringContainsString( '( stage.closest( `.${ prefix }__body` ) || stage ).appendChild( zoomFab )', $js );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--next,[^{]*\{\s*right: var\(--dm-arrow-inset\);#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-fab\s*\{[^}]*right: calc\(var\(--dm-arrow-inset, 12px\) \+ var\(--dm-arrow-size, 38px\) / 2\)[^}]*transform: translateX\(50%\)#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-fab\s*\{[^}]*box-sizing: border-box[^}]*width: var\(--dm-arrow-size, 38px\)[^}]*padding: 0#s', $css );
+		$this->assertMatchesRegularExpression( '#\.documents-modal__zoom-button\s*\{[^}]*width: 100%[^}]*aspect-ratio: 1#s', $css );
+	}
 }

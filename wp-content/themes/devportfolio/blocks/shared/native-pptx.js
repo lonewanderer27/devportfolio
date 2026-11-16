@@ -43,11 +43,12 @@ export function readNativeEnvironment() {
  * @param {Function} options.alive          () => bool, false once the document was closed or replaced.
  * @param {Function} options.onSlideChange  ( index, total )
  * @param {Function} options.onError        ( error ) A slide that cannot be drawn.
+ * @param {Function} [options.onScaleChange] ( scale ) After a zoom has been drawn (desktop zoom buttons).
  * @param {Function} options.onCreate       ( instance ) Called before the file is loaded, so the caller can
  *                                          free the workers if it closes mid-load.
  * @return {Promise<object|null>} The loaded viewer, or null when the document was closed during the import.
  */
-export async function openPptx( { canvas, doc, limits, size, alive, onSlideChange, onError, onCreate } ) {
+export async function openPptx( { canvas, doc, limits, size, alive, onSlideChange, onError, onScaleChange, onCreate } ) {
 	const lib = await withTimeout( import( PPTX_LIB ), limits.nativeTimeoutMs );
 	if ( ! alive() ) {
 		return null;
@@ -68,6 +69,7 @@ export async function openPptx( { canvas, doc, limits, size, alive, onSlideChang
 		workerTimeoutMs: limits.nativeTimeoutMs,
 		onSlideChange,
 		onError,
+		onScaleChange,
 	} );
 	onCreate( instance );
 
