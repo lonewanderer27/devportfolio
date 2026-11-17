@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Custom Post Types DP
  * Description:       Loads all portfolio modules when active: custom post types and site settings (e.g. Contact).
- * Version:           0.30.0
+ * Version:           0.31.0
  * Requires at least: 6.5
  * Requires PHP:      8.4
  * Author:            Ian James Puzon
