@@ -620,8 +620,8 @@
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
-	width: 32px;
-	height: 32px;
+	width: 42px;
+	height: 42px;
 	margin: 0;
 	padding: 0;
 	border: 0;
@@ -637,8 +637,8 @@
 }
 
 .videos-modal__bar svg {
-	width: 20px;
-	height: 20px;
+	width: 22px;
+	height: 22px;
 	fill: currentColor;
 }
 
@@ -750,7 +750,8 @@
 	display: none;
 }
 
-/* Volume slider, playback-rate select and fullscreen button (DPV-018 parity with the built-in player).
+/* Volume and speed are buttons that open a popover above the bar; the slider and the speed list live in
+   the popovers. The bar controls are the Copy link button's size (42px). Fullscreen (DPV-018 parity).
    The volume fill reads --v (0 to 100, written by player.js); Firefox draws the fill as its progress part. */
 .videos-modal__volume {
 	-webkit-appearance: none;
@@ -807,46 +808,94 @@
 	border-radius: 2px;
 }
 
-.videos-modal__rate {
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
+/* Popovers. The bar's own button rule has the same specificity as a single class, so these use
+   `.videos-modal__bar` in front to win over it. */
+.videos-modal__pop {
+	position: relative;
+	display: inline-flex;
 	flex: none;
+}
+
+.videos-modal__bar .videos-modal__ratebtn {
 	box-sizing: border-box;
-	height: 28px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	height: 42px;
+	min-width: 42px;
 	margin: 0;
-	padding: 0 24px 0 10px;
+	padding: 0 12px;
 	border: 1px solid rgb( 255 255 255 / 0.6 );
 	border-radius: 999px;
-	/* Chevron drawn inline (no image file): white, 10 x 6 px, 9px from the right edge. */
-	background-color: transparent;
-	background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" );
-	background-repeat: no-repeat;
-	background-position: right 9px center;
-	background-size: 10px 6px;
+	background: transparent;
 	color: #fff;
-	color-scheme: dark;
 	font: inherit;
-	font-size: 12.5px;
+	font-size: 14px;
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
-	line-height: 1;
 	cursor: pointer;
 	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 ), border-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
 }
 
-.videos-modal__rate:hover {
-	background-color: rgb( 255 255 255 / 0.16 );
+.videos-modal__bar .videos-modal__ratebtn:hover,
+.videos-modal__bar .videos-modal__ratebtn[aria-expanded="true"] {
+	background: rgb( 255 255 255 / 0.16 );
 	border-color: #fff;
 }
 
-/* The open list follows the pane: ink background, white text (color-scheme dark keeps Chrome's list dark too). */
-.videos-modal__rate option {
-	color: #fff;
-	background: #111;
+.videos-modal__popover {
+	position: absolute;
+	right: 0;
+	bottom: calc( 100% + 10px );
+	z-index: 5;
+	box-sizing: border-box;
+	display: grid;
+	gap: 2px;
+	min-width: 120px;
+	padding: 6px;
+	border: 1px solid rgb( 255 255 255 / 0.2 );
+	border-radius: 14px;
+	background: rgb( 17 17 17 / 0.96 );
 }
 
-.videos-modal__rate:focus-visible {
+.videos-modal__popover[hidden] {
+	display: none;
+}
+
+.videos-modal__popover--volume {
+	min-width: 0;
+	padding: 14px 16px;
+}
+
+.videos-modal__popover .videos-modal__volume {
+	width: 120px;
+}
+
+.videos-modal__bar .videos-modal__rateopt {
+	justify-content: flex-start;
+	width: 100%;
+	height: 36px;
+	margin: 0;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.videos-modal__bar .videos-modal__rateopt:hover,
+.videos-modal__bar .videos-modal__rateopt[aria-pressed="true"] {
+	background: rgb( 255 255 255 / 0.16 );
+}
+
+.videos-modal__bar .videos-modal__ratebtn:focus-visible,
+.videos-modal__bar .videos-modal__rateopt:focus-visible {
 	outline: 2px solid var( --vm-focus );
 	outline-offset: 2px;
 }

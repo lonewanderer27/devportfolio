@@ -29,7 +29,11 @@ export function createPlayer( dialog, strings = {} ) {
 	const time = $( '.videos-modal__time' );
 	const mute = $( '.videos-modal__mute' );
 	const volume = $( '.videos-modal__volume' );
-	const rate = $( '.videos-modal__rate' );
+	const volumeBtn = $( '.videos-modal__volbtn' );
+	const volumePop = $( '.videos-modal__popover--volume' );
+	const rateBtn = $( '.videos-modal__ratebtn' );
+	const ratePop = $( '.videos-modal__popover--rate' );
+	const rateOptions = Array.from( dialog.querySelectorAll( '.videos-modal__rateopt' ) );
 	const fullscreen = $( '.videos-modal__fullscreen' );
 
 	const fullscreenTarget = () => {
@@ -58,6 +62,38 @@ export function createPlayer( dialog, strings = {} ) {
 		volume.value = String( level );
 		// The slider's fill is the --v percentage (0 to 100) read by the track's gradient in style.css.
 		volume.style.setProperty( '--v', String( Math.round( level * 100 ) ) );
+	};
+
+	const volumeItem = { pop: volumePop, trigger: volumeBtn };
+	const rateItem = { pop: ratePop, trigger: rateBtn };
+	const popovers = [ volumeItem, rateItem ];
+
+	const setPopover = ( item, open ) => {
+		item.pop.hidden = ! open;
+		item.trigger.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+	};
+
+	/** Closes every bar popover except `keep` (volume and speed never open together). */
+	const closePopovers = ( keep = null ) => {
+		popovers.forEach( ( item ) => {
+			if ( item !== keep ) {
+				setPopover( item, false );
+			}
+		} );
+	};
+
+	const openPopover = ( item ) => {
+		const open = item.pop.hidden;
+		closePopovers( item );
+		setPopover( item, open );
+	};
+
+	const syncRate = () => {
+		rateBtn.textContent = `${ preferRate }×`;
+		rateBtn.setAttribute( 'aria-label', `${ rateBtn.dataset.label || 'Playback speed' }, ${ preferRate }×` );
+		rateOptions.forEach( ( option ) => {
+			option.setAttribute( 'aria-pressed', Number( option.dataset.rate ) === preferRate ? 'true' : 'false' );
+		} );
 	};
 
 	const setState = ( state ) => {
@@ -185,7 +221,7 @@ export function createPlayer( dialog, strings = {} ) {
 		setState( 'paused' );
 		video.volume = preferVolume;
 		video.playbackRate = preferRate;
-		rate.value = String( preferRate );
+		syncRate();
 		fullscreen.hidden = ! ( playerEl.requestFullscreen || video.webkitEnterFullscreen );
 		syncMute();
 		syncVolume();
@@ -272,6 +308,14 @@ export function createPlayer( dialog, strings = {} ) {
 	playerEl.addEventListener( 'pointermove', wake );
 	playerEl.addEventListener( 'focusin', wake );
 	dialog.addEventListener( 'keydown', ( event ) => {
+		const open = popovers.find( ( item ) => ! item.pop.hidden );
+		if ( open && event.key === 'Escape' ) {
+			// Escape closes an open popover first; the dialog stays open.
+			event.preventDefault();
+			closePopovers();
+			open.trigger.focus();
+			return;
+		}
 		if ( ! video ) {
 			return;
 		}
@@ -292,11 +336,26 @@ export function createPlayer( dialog, strings = {} ) {
 		preferMuted = preferVolume === 0;
 		video.muted = preferMuted;
 	} );
-	rate.addEventListener( 'change', () => {
-		preferRate = PLAYBACK_RATES.includes( Number( rate.value ) ) ? Number( rate.value ) : 1;
-		if ( video ) {
-			video.playbackRate = preferRate;
-		}
+	volumeBtn.addEventListener( 'click', () => openPopover( volumeItem ) );
+	rateBtn.addEventListener( 'click', () => openPopover( rateItem ) );
+	rateOptions.forEach( ( option ) => {
+		option.addEventListener( 'click', () => {
+			preferRate = PLAYBACK_RATES.includes( Number( option.dataset.rate ) ) ? Number( option.dataset.rate ) : 1;
+			if ( video ) {
+				video.playbackRate = preferRate;
+			}
+			syncRate();
+			closePopovers();
+			rateBtn.focus();
+		} );
+	} );
+	// A press outside an open popover closes it; its own trigger toggles it.
+	document.addEventListener( 'pointerdown', ( event ) => {
+		popovers.forEach( ( item ) => {
+			if ( ! item.pop.hidden && ! item.pop.contains( event.target ) && ! item.trigger.contains( event.target ) ) {
+				setPopover( item, false );
+			}
+		} );
 	} );
 	fullscreen.addEventListener( 'click', () => {
 		if ( document.fullscreenElement ) {
