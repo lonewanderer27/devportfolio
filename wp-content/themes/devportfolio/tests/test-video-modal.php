@@ -389,9 +389,10 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 	public function test_player_strings_have_the_control_labels(): void {
 		$strings = devportfolio_video_modal_strings();
 
-		foreach ( array( 'play', 'pause', 'mute', 'unmute' ) as $key ) {
+		foreach ( array( 'play', 'pause' ) as $key ) {
 			$this->assertArrayHasKey( $key, $strings );
 		}
+		$this->assertArrayNotHasKey( 'mute', $strings ); // The mute button is gone; the volume popover does it.
 	}
 
 	public function test_player_styles_use_the_gradient_only_for_progress_and_the_frame(): void {
