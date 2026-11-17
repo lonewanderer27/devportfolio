@@ -820,6 +820,12 @@
 	align-self: center;
 }
 
+/* Volume, speed and full screen sit closer together than the bar's 10px gap. */
+.videos-modal__pop + .videos-modal__pop,
+.videos-modal__pop + .videos-modal__fullscreen {
+	margin-left: -6px;
+}
+
 .videos-modal__bar .videos-modal__ratebtn {
 	box-sizing: border-box;
 	display: inline-flex;
