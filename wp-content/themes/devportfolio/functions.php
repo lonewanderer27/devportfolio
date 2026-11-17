@@ -1571,6 +1571,10 @@ if ( ! function_exists( 'devportfolio_video_modal_strings' ) ) :
 			'copyHint'  => _x( 'Press Ctrl/⌘ + C', 'video modal', 'devportfolio' ),
 			/* translators: %s: video title. */
 			'playerFor' => _x( 'Video: %s', 'video modal', 'devportfolio' ),
+			'play'      => _x( 'Play', 'video modal', 'devportfolio' ),
+			'pause'     => _x( 'Pause', 'video modal', 'devportfolio' ),
+			'fullscreen'     => _x( 'Full screen', 'video modal', 'devportfolio' ),
+			'exitFullscreen' => _x( 'Exit full screen', 'video modal', 'devportfolio' ),
 		);
 	}
 endif;

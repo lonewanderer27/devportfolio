@@ -336,9 +336,131 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( "import { bindOpen } from '../shared/modal-trigger.js';", $js );
 		$this->assertStringContainsString( 'sameCategoryFirst: true', $js );
 		$this->assertStringContainsString( "bindOpen( document, 'data-video-id'", $js );
-		$this->assertStringContainsString( "video.removeAttribute( 'src' )", $js );
+		$this->assertStringContainsString( "video.removeAttribute( 'src' )", (string) file_get_contents( $this->theme_dir() . '/blocks/video-modal/player.js' ) );
 		$this->assertStringContainsString( 'replaceState', $js );
 		$this->assertStringContainsString( "'video_slug'", $js );
 		$this->assertStringNotContainsString( 'innerHTML', $js );
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// DPV-017 / DPV-018 / DPV-029: the custom player (markup, strings, brand styles, script).
+	// ---------------------------------------------------------------------------------------------
+
+	public function test_player_markup_has_no_captions_and_the_status_line(): void {
+		$this->make_video( array( 'file' => true ) );
+
+		$html = $this->render_modal();
+
+		$this->assertStringContainsString( 'videos-modal__bar', $html );
+		$this->assertStringContainsString( 'videos-modal__scrub', $html );
+		$this->assertStringContainsString( 'videos-modal__bigplay', $html );
+		$this->assertStringContainsString( 'videos-modal__state', $html );
+		$this->assertStringNotContainsString( '<track', $html );
+		$this->assertStringNotContainsString( 'captions', $html );
+		$this->assertDoesNotMatchRegularExpression( '/\scontrols[\s>]/', $html ); // Not aria-controls.
+		$this->assertStringNotContainsString( 'videos-modal__nopreview', $html );
+	}
+
+	public function test_player_markup_has_the_volume_rate_and_fullscreen_controls(): void {
+		$this->make_video( array( 'file' => true ) );
+
+		$html = $this->render_modal();
+
+		$this->assertStringContainsString( 'videos-modal__volume', $html );
+		$this->assertStringContainsString( 'videos-modal__fullscreen', $html );
+		$this->assertStringContainsString( 'videos-modal__volbtn', $html );
+		$this->assertStringContainsString( 'videos-modal__popover--volume', $html );
+		$this->assertStringContainsString( 'videos-modal__ratebtn', $html );
+		$this->assertStringContainsString( 'videos-modal__popover--rate', $html );
+		preg_match( '#<div class="videos-modal__popover videos-modal__popover--rate"[^>]*>(.*?)</div>#s', $html, $m );
+		$this->assertNotEmpty( $m );
+		preg_match_all( '#<button class="videos-modal__rateopt" type="button" data-rate="([^"]+)" aria-pressed="(true|false)">#', $m[1], $options, PREG_SET_ORDER );
+		$this->assertSame( array( '0.5', '0.75', '1', '1.25', '1.5', '2' ), array_column( $options, 1 ) );
+		$pressed = array_filter( $options, fn( $o ) => 'true' === $o[2] );
+		$this->assertSame( array( '1' ), array_column( $pressed, 1 ) );
+	}
+
+	public function test_player_data_state_starts_paused(): void {
+		$this->make_video( array( 'file' => true ) );
+
+		$this->assertStringContainsString( 'class="videos-modal__video" data-state="paused"', $this->render_modal() );
+	}
+
+	public function test_player_strings_have_the_control_labels(): void {
+		$strings = devportfolio_video_modal_strings();
+
+		foreach ( array( 'play', 'pause' ) as $key ) {
+			$this->assertArrayHasKey( $key, $strings );
+		}
+		$this->assertArrayNotHasKey( 'mute', $strings ); // The mute button is gone; the volume popover does it.
+	}
+
+	public function test_player_styles_use_the_gradient_only_for_progress_and_the_frame(): void {
+		$css = $this->css();
+
+		// Every rule that uses the gradient as a value: only the playing frame and the progress fills.
+		$css = preg_replace( '#/\*.*?\*/#s', '', $css ); // Comments are not selectors.
+		preg_match_all( '/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER );
+		$users = array();
+		foreach ( $rules as $rule ) {
+			if ( str_contains( $rule[2], 'var( --vm-grad )' ) ) {
+				$users[] = trim( $rule[1] );
+			}
+		}
+		sort( $users );
+
+		$this->assertSame(
+			array(
+				'.videos-modal__scrub::-moz-range-track',
+				'.videos-modal__scrub::-webkit-slider-runnable-track',
+				'.videos-modal__video::after',
+				'.videos-modal__volume::-moz-range-progress',
+				'.videos-modal__volume::-webkit-slider-runnable-track',
+			),
+			$users
+		);
+	}
+
+	public function test_player_styles_follow_the_design_system_motion_and_focus(): void {
+		$css = $this->css();
+
+		$this->assertStringContainsString( 'cubic-bezier( 0.2, 0.8, 0.2, 1 )', $css );
+		$this->assertStringNotContainsString( 'transition: all', $css );
+		$this->assertStringContainsString( '.videos-modal__bar button:focus-visible', $css );
+		$this->assertStringContainsString( 'var( --vm-focus )', $css );
+		$this->assertStringContainsString( '--vm-focus: var( --wp--custom--modal--focus', $css );
+	}
+
+	public function test_theme_json_has_the_gradient_and_focus_tokens(): void {
+		$json = json_decode( (string) file_get_contents( $this->theme_dir() . '/theme.json' ), true );
+
+		$this->assertSame( 'rgb(29 98 240)', $json['settings']['custom']['modal']['focus'] );
+		$this->assertStringContainsString( 'linear-gradient', $json['settings']['custom']['modal']['grad'] );
+	}
+
+	public function test_play_button_has_a_pause_icon_the_state_shows(): void {
+		$this->make_video( array( 'file' => true ) );
+
+		$html = $this->render_modal();
+
+		$this->assertStringContainsString( 'videos-modal__icon--play', $html );
+		$this->assertStringContainsString( 'videos-modal__icon--pause', $html );
+		$this->assertStringContainsString( '[data-state="playing"] .videos-modal__icon--pause', $this->css() );
+	}
+
+	public function test_fills_draw_the_gradient_as_a_sized_background_layer(): void {
+		// A gradient is an image, not a colour stop: it must be a background layer with a size.
+		$css = $this->css();
+
+		$this->assertSame( 3, substr_count( $css, 'background: var( --vm-grad ) 0 0 /' ) );
+		$this->assertStringNotContainsString( 'linear-gradient( to right, var( --vm-grad )', $css );
+	}
+
+	public function test_player_js_has_no_native_controls_or_captions(): void {
+		$js = (string) file_get_contents( $this->theme_dir() . '/blocks/video-modal/player.js' );
+
+		$this->assertStringNotContainsString( '.controls', $js );
+		$this->assertStringNotContainsString( '<track', $js );
+		$this->assertStringNotContainsString( "createElement( 'track' )", $js );
 	}
 }

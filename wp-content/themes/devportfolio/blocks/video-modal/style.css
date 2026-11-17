@@ -13,7 +13,12 @@
 	--vm-surface: var(--wp--custom--modal--surface);
 	--vm-surface-alt: var(--wp--custom--modal--surface-alt);
 	--vm-on-primary: var(--wp--custom--modal--on-primary);
+	--vm-grad: var( --wp--custom--modal--grad, linear-gradient(135deg, rgb(26 214 253), rgb(29 98 240)) );
+	--vm-focus: var( --wp--custom--modal--focus, rgb(29 98 240) );
 	--vm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	/* The space under the bottom row: the player's control bar and the sidebar's footer share it, so their
+	   42px rows (the speed button, the Copy link button) line up on one centre line. */
+	--vm-foot-inset: 18px;
 	--vm-dur: 260ms;
 	color: var(--vm-ink);
 	font-family: var(--wp--preset--font-family--sans, inherit);
@@ -280,7 +285,7 @@
 	display: grid;
 	gap: 8px;
 	flex: none;
-	padding: 14px 20px 18px;
+	padding: 14px 20px var( --vm-foot-inset );
 	border-top: 1px solid var( --vm-line );
 }
 
@@ -375,22 +380,6 @@
 	background: #111;
 }
 
-.videos-modal__nopreview {
-	position: absolute;
-	inset: 0;
-	display: grid;
-	place-items: center;
-	margin: 0;
-	padding: 24px;
-	color: #fff;
-	text-align: center;
-	font-size: 14px;
-}
-
-.videos-modal__nopreview[hidden] {
-	display: none;
-}
-
 /* The nextitem tile is 9:16 (the grid's tile shape), not the collateral page ratio. */
 .videos-modal__nextitem {
 	--vm-ratio: 0.5625;
@@ -469,5 +458,482 @@
 	to {
 		opacity: 1;
 		transform: none;
+	}
+}
+
+/* DPV-017 / DPV-018 / DPV-029: player, control bar, seeking. Colours are the modal tokens; the
+   gradient is used only for the scrub fill and the playing frame (design system: never behind text,
+   never a button fill). The pane is always dark, so the player has no dark-mode switch. */
+
+.videos-modal__video {
+	font-family: var( --wp--preset--font-family--sans, inherit );
+	color: #fff;
+}
+
+.videos-modal__video::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	padding: 2px;
+	border-radius: 0;
+	background: var( --vm-grad );
+	-webkit-mask: linear-gradient( #000 0 0 ) content-box, linear-gradient( #000 0 0 );
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 260ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__video[data-state="playing"]::after {
+	opacity: 1;
+}
+
+.videos-modal__state {
+	position: absolute;
+	top: 50%;
+	right: 16px;
+	left: 16px;
+	z-index: 2;
+	margin: 0;
+	transform: translateY( -50% );
+	text-align: center;
+	font-size: 14px;
+	line-height: 1.4;
+	color: #fff;
+}
+
+.videos-modal__state[hidden] {
+	display: none;
+}
+
+.videos-modal__state-hint {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	color: #c9c9c9;
+}
+
+.videos-modal__state-hint:empty {
+	display: none;
+}
+
+.videos-modal__bigplay,
+.videos-modal__replay,
+.videos-modal__bar {
+	display: none;
+}
+
+.videos-modal__video[data-state="paused"] .videos-modal__bar,
+.videos-modal__video[data-state="playing"] .videos-modal__bar,
+.videos-modal__video[data-state="ended"] .videos-modal__bar {
+	display: flex;
+}
+
+.videos-modal__video[data-state="paused"] .videos-modal__bigplay {
+	display: flex;
+}
+
+.videos-modal__video[data-state="ended"] .videos-modal__replay {
+	display: inline-flex;
+}
+
+.videos-modal__bigplay {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 3;
+	box-sizing: border-box;
+	align-items: center;
+	justify-content: center;
+	width: 72px;
+	height: 72px;
+	padding: 0 0 0 4px;
+	transform: translate( -50%, -50% );
+	border: 1px solid rgb( 255 255 255 / 0.85 );
+	border-radius: 50%;
+	background: rgb( 0 0 0 / 0.45 );
+	color: #fff;
+	cursor: pointer;
+	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 ), transform 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__bigplay:hover {
+	background: rgb( 0 0 0 / 0.6 );
+}
+
+.videos-modal__bigplay:active {
+	transform: translate( -50%, -50% ) scale( 0.96 );
+}
+
+.videos-modal__bigplay svg {
+	width: 30px;
+	height: 30px;
+	fill: currentColor;
+}
+
+.videos-modal__replay {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 3;
+	box-sizing: border-box;
+	align-items: center;
+	height: 36px;
+	padding: 0 18px;
+	transform: translate( -50%, -50% );
+	border: 1px solid #fff;
+	border-radius: 999px;
+	background: rgb( 0 0 0 / 0.45 );
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__replay:hover {
+	background: rgb( 0 0 0 / 0.6 );
+}
+
+.videos-modal__bar {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 3;
+	align-items: center;
+	gap: 10px;
+	padding: 28px 12px var( --vm-foot-inset );
+	background: linear-gradient( to top, rgb( 0 0 0 / 0.7 ), rgb( 0 0 0 / 0 ) );
+	color: #fff;
+	transition: opacity 260ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__video.is-idle .videos-modal__bar {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.videos-modal__bar button {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 42px;
+	height: 42px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #fff;
+	cursor: pointer;
+	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__bar button:hover {
+	background: rgb( 255 255 255 / 0.16 );
+}
+
+.videos-modal__bar svg {
+	width: 22px;
+	height: 22px;
+	fill: currentColor;
+}
+
+/* Play/pause: both icons are in the markup; the state (data-state, set by player.js) shows one. */
+.videos-modal__icon--pause {
+	display: none;
+}
+
+.videos-modal__video[data-state="playing"] .videos-modal__icon--play {
+	display: none;
+}
+
+.videos-modal__video[data-state="playing"] .videos-modal__icon--pause {
+	display: block;
+}
+
+/* Muted: the volume button's icon dims (player.js sets data-muted from the video's mute state). */
+.videos-modal__volbtn[data-muted="true"] svg {
+	opacity: 0.6;
+}
+
+/* Scrub: a 5px track, the gradient is the played part (--p is written by player.js). */
+.videos-modal__scrub {
+	-webkit-appearance: none;
+	appearance: none;
+	flex: 1;
+	min-width: 0;
+	height: 16px;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.videos-modal__scrub:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* The played part is the gradient drawn as a background image sized to --p (a gradient is an image,
+   so it cannot be a colour stop); the unplayed rest is the translucent white behind it. */
+.videos-modal__scrub::-webkit-slider-runnable-track {
+	height: 5px;
+	border-radius: 999px;
+	background: var( --vm-grad ) 0 0 / var( --p, 0% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
+}
+
+.videos-modal__scrub::-moz-range-track {
+	height: 5px;
+	border-radius: 999px;
+	background: var( --vm-grad ) 0 0 / var( --p, 0% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
+}
+
+.videos-modal__scrub::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 12px;
+	height: 12px;
+	margin-top: -3.5px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	transition: opacity 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__scrub::-moz-range-thumb {
+	width: 12px;
+	height: 12px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	transition: opacity 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__scrub:hover::-webkit-slider-thumb,
+.videos-modal__scrub:focus-visible::-webkit-slider-thumb,
+.videos-modal__scrub:active::-webkit-slider-thumb {
+	opacity: 1;
+}
+
+.videos-modal__scrub:hover::-moz-range-thumb,
+.videos-modal__scrub:focus-visible::-moz-range-thumb,
+.videos-modal__scrub:active::-moz-range-thumb {
+	opacity: 1;
+}
+
+.videos-modal__time {
+	flex: none;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	color: #fff;
+}
+
+.videos-modal__bigplay:focus-visible,
+.videos-modal__replay:focus-visible,
+.videos-modal__bar button:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+}
+
+/* Embed-only videos: the provider's own player has its controls, so none of ours show. */
+.videos-modal__video[data-state="embed"] .videos-modal__bar,
+.videos-modal__video[data-state="embed"] .videos-modal__bigplay,
+.videos-modal__video[data-state="embed"] .videos-modal__replay {
+	display: none;
+}
+
+/* Volume and speed are buttons that open a popover above the bar; the slider and the speed list live in
+   the popovers. The bar controls are the Copy link button's size (42px). Fullscreen (DPV-018 parity).
+   The volume fill reads --v (0 to 100, written by player.js); Firefox draws the fill as its progress part. */
+.videos-modal__volume {
+	-webkit-appearance: none;
+	appearance: none;
+	flex: none;
+	width: 72px;
+	height: 16px;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.videos-modal__volume::-webkit-slider-runnable-track {
+	height: 5px;
+	border-radius: 999px;
+	background: var( --vm-grad ) 0 0 / calc( var( --v, 100 ) * 1% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
+}
+
+.videos-modal__volume::-moz-range-track {
+	height: 5px;
+	border-radius: 999px;
+	background: rgb( 255 255 255 / 0.32 );
+}
+
+.videos-modal__volume::-moz-range-progress {
+	height: 5px;
+	border-radius: 999px;
+	background: var( --vm-grad );
+}
+
+.videos-modal__volume::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 12px;
+	height: 12px;
+	margin-top: -3.5px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+}
+
+.videos-modal__volume::-moz-range-thumb {
+	width: 12px;
+	height: 12px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+}
+
+.videos-modal__volume:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* Popovers. The bar's own button rule has the same specificity as a single class, so these use
+   `.videos-modal__bar` in front to win over it. */
+.videos-modal__pop {
+	position: relative;
+	display: inline-flex;
+	flex: none;
+	align-self: center;
+}
+
+/* Volume, speed and full screen sit closer together than the bar's 10px gap. */
+.videos-modal__pop + .videos-modal__pop,
+.videos-modal__pop + .videos-modal__fullscreen {
+	margin-left: -6px;
+}
+
+.videos-modal__bar .videos-modal__ratebtn {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	height: 42px;
+	min-width: 42px;
+	margin: 0;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 10px;
+	line-height: 1;
+	background: transparent;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 ), border-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-modal__bar .videos-modal__ratebtn:hover,
+.videos-modal__bar .videos-modal__ratebtn[aria-expanded="true"] {
+	background: rgb( 255 255 255 / 0.16 );
+}
+
+.videos-modal__popover {
+	position: absolute;
+	right: 0;
+	bottom: calc( 100% + 10px );
+	z-index: 5;
+	box-sizing: border-box;
+	display: grid;
+	gap: 2px;
+	min-width: 120px;
+	padding: 6px;
+	border: 1px solid rgb( 255 255 255 / 0.2 );
+	border-radius: 14px;
+	background: rgb( 17 17 17 / 0.96 );
+}
+
+.videos-modal__popover[hidden] {
+	display: none;
+}
+
+.videos-modal__popover--volume {
+	min-width: 0;
+	padding: 14px 16px;
+}
+
+.videos-modal__popover .videos-modal__volume {
+	width: 120px;
+}
+
+.videos-modal__bar .videos-modal__rateopt {
+	justify-content: flex-start;
+	width: 100%;
+	height: 36px;
+	margin: 0;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.videos-modal__bar .videos-modal__rateopt:hover,
+.videos-modal__bar .videos-modal__rateopt[aria-pressed="true"] {
+	background: rgb( 255 255 255 / 0.16 );
+}
+
+.videos-modal__bar .videos-modal__ratebtn:focus-visible,
+.videos-modal__bar .videos-modal__rateopt:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+}
+
+.videos-modal__fullscreen[hidden] {
+	display: none;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.videos-modal__video::after,
+	.videos-modal__bar,
+	.videos-modal__bigplay,
+	.videos-modal__replay,
+	.videos-modal__bar button,
+	.videos-modal__scrub::-webkit-slider-thumb,
+	.videos-modal__scrub::-moz-range-thumb {
+		transition: none;
+	}
+}
+
+@media ( forced-colors: active ) {
+	.videos-modal__bar,
+	.videos-modal__bigplay,
+	.videos-modal__replay {
+		forced-color-adjust: auto;
+	}
+
+	.videos-modal__video::after {
+		display: none;
 	}
 }
