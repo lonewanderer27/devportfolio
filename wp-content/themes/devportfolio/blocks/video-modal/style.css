@@ -16,6 +16,9 @@
 	--vm-grad: var( --wp--custom--modal--grad, linear-gradient(135deg, rgb(26 214 253), rgb(29 98 240)) );
 	--vm-focus: var( --wp--custom--modal--focus, rgb(29 98 240) );
 	--vm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	/* The space under the bottom row: the player's control bar and the sidebar's footer share it, so their
+	   42px rows (the speed button, the Copy link button) line up on one centre line. */
+	--vm-foot-inset: 18px;
 	--vm-dur: 260ms;
 	color: var(--vm-ink);
 	font-family: var(--wp--preset--font-family--sans, inherit);
@@ -282,7 +285,7 @@
 	display: grid;
 	gap: 8px;
 	flex: none;
-	padding: 14px 20px 18px;
+	padding: 14px 20px var( --vm-foot-inset );
 	border-top: 1px solid var( --vm-line );
 }
 
@@ -603,7 +606,7 @@
 	z-index: 3;
 	align-items: center;
 	gap: 10px;
-	padding: 28px 12px 10px;
+	padding: 28px 12px var( --vm-foot-inset );
 	background: linear-gradient( to top, rgb( 0 0 0 / 0.7 ), rgb( 0 0 0 / 0 ) );
 	color: #fff;
 	transition: opacity 260ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
