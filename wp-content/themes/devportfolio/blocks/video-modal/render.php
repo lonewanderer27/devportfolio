@@ -51,11 +51,16 @@ $devportfolio_results_id = wp_unique_id( 'videos-modal-results-' );
 $devportfolio_made_id    = wp_unique_id( 'videos-modal-made-' );
 $devportfolio_next_id    = wp_unique_id( 'videos-modal-next-' );
 $devportfolio_close_icon = '<svg class="videos-modal__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+$devportfolio_mobile_title_id = wp_unique_id( 'videos-mobile-title-' );
+$devportfolio_mobile_options  = devportfolio_video_mobile_options();
+$devportfolio_pill_icon       = '<svg class="videos-mobile__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/></svg>';
 
 $devportfolio_wrapper = get_block_wrapper_attributes(
 	array(
-		'class'        => 'videos-modal-root',
-		'data-strings' => wp_json_encode( devportfolio_video_modal_strings() ),
+		'class'               => 'videos-modal-root',
+		'data-strings'        => wp_json_encode( devportfolio_video_modal_strings() ),
+		'data-mobile-strings' => wp_json_encode( devportfolio_video_mobile_strings() ),
+		'data-mobile-options' => wp_json_encode( devportfolio_video_mobile_script_options( $devportfolio_mobile_options ) ),
 	)
 );
 ?>
@@ -124,6 +129,28 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 					<span class="videos-modal__live" role="status" aria-live="polite"></span>
 				</div>
 			</aside>
+		</div>
+	</dialog>
+	<dialog class="videos-mobile" aria-labelledby="<?php echo esc_attr( $devportfolio_mobile_title_id ); ?>">
+		<div class="videos-mobile__panel">
+			<div class="videos-mobile__video" data-state="paused" data-shape="tall">
+				<div class="videos-mobile__stage"></div>
+				<p class="videos-mobile__state" role="status" hidden data-loading="<?php echo esc_attr_x( 'Loading video…', 'video modal', 'devportfolio' ); ?>" data-unavailable="<?php echo esc_attr_x( 'This video can’t be played here.', 'video modal', 'devportfolio' ); ?>" data-hint="">
+					<span class="videos-mobile__state-text"></span>
+					<span class="videos-mobile__state-hint"></span>
+				</p>
+				<span class="videos-mobile__flash" aria-hidden="true" data-kind="forward"></span>
+				<?php echo devportfolio_video_mobile_controls( $devportfolio_mobile_options ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?>
+			</div>
+			<div class="videos-mobile__scrim" aria-hidden="true"></div>
+			<button class="videos-mobile__close videos-mobile__btn" type="button" aria-label="<?php echo esc_attr_x( 'Close video', 'video modal', 'devportfolio' ); ?>"><?php echo devportfolio_viewer_icon( 'videos-mobile', 'M6 6l12 12M18 6L6 18' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?></button>
+			<div class="videos-mobile__rail" hidden>
+				<button class="videos-mobile__up videos-mobile__btn" type="button" aria-disabled="false" aria-label="<?php echo esc_attr_x( 'Previous video', 'video modal mobile', 'devportfolio' ); ?>"><?php echo devportfolio_viewer_icon( 'videos-mobile', 'M6 15l6-6 6 6' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?></button>
+				<button class="videos-mobile__down videos-mobile__btn" type="button" aria-disabled="false" aria-label="<?php echo esc_attr_x( 'Next video', 'video modal mobile', 'devportfolio' ); ?>"><?php echo devportfolio_viewer_icon( 'videos-mobile', 'M6 9l6 6 6-6' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?></button>
+			</div>
+			<span class="videos-mobile__pill videos-mobile__hint" hidden><?php echo $devportfolio_pill_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?><?php echo esc_html_x( 'Rotate for full screen', 'video modal mobile', 'devportfolio' ); ?></span>
+			<button class="videos-mobile__title" id="<?php echo esc_attr( $devportfolio_mobile_title_id ); ?>" type="button" aria-haspopup="dialog"><span class="videos-mobile__title-text"></span><?php echo devportfolio_viewer_icon( 'videos-mobile', 'M9 6l6 6-6 6' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?></button>
+			<button class="videos-mobile__details videos-mobile__btn" type="button" aria-haspopup="dialog" aria-label="<?php echo esc_attr_x( 'Video details', 'video modal mobile', 'devportfolio' ); ?>"><?php echo devportfolio_viewer_icon( 'videos-mobile', 'M12 11v6M12 7.5v.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?></button>
 		</div>
 	</dialog>
 	<script type="application/json" class="videos-modal__data"><?php echo $devportfolio_payload; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON with < > & hex-escaped. ?></script>

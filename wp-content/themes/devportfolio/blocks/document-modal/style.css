@@ -2,7 +2,8 @@
 .collaterals-mobile,
 .documents-modal,
 .collaterals-modal,
-.documents-mobile {
+.documents-mobile,
+.videos-mobile {
 	--dm-ink: var(--wp--custom--modal--ink);
 	--dm-subtle: var(--wp--custom--modal--subtle);
 	--dm-line: var(--wp--custom--modal--line);
@@ -1626,6 +1627,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 /* Mobile Pages sheet (DPD-020): a bottom sheet over the dimmed viewer, inside the mobile dialog. It has a Gallery
    view (3 columns of page thumbnails, at most 3 rows tall, scrolling for more) and a List view (one row per page).
    The viewer behind it is `inert` (pages-sheet.js), so the round buttons cannot be reached while it is open. */
+.videos-mobile__dim,
 .collaterals-mobile__dim,
 .documents-mobile__dim {
 	position: absolute;
@@ -1635,6 +1637,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	animation: documents-mobile-fade var(--dm-dur) ease;
 }
 
+.videos-mobile__sheet,
 .collaterals-mobile__sheet,
 .documents-mobile__sheet {
 	--pg-ratio: 0.7576;
@@ -1662,6 +1665,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 	animation: documents-mobile-sheet-up var(--dm-dur) var(--dm-ease);
 }
 
+.videos-mobile__dim[hidden],
+.videos-mobile__sheet[hidden],
 .collaterals-mobile__dim[hidden],
 .collaterals-mobile__sheet[hidden],
 .documents-mobile__dim[hidden],
@@ -1682,6 +1687,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	}
 }
 
+.videos-mobile__grab,
 .collaterals-mobile__grab,
 .documents-mobile__grab {
 	position: relative;
@@ -1697,6 +1703,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-radius: 2px;
 }
 
+.videos-mobile__grab::after,
 .collaterals-mobile__grab::after,
 .documents-mobile__grab::after {
 	position: absolute;
@@ -1705,6 +1712,8 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 /* The handle and the title row are dragged down to dismiss the sheet: the browser must not scroll or select there. */
+.videos-mobile__grab,
+.videos-mobile__sheet-head,
 .collaterals-mobile__grab,
 .collaterals-mobile__sheet-head,
 .documents-mobile__grab,
@@ -1714,16 +1723,19 @@ html[data-documents-swapping] .documents-shelf__plank {
 	user-select: none;
 }
 
+.videos-mobile__grab,
 .collaterals-mobile__grab,
 .documents-mobile__grab {
 	cursor: grab;
 }
 
+.videos-mobile__grab:active,
 .collaterals-mobile__grab:active,
 .documents-mobile__grab:active {
 	cursor: grabbing;
 }
 
+.videos-mobile__sheet-head,
 .collaterals-mobile__sheet-head,
 .documents-mobile__sheet-head {
 	display: flex;
@@ -1733,6 +1745,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	gap: 12px;
 }
 
+.videos-mobile__sheet-title,
 .collaterals-mobile__sheet-title,
 .documents-mobile__sheet-title {
 	margin: 0;
@@ -1782,6 +1795,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	background: var(--dm-ink);
 }
 
+.videos-mobile__grab:focus-visible,
 .collaterals-mobile__grab:focus-visible,
 .collaterals-mobile__sheet-view:focus-visible,
 .collaterals-mobile__tile:focus-visible,
@@ -1795,6 +1809,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 /* One scroll area for both views; the gallery shows at most three rows of tiles, so a long document scrolls. */
+.videos-mobile__sheet-body,
 .collaterals-mobile__sheet-body,
 .documents-mobile__sheet-body {
 	flex: 0 1 auto;
@@ -1986,6 +2001,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	align-items: flex-start;
 }
 
+.videos-mobile__details-title,
 .collaterals-mobile__details-title,
 .documents-mobile__details-title {
 	display: -webkit-box;
@@ -2001,6 +2017,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	-webkit-box-orient: vertical;
 }
 
+.videos-mobile__sheet-close,
 .collaterals-mobile__sheet-close,
 .documents-mobile__sheet-close {
 	position: relative;
@@ -2018,12 +2035,14 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-radius: 50%;
 }
 
+.videos-mobile__sheet-close .collaterals-modal__icon,
 .collaterals-mobile__sheet-close .collaterals-modal__icon,
 .documents-mobile__sheet-close .documents-modal__icon {
 	width: 20px;
 	height: 20px;
 }
 
+.videos-mobile__sheet-close:focus-visible,
 .collaterals-mobile__sheet-close:focus-visible,
 .collaterals-mobile__details-download:focus-visible,
 .documents-mobile__sheet-close:focus-visible,
@@ -2045,6 +2064,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	gap: 12px;
 }
 
+.videos-mobile__details-category,
 .collaterals-mobile__details-category,
 .documents-mobile__details-category {
 	padding: 2px 10px;
@@ -2055,6 +2075,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-radius: 999px;
 }
 
+.videos-mobile__details-desc,
 .collaterals-mobile__details-desc,
 .documents-mobile__details-desc {
 	margin: 0;
@@ -2063,6 +2084,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	overflow-wrap: anywhere;
 }
 
+.videos-mobile__details-tools,
 .collaterals-mobile__details-tools,
 .documents-mobile__details-tools {
 	display: flex;
@@ -2073,6 +2095,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	list-style: none;
 }
 
+.videos-mobile__details-tool,
 .collaterals-mobile__details-tool,
 .documents-mobile__details-tool {
 	padding: 3px 10px;
@@ -2082,6 +2105,10 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-radius: 999px;
 }
 
+.videos-mobile__details-category[hidden],
+.videos-mobile__details-desc[hidden],
+.videos-mobile__details-tools[hidden],
+.videos-mobile__details-rows[hidden],
 .collaterals-mobile__details-category[hidden],
 .collaterals-mobile__details-desc[hidden],
 .collaterals-mobile__details-tools[hidden],
@@ -2093,6 +2120,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	display: none;
 }
 
+.videos-mobile__details-rows,
 .collaterals-mobile__details-rows,
 .documents-mobile__details-rows {
 	padding: 0;
@@ -2101,6 +2129,7 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-top: 1px solid var(--dm-line);
 }
 
+.videos-mobile__details-row,
 .collaterals-mobile__details-row,
 .documents-mobile__details-row {
 	display: flex;
@@ -2111,11 +2140,13 @@ html[data-documents-swapping] .documents-shelf__plank {
 	border-bottom: 1px solid var(--dm-line);
 }
 
+.videos-mobile__details-row dt,
 .collaterals-mobile__details-row dt,
 .documents-mobile__details-row dt {
 	color: var(--dm-subtle);
 }
 
+.videos-mobile__details-row dd,
 .collaterals-mobile__details-row dd,
 .documents-mobile__details-row dd {
 	margin: 0;
@@ -2162,8 +2193,9 @@ html[data-documents-swapping] .documents-shelf__plank {
 
 /* A phone held sideways: the sheet is shorter than the screen, three columns of smaller tiles, the list scrolls. */
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
-	.collaterals-mobile__sheet,
-	.documents-mobile__sheet {
+	.videos-mobile__sheet,
+.collaterals-mobile__sheet,
+.documents-mobile__sheet {
 		max-height: 80%;
 		padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 	}
@@ -2220,8 +2252,9 @@ html[data-documents-swapping] .documents-shelf__plank {
 		overscroll-behavior: contain;
 	}
 
-	.collaterals-mobile__details-rows,
-	.documents-mobile__details-rows {
+	.videos-mobile__details-rows,
+.collaterals-mobile__details-rows,
+.documents-mobile__details-rows {
 		grid-area: rows;
 		margin-top: 8px;
 	}
@@ -2241,10 +2274,12 @@ html[data-documents-swapping] .documents-shelf__plank {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.collaterals-mobile__dim,
-	.collaterals-mobile__sheet,
-	.documents-mobile__dim,
-	.documents-mobile__sheet {
+	.videos-mobile__dim,
+.videos-mobile__sheet,
+.collaterals-mobile__dim,
+.collaterals-mobile__sheet,
+.documents-mobile__dim,
+.documents-mobile__sheet {
 		animation: none;
 	}
 

@@ -411,11 +411,15 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 
 		$this->assertSame(
 			array(
+				// The mobile progress line uses the gradient for its played part, as the design system's progress line.
+				'.videos-mobile__scrub::-moz-range-progress',
+				'.videos-mobile__scrub::-webkit-slider-runnable-track',
 				'.videos-modal__scrub::-moz-range-track',
 				'.videos-modal__scrub::-webkit-slider-runnable-track',
 				'.videos-modal__video::after',
-				'.videos-modal__volume::-moz-range-progress',
-				'.videos-modal__volume::-webkit-slider-runnable-track',
+				// The mobile volume slider shares the desktop look, so each rule lists both prefixes (DPV-011).
+				".videos-modal__volume::-moz-range-progress,\n.videos-mobile__volume::-moz-range-progress",
+				".videos-modal__volume::-webkit-slider-runnable-track,\n.videos-mobile__volume::-webkit-slider-runnable-track",
 			),
 			$users
 		);
@@ -452,7 +456,8 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		// A gradient is an image, not a colour stop: it must be a background layer with a size.
 		$css = $this->css();
 
-		$this->assertSame( 3, substr_count( $css, 'background: var( --vm-grad ) 0 0 /' ) );
+		// Desktop scrub (webkit track, moz track) and volume, and the mobile progress line (webkit track). Four sized layers.
+		$this->assertSame( 4, substr_count( $css, 'background: var( --vm-grad ) 0 0 /' ) );
 		$this->assertStringNotContainsString( 'linear-gradient( to right, var( --vm-grad )', $css );
 	}
 

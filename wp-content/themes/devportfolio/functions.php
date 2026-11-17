@@ -84,7 +84,7 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 
 		// The Collaterals modal draws its book with the Documents viewer rules (its selectors are listed next to the
 		// Documents ones in blocks/document-modal/style.css, DPC-012 D5). The Documents modal already loads that file.
-		if ( is_post_type_archive( 'collateral' ) ) {
+		if ( is_post_type_archive( array( 'collateral', 'video' ) ) ) {
 			wp_enqueue_style(
 				'devportfolio-viewer',
 				get_theme_file_uri( 'blocks/document-modal/style.css' ),
@@ -1575,6 +1575,183 @@ if ( ! function_exists( 'devportfolio_video_modal_strings' ) ) :
 			'pause'     => _x( 'Pause', 'video modal', 'devportfolio' ),
 			'fullscreen'     => _x( 'Full screen', 'video modal', 'devportfolio' ),
 			'exitFullscreen' => _x( 'Exit full screen', 'video modal', 'devportfolio' ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_options' ) ) :
+	/**
+	 * The mobile viewer's switches (Settings → Videos). Same keys and defaults as the plugin's
+	 * cptdp_videos_mobile_options(); a test pins that.
+	 *
+	 * @return array<string,bool>
+	 */
+	function devportfolio_video_mobile_options() {
+		$defaults = array(
+			'mute'            => true,
+			'progress'        => true,
+			'scrub'           => false,
+			'time'            => false,
+			'volume'          => false,
+			'speed'           => false,
+			'fit'             => true,
+			'loop'            => true,
+			'double_tap_skip' => true,
+		);
+		$saved    = function_exists( 'cptdp_get_videos_settings' ) ? cptdp_get_videos_settings() : array();
+		$options  = array_map( 'boolval', array_merge( $defaults, is_array( $saved ) ? array_intersect_key( $saved, $defaults ) : array() ) );
+		// Dragging needs the line.
+		$options['progress'] = $options['progress'] || $options['scrub'];
+		return $options;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_control_keys' ) ) :
+	/**
+	 * The control keys the mobile viewer has, in mount and markup order. One list drives both the markup and the
+	 * script (`data-mobile-options.controls`), so they cannot disagree.
+	 *
+	 * @param array<string,bool> $options devportfolio_video_mobile_options().
+	 * @return string[]
+	 */
+	function devportfolio_video_mobile_control_keys( array $options ) {
+		$wanted = array(
+			'bigplay'    => true,
+			'replay'     => ! $options['loop'],
+			'progress'   => $options['progress'],
+			'time'       => $options['time'],
+			// The volume slider mutes and unmutes too, so it replaces the mute button when it is on.
+			'mute'       => $options['mute'] && ! $options['volume'],
+			'volume'     => $options['volume'],
+			'speed'      => $options['speed'],
+			'fit'        => $options['fit'],
+		);
+		return array_keys( array_filter( $wanted ) );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_script_options' ) ) :
+	/**
+	 * What the script needs from the switches (`data-mobile-options` on the block root).
+	 *
+	 * @param array<string,bool> $options devportfolio_video_mobile_options().
+	 * @return array<string,mixed>
+	 */
+	function devportfolio_video_mobile_script_options( array $options ) {
+		return array(
+			'loop'          => $options['loop'],
+			'doubleTapSkip' => $options['double_tap_skip'],
+			'unmuteOnPlay'  => ! $options['mute'],
+			'scrub'         => $options['scrub'],
+			'controls'      => devportfolio_video_mobile_control_keys( $options ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_controls' ) ) :
+	/**
+	 * The markup of the mobile viewer's controls: one block per enabled key. Mute, volume, speed and full screen
+	 * share the extras column.
+	 *
+	 * @param array<string,bool> $options devportfolio_video_mobile_options().
+	 * @return string
+	 */
+	function devportfolio_video_mobile_controls( array $options ) {
+		$extras_keys = array( 'mute', 'volume', 'speed', 'fit' );
+		$main        = '';
+		$extras      = '';
+		foreach ( devportfolio_video_mobile_control_keys( $options ) as $key ) {
+			$html = devportfolio_video_mobile_control_html( $key, $options );
+			if ( in_array( $key, $extras_keys, true ) ) {
+				$extras .= $html;
+			} else {
+				$main .= $html;
+			}
+		}
+		return $main . ( '' === $extras ? '' : '<div class="videos-mobile__extras">' . $extras . '</div>' );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_control_html' ) ) :
+	/**
+	 * The markup of one mobile control. Class names are `videos-mobile__<element>`: the same names the control
+	 * modules in blocks/video-modal/controls/ look for.
+	 *
+	 * @param string             $key     A control key.
+	 * @param array<string,bool> $options devportfolio_video_mobile_options().
+	 * @return string
+	 */
+	function devportfolio_video_mobile_control_html( $key, array $options ) {
+		$icon = static fn( $path ) => devportfolio_viewer_icon( 'videos-mobile', $path );
+		switch ( $key ) {
+			case 'bigplay':
+				return '<span class="videos-mobile__bigplay" aria-hidden="true">' . $icon( 'M8 5l11 7-11 7z' ) . '</span>';
+			case 'replay':
+				return '<button class="videos-mobile__replay" type="button">' . esc_html_x( 'Replay', 'video modal', 'devportfolio' ) . '</button>';
+			case 'progress':
+				return sprintf(
+					'<input class="videos-mobile__scrub" type="range" min="0" max="0" step="any" value="0" aria-label="%s"%s>',
+					esc_attr_x( 'Seek', 'video modal', 'devportfolio' ),
+					$options['scrub'] ? '' : ' inert aria-hidden="true"'
+				);
+			case 'time':
+				return '<span class="videos-mobile__time" aria-hidden="true">0:00 / 0:00</span>';
+			case 'mute':
+				return sprintf(
+					'<button class="videos-mobile__mutebtn videos-mobile__btn" type="button" aria-pressed="false" aria-label="%s">%s%s</button>',
+					esc_attr_x( 'Mute', 'video modal mobile', 'devportfolio' ),
+					str_replace( 'class="videos-mobile__icon"', 'class="videos-mobile__icon videos-mobile__icon--on"', $icon( 'M4 10v4h4l5 4V6L8 10H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11' ) ),
+					str_replace( 'class="videos-mobile__icon"', 'class="videos-mobile__icon videos-mobile__icon--off"', $icon( 'M4 10v4h4l5 4V6L8 10H4zM17 9l4 6M21 9l-4 6' ) )
+				);
+			case 'volume':
+				return sprintf(
+					'<div class="videos-mobile__pop"><button class="videos-mobile__volbtn videos-mobile__btn" type="button" aria-expanded="false" aria-controls="videos-mobile-volume" aria-label="%1$s">%2$s</button><div class="videos-mobile__popover videos-mobile__popover--volume" id="videos-mobile-volume" hidden><input class="videos-mobile__volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="%1$s"></div></div>',
+					esc_attr_x( 'Volume', 'video modal', 'devportfolio' ),
+					$icon( 'M4 10v4h4l5 4V6L8 10H4zM16 9a4 4 0 0 1 0 6' )
+				);
+			case 'speed':
+				$options_html = '';
+				foreach ( array( '0.5', '0.75', '1', '1.25', '1.5', '2' ) as $rate ) {
+					$options_html .= sprintf( '<button class="videos-mobile__rateopt" type="button" data-rate="%1$s" aria-pressed="%2$s">%1$s×</button>', esc_attr( $rate ), '1' === $rate ? 'true' : 'false' );
+				}
+				return sprintf(
+					'<div class="videos-mobile__pop"><button class="videos-mobile__ratebtn videos-mobile__btn" type="button" data-label="%1$s" aria-expanded="false" aria-controls="videos-mobile-rate">1×</button><div class="videos-mobile__popover videos-mobile__popover--rate" id="videos-mobile-rate" hidden>%2$s</div></div>',
+					esc_attr_x( 'Playback speed', 'video modal', 'devportfolio' ),
+					$options_html
+				);
+			case 'fit':
+				// One icon per mode; the stylesheet shows the one for the current mode (data-fit, set by controls/fit.js).
+				return sprintf(
+					'<button class="videos-mobile__fit videos-mobile__btn" type="button" data-fit="fit" aria-label="%s">%s%s%s</button>',
+					esc_attr_x( 'Fit to screen', 'video modal', 'devportfolio' ),
+					str_replace( 'class="videos-mobile__icon"', 'class="videos-mobile__icon videos-mobile__icon--fit"', $icon( 'M3 7h18v10H3zM7 10v4' ) ),
+					str_replace( 'class="videos-mobile__icon"', 'class="videos-mobile__icon videos-mobile__icon--zoom"', $icon( 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM20 20l-4.5-4.5M10.5 7.5v6M7.5 10.5h6' ) ),
+					str_replace( 'class="videos-mobile__icon"', 'class="videos-mobile__icon videos-mobile__icon--stretch"', $icon( 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5' ) )
+				);
+		}
+		return '';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_video_mobile_strings' ) ) :
+	/**
+	 * Words the mobile viewer and its sheet need (`data-mobile-strings`).
+	 *
+	 * @return array<string,string>
+	 */
+	function devportfolio_video_mobile_strings() {
+		return array(
+			/* translators: %s: video title. */
+			'playerFor'      => _x( 'Video: %s', 'video modal', 'devportfolio' ),
+			'results'        => _x( 'Results', 'video modal mobile', 'devportfolio' ),
+			'madeWith'       => _x( 'Made with', 'video modal mobile', 'devportfolio' ),
+			'openOriginal'   => _x( 'Open original post', 'video modal mobile', 'devportfolio' ),
+			'copy'           => _x( 'Copy link', 'video modal button', 'devportfolio' ),
+			'copied'         => _x( 'Copied', 'video modal', 'devportfolio' ),
+			'handle'         => _x( 'Close details', 'video modal mobile', 'devportfolio' ),
+			'fit'            => _x( 'Fit to screen', 'video modal', 'devportfolio' ),
+			'zoom'           => _x( 'Zoom to fill', 'video modal', 'devportfolio' ),
+			'stretch'        => _x( 'Stretch to fill', 'video modal', 'devportfolio' ),
 		);
 	}
 endif;
