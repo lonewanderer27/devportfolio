@@ -395,6 +395,7 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		$css = $this->css();
 
 		// Every rule that uses the gradient as a value: only the playing frame and the progress fills.
+		$css = preg_replace( '#/\*.*?\*/#s', '', $css ); // Comments are not selectors.
 		preg_match_all( '/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER );
 		$users = array();
 		foreach ( $rules as $rule ) {
@@ -431,6 +432,24 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 
 		$this->assertSame( 'rgb(29 98 240)', $json['settings']['custom']['modal']['focus'] );
 		$this->assertStringContainsString( 'linear-gradient', $json['settings']['custom']['modal']['grad'] );
+	}
+
+	public function test_play_button_has_a_pause_icon_the_state_shows(): void {
+		$this->make_video( array( 'file' => true ) );
+
+		$html = $this->render_modal();
+
+		$this->assertStringContainsString( 'videos-modal__icon--play', $html );
+		$this->assertStringContainsString( 'videos-modal__icon--pause', $html );
+		$this->assertStringContainsString( '[data-state="playing"] .videos-modal__icon--pause', $this->css() );
+	}
+
+	public function test_fills_draw_the_gradient_as_a_sized_background_layer(): void {
+		// A gradient is an image, not a colour stop: it must be a background layer with a size.
+		$css = $this->css();
+
+		$this->assertSame( 3, substr_count( $css, 'background: var( --vm-grad ) 0 0 /' ) );
+		$this->assertStringNotContainsString( 'linear-gradient( to right, var( --vm-grad )', $css );
 	}
 
 	public function test_player_js_has_no_native_controls_or_captions(): void {
