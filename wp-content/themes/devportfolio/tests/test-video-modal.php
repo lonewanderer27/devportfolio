@@ -357,7 +357,7 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'videos-modal__state', $html );
 		$this->assertStringNotContainsString( '<track', $html );
 		$this->assertStringNotContainsString( 'captions', $html );
-		$this->assertStringNotContainsString( 'controls', $html );
+		$this->assertDoesNotMatchRegularExpression( '/\scontrols[\s>]/', $html ); // Not aria-controls.
 		$this->assertStringNotContainsString( 'videos-modal__nopreview', $html );
 	}
 
@@ -368,13 +368,16 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'videos-modal__volume', $html );
 		$this->assertStringContainsString( 'videos-modal__fullscreen', $html );
-		$this->assertStringContainsString( 'videos-modal__rate', $html );
-		preg_match( '#<select class="videos-modal__rate"[^>]*>(.*?)</select>#s', $html, $m );
+		$this->assertStringContainsString( 'videos-modal__volbtn', $html );
+		$this->assertStringContainsString( 'videos-modal__popover--volume', $html );
+		$this->assertStringContainsString( 'videos-modal__ratebtn', $html );
+		$this->assertStringContainsString( 'videos-modal__popover--rate', $html );
+		preg_match( '#<div class="videos-modal__popover videos-modal__popover--rate"[^>]*>(.*?)</div>#s', $html, $m );
 		$this->assertNotEmpty( $m );
-		preg_match_all( '#<option value="([^"]+)"( selected)?>#', $m[1], $options, PREG_SET_ORDER );
+		preg_match_all( '#<button class="videos-modal__rateopt" type="button" data-rate="([^"]+)" aria-pressed="(true|false)">#', $m[1], $options, PREG_SET_ORDER );
 		$this->assertSame( array( '0.5', '0.75', '1', '1.25', '1.5', '2' ), array_column( $options, 1 ) );
-		$selected = array_filter( $options, fn( $o ) => ! empty( $o[2] ) );
-		$this->assertSame( array( '1' ), array_column( $selected, 1 ) );
+		$pressed = array_filter( $options, fn( $o ) => 'true' === $o[2] );
+		$this->assertSame( array( '1' ), array_column( $pressed, 1 ) );
 	}
 
 	public function test_player_data_state_starts_paused(): void {
