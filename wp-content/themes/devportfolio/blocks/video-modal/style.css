@@ -642,6 +642,19 @@
 	fill: currentColor;
 }
 
+/* Play/pause: both icons are in the markup; the state (data-state, set by player.js) shows one. */
+.videos-modal__icon--pause {
+	display: none;
+}
+
+.videos-modal__video[data-state="playing"] .videos-modal__icon--play {
+	display: none;
+}
+
+.videos-modal__video[data-state="playing"] .videos-modal__icon--pause {
+	display: block;
+}
+
 /* Mute: the slashed speaker is the mute state's icon; the open speaker shows while sound is on. */
 .videos-modal__mute[aria-pressed="true"] svg {
 	opacity: 0.6;
@@ -666,16 +679,18 @@
 	border-radius: 2px;
 }
 
+/* The played part is the gradient drawn as a background image sized to --p (a gradient is an image,
+   so it cannot be a colour stop); the unplayed rest is the translucent white behind it. */
 .videos-modal__scrub::-webkit-slider-runnable-track {
 	height: 5px;
 	border-radius: 999px;
-	background: linear-gradient( to right, var( --vm-grad ) 0 var( --p, 0% ), rgb( 255 255 255 / 0.32 ) var( --p, 0% ) 100% );
+	background: var( --vm-grad ) 0 0 / var( --p, 0% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
 }
 
 .videos-modal__scrub::-moz-range-track {
 	height: 5px;
 	border-radius: 999px;
-	background: linear-gradient( to right, var( --vm-grad ) 0 var( --p, 0% ), rgb( 255 255 255 / 0.32 ) var( --p, 0% ) 100% );
+	background: var( --vm-grad ) 0 0 / var( --p, 0% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
 }
 
 .videos-modal__scrub::-webkit-slider-thumb {
@@ -752,7 +767,7 @@
 .videos-modal__volume::-webkit-slider-runnable-track {
 	height: 5px;
 	border-radius: 999px;
-	background: linear-gradient( to right, var( --vm-grad ) 0 calc( var( --v, 100 ) * 1% ), rgb( 255 255 255 / 0.32 ) 0 100% );
+	background: var( --vm-grad ) 0 0 / calc( var( --v, 100 ) * 1% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
 }
 
 .videos-modal__volume::-moz-range-track {

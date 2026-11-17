@@ -68,7 +68,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 				<button class="videos-modal__bigplay" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg></button>
 				<button class="videos-modal__replay" type="button"><?php echo esc_html_x( 'Replay', 'video modal', 'devportfolio' ); ?></button>
 				<div class="videos-modal__bar">
-					<button class="videos-modal__playpause" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg></button>
+					<button class="videos-modal__playpause" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg class="videos-modal__icon videos-modal__icon--play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="videos-modal__icon videos-modal__icon--pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
 					<input class="videos-modal__scrub" type="range" min="0" max="0" step="any" value="0" aria-label="<?php echo esc_attr_x( 'Seek', 'video modal', 'devportfolio' ); ?>">
 					<span class="videos-modal__time" aria-hidden="true">0:00 / 0:00</span>
 					<button class="videos-modal__mute" type="button" aria-label="<?php echo esc_attr_x( 'Mute', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9v6h4l5 4V5L7 9z"/></svg></button>
