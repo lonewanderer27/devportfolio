@@ -62,9 +62,27 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 <div <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
 	<dialog class="videos-modal" data-pane="wide" aria-labelledby="<?php echo esc_attr( $devportfolio_title_id ); ?>">
 		<div class="videos-modal__panel">
-			<div class="videos-modal__video">
+			<div class="videos-modal__video" data-state="paused">
 				<div class="videos-modal__stage"></div>
-				<p class="videos-modal__nopreview" hidden><?php echo esc_html_x( 'This video can’t be previewed here.', 'video modal', 'devportfolio' ); ?></p>
+				<p class="videos-modal__state" role="status" hidden data-loading="<?php echo esc_attr_x( 'Loading video…', 'video modal', 'devportfolio' ); ?>" data-unavailable="<?php echo esc_attr_x( 'This video can’t be previewed here.', 'video modal', 'devportfolio' ); ?>" data-hint="<?php echo esc_attr_x( 'Use the original post.', 'video modal', 'devportfolio' ); ?>"><span class="videos-modal__state-text"></span><span class="videos-modal__state-hint"></span></p>
+				<button class="videos-modal__bigplay" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg></button>
+				<button class="videos-modal__replay" type="button"><?php echo esc_html_x( 'Replay', 'video modal', 'devportfolio' ); ?></button>
+				<div class="videos-modal__bar">
+					<button class="videos-modal__playpause" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg></button>
+					<input class="videos-modal__scrub" type="range" min="0" max="0" step="any" value="0" aria-label="<?php echo esc_attr_x( 'Seek', 'video modal', 'devportfolio' ); ?>">
+					<span class="videos-modal__time" aria-hidden="true">0:00 / 0:00</span>
+					<button class="videos-modal__mute" type="button" aria-label="<?php echo esc_attr_x( 'Mute', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9v6h4l5 4V5L7 9z"/></svg></button>
+					<input class="videos-modal__volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="<?php echo esc_attr_x( 'Volume', 'video modal', 'devportfolio' ); ?>">
+					<select class="videos-modal__rate" aria-label="<?php echo esc_attr_x( 'Playback speed', 'video modal', 'devportfolio' ); ?>">
+						<option value="0.5">0.5×</option>
+						<option value="0.75">0.75×</option>
+						<option value="1" selected>1×</option>
+						<option value="1.25">1.25×</option>
+						<option value="1.5">1.5×</option>
+						<option value="2">2×</option>
+					</select>
+					<button class="videos-modal__fullscreen" type="button" aria-label="<?php echo esc_attr_x( 'Full screen', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+				</div>
 			</div>
 			<aside class="videos-modal__side">
 				<div class="videos-modal__sidebar-bar">

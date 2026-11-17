@@ -11,6 +11,7 @@ import { bindOpen } from '../shared/modal-trigger.js';
 import { createDeeplink, hasSheetState } from '../shared/deeplink.js';
 import { nextItems } from '../shared/next-items.js';
 import { linkFor, copyText } from '../shared/copy-link.js';
+import { createPlayer } from './player.js';
 
 const SLUG_PARAM = 'video_slug';
 
@@ -32,6 +33,7 @@ if ( dialog && dataEl ) {
 	const strings = readJson( root.getAttribute( 'data-strings' ) );
 	const deeplink = createDeeplink( SLUG_PARAM );
 	const routing = createRouting();
+	const player = createPlayer( dialog, strings );
 
 	const idBySlug = {};
 	order.forEach( ( id ) => {
@@ -43,7 +45,6 @@ if ( dialog && dataEl ) {
 	const $ = ( selector ) => dialog.querySelector( selector );
 	const els = {
 		stage: $( '.videos-modal__stage' ),
-		nopreview: $( '.videos-modal__nopreview' ),
 		pills: $( '.videos-modal__pills' ),
 		pillCat: $( '.videos-modal__pill--cat' ),
 		pillSize: $( '.videos-modal__pill--size' ),
@@ -70,42 +71,7 @@ if ( dialog && dataEl ) {
 	let copyTimer = 0;
 
 	/** Stops and unloads whatever the stage holds (DPV-009: closing stops and unloads the video). */
-	const unload = () => {
-		const video = els.stage.querySelector( 'video' );
-		if ( video ) {
-			video.pause();
-			video.removeAttribute( 'src' );
-			video.load();
-		}
-		els.stage.replaceChildren();
-	};
-
-	/** The player for one video: the uploaded file, else the embed, else the "can't be previewed" line. */
-	const mountPlayer = ( item ) => {
-		unload();
-		els.nopreview.hidden = Boolean( item.fileUrl || item.embedSrc );
-		const label = ( strings.playerFor || 'Video: %s' ).replace( '%s', item.title );
-		if ( item.fileUrl ) {
-			const video = document.createElement( 'video' );
-			video.controls = true;
-			video.playsInline = true;
-			video.preload = 'metadata';
-			video.setAttribute( 'aria-label', label );
-			if ( item.poster ) {
-				video.poster = item.poster;
-			}
-			video.src = item.fileUrl;
-			els.stage.append( video );
-		} else if ( item.embedSrc ) {
-			const frame = document.createElement( 'iframe' );
-			frame.title = label;
-			frame.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
-			frame.allowFullscreen = true;
-			frame.referrerPolicy = 'strict-origin-when-cross-origin';
-			frame.src = item.embedSrc;
-			els.stage.append( frame );
-		}
-	};
+	const unload = () => player.unload();
 
 	const activeFilter = () => {
 		const pressed = document.querySelector( '.wp-block-devportfolio-document-categories [aria-pressed="true"]' );
@@ -150,7 +116,7 @@ if ( dialog && dataEl ) {
 		els.nextSection.hidden = ids.length === 0;
 	};
 
-	const fill = ( item ) => {
+	const fill = ( item, gesture = false ) => {
 		dialog.setAttribute( 'data-pane', item.pane === 'tall' ? 'tall' : 'wide' );
 		els.pillCat.textContent = item.category;
 		els.pillCat.hidden = ! item.category;
@@ -193,7 +159,7 @@ if ( dialog && dataEl ) {
 		els.copy.textContent = copyLabel;
 		els.live.textContent = '';
 		els.copyField.classList.remove( 'is-shown' );
-		mountPlayer( item );
+		player.mount( item, gesture );
 		renderNext();
 	};
 
@@ -237,7 +203,7 @@ if ( dialog && dataEl ) {
 		}
 		opener = trigger;
 		document.documentElement.style.overflow = 'hidden';
-		fill( item );
+		fill( item, push );
 		dialog.showModal();
 		els.close.focus();
 	};
@@ -249,7 +215,7 @@ if ( dialog && dataEl ) {
 			return;
 		}
 		currentId = Number( id );
-		fill( item );
+		fill( item, true );
 		window.history.replaceState( window.history.state, '', deeplink.urlWithSlug( window.location.href, item.slug ) );
 		els.title.focus();
 	};
