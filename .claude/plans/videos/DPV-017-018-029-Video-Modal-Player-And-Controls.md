@@ -1131,3 +1131,61 @@ Footer: `Refs: DPV-017, DPV-018, DPV-029` and `Co-Authored-By: Claude Haiku 5.5 
 - DPV-029 is a duplicate of DPV-018; the tracker entry still needs closing by a person.
 - The gradient frame and progress fill are the only gradient uses; if the design system later allows a gradient focus ring or button, revisit D12 and D13.
 - Mobile layout of the bar (DPV-011) is not covered; the desktop modal is the scope.
+
+## 8. As built (supersedes sections 1 to 6 where they differ)
+
+Branch `feat/DPV-017-018-029-Video-Player-Controls`, from `main`, not pushed. Commits, oldest first:
+
+1. `88a2d91` feat(theme): add the video player maths
+2. `eaf62b4` test(theme): cover the video player maths
+3. `f6bb1b9` feat(theme): add the video player and control bar
+4. `e136970` feat(theme): style the video player to the design system
+5. `8f66fab` test(theme): cover the video player markup, captions rule and styles
+6. `823e5a8` docs(agents): document the video player
+7. `3180431` docs(plans): add the DPV-017, DPV-018 and DPV-029 player plan
+8. `80a397c` fix(theme): draw the video fills and swap the play icon
+9. `fc95a11` test(theme): cover the video fills and the pause icon
+10. `76348f8` feat(theme): put volume and speed in bar popovers
+11. `dde1af4` test(theme): cover the bar popovers and the speed list
+12. `f4ad0e8` feat(theme): remove the mute button, keep mute in volume
+13. `e7b5e70` test(theme): drop the mute strings from the player test
+14. `4ad89d2` fix(theme): line the player bar up with the Copy link button
+15. `7cbe1ab` feat(theme): bring volume, speed and full screen closer
+
+Where the build differs from the plan:
+
+| Plan | As built | Why |
+|------|----------|-----|
+| D18: native `<select>` for speed | Speed is a 42px text button (`.videos-modal__ratebtn`, no border) that opens a popover of six `.videos-modal__rateopt` buttons with `aria-pressed` | The user asked for a popover at the Copy link button's size |
+| D19: volume `input` in the bar | Volume is a 42px button (`.videos-modal__volbtn`) that opens a popover holding the slider | Same request |
+| D4: a mute button sets `preferMuted` | No mute button. The volume slider sets `preferMuted`: 0 mutes, above 0 unmutes. The volume button gets `data-muted` and dims its icon while muted | Mute is already in the slider; the user asked for the button to go |
+| Bar buttons 32px, icons 20px | Bar controls 42px, icons 22px | Match the Copy link button (42px) |
+| Bar padding `10px` bottom | Bar and sidebar footer share `--vm-foot-inset: 18px`, so the bottom rows line up | The speed button and the Copy link button had different centre lines |
+| Volume and speed at the 10px gap | Volume, speed and full screen sit 6px closer (`margin-left: -6px`) | The user asked for them closer |
+| Gradient fill as `linear-gradient(to right, var(--vm-grad) 0 …)` | Gradient as a sized background layer: `var(--vm-grad) 0 0 / var(--p) 100% no-repeat` over translucent white | A gradient is an image, not a colour stop; the plan's form was invalid CSS and drew no track |
+| Volume fill reads `--v`, nothing sets it | `player.js` sets `--v` (0 to 100) from `syncVolume()` | The plan omitted the write |
+| Play button changes only `aria-label` | Two icons (`.videos-modal__icon--play` and `--pause`) shown by `data-state` | The icon did not change |
+| Strings `mute`, `unmute` | Removed. `play`, `pause`, `fullscreen`, `exitFullscreen` kept | Mute button removed |
+| Escape and outside clicks not in the plan | Escape closes an open popover first (the dialog stays open); a `pointerdown` outside closes it | Popovers need a way to close |
+| Test: the word `track` is absent from `player.js` | Test checks `<track` and `createElement( 'track' )` absent | The word appears in a comment about the volume fill |
+| `AGENTS.md` at `$T/AGENTS.md` | Edited the repo-root `AGENTS.md` (the theme has no AGENTS.md) | Path error in the plan |
+| Commit 2 bundles feat and test | Split: `f6bb1b9` (feat) breaks one theme assertion until `8f66fab` (test) | The user asked for feat and test commits to be separate |
+
+Verification:
+
+- Theme suite: 570 passing (560 before, plus 10 new cases).
+- `blocks/video-modal` node tests: 10 passing (`player-model.test.mjs`).
+- `blocks/shared` node tests: 171 passing, unchanged.
+- The user checked the bar visually in screenshots (fills, play icon, alignment, spacing).
+
+Not verified:
+
+- The headless-browser checklist in section 5.9 was not run. That covers the autoplay and muted fallback, the 3-second idle fade, the replay, the DPV-029 seek accuracy, and the aria values.
+- Safari autoplay, iPhone fullscreen (`webkitEnterFullscreen`), and reduced motion.
+- Keyboard use of the popovers (Tab, Escape, arrow keys).
+- Narrow portrait panes: the bar at 423px wide may crowd the time readout.
+
+Open:
+
+- DPV-029 is still open in the tracker. Closing it as merged into DPV-018 is a person's call.
+- "Align it vertically with the copy link button" was read as aligning the bar's bottom row with the Copy link row. If another alignment was meant, say so.
