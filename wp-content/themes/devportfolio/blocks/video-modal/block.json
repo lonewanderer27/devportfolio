@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/video-modal",
+	"title": "Video Modal",
+	"category": "widgets",
+	"description": "The Videos modal opened from a video tile: the video pane and the details pane.",
+	"textdomain": "devportfolio",
+	"supports": {
+		"html": false
+	},
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}

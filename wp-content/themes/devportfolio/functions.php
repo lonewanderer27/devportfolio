@@ -61,6 +61,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/collateral-grid' );
 		register_block_type( __DIR__ . '/blocks/collateral-modal' );
 		register_block_type( __DIR__ . '/blocks/video-grid' );
+		register_block_type( __DIR__ . '/blocks/video-modal' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );

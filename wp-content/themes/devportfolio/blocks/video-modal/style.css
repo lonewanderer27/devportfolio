@@ -1,0 +1,473 @@
+/*
+ * Video modal (DPV-009 to DPV-016). Rules copied from collateral-modal/style.css (prefix renamed);
+ * a block stylesheet only loads with its block. The two breakpoint queries repeat shared/routing.js
+ * (WIDE_QUERY, SIDEWAYS_QUERY); tests/test-video-modal.php checks the copy.
+ */
+
+.videos-modal {
+	--vm-ink: var(--wp--custom--modal--ink);
+	--vm-subtle: var(--wp--custom--modal--subtle);
+	--vm-line: var(--wp--custom--modal--line);
+	--vm-line-strong: var(--wp--custom--modal--line-strong);
+	--vm-edge: var(--wp--custom--edge);
+	--vm-surface: var(--wp--custom--modal--surface);
+	--vm-surface-alt: var(--wp--custom--modal--surface-alt);
+	--vm-on-primary: var(--wp--custom--modal--on-primary);
+	--vm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--vm-dur: 260ms;
+	color: var(--vm-ink);
+	font-family: var(--wp--preset--font-family--sans, inherit);
+}
+
+/* ---- Desktop dialog ---------------------------------------------------------------- */
+
+.videos-modal {
+	--vm-pane: 560px;
+	--vm-side: 380px;
+	box-sizing: border-box;
+	/* Landscape: a 640px media column beside the 380px details pane, as Instagram's post view (the 2px is the border). */
+	width: min( calc( 640px + var( --vm-side ) + 2px ), calc( 100vw - 32px ) );
+	height: calc( 100dvh - 48px );
+	max-width: none;
+	max-height: none;
+	margin: auto;
+	padding: 0;
+	overflow: hidden;
+	background: var( --vm-surface );
+	border: 1px solid var( --vm-edge );
+	border-radius: 14px;
+	box-shadow: 0 24px 60px rgb( 0 0 0 / 0.25 );
+}
+
+/* Portrait (9x16): the video pane is 9:16 at the modal's full height, so the video fills it with no bars; no border frames it. */
+.videos-modal[data-pane="tall"] {
+	width: min( calc( ( 100dvh - 48px ) * 9 / 16 + var( --vm-side ) ), calc( 100vw - 32px ) );
+	border: 0;
+}
+
+.videos-modal[open] {
+	display: block;
+	animation: videos-modal-up var( --vm-dur ) var( --vm-ease );
+}
+
+.videos-modal::backdrop {
+	background: rgb( 0 0 0 / 0.45 );
+}
+
+.videos-modal__panel {
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) var( --vm-side );
+	height: 100%;
+	min-height: 0;
+}
+
+.videos-modal__side {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-left: 1px solid var( --vm-line );
+}
+
+.videos-modal__sidebar-bar {
+	display: flex;
+	justify-content: flex-end;
+	padding: 12px 12px 0;
+}
+
+.videos-modal__close {
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	color: var( --vm-ink );
+	background: transparent;
+	border: 1px solid var( --vm-ink );
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+.videos-modal__icon {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.videos-modal__scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+	padding: 12px 20px 20px;
+}
+
+.videos-modal__head {
+	display: grid;
+	gap: 8px;
+}
+
+.videos-modal__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+}
+
+.videos-modal__pill {
+	display: inline-flex;
+	align-items: center;
+	height: 28px;
+	padding: 0 10px;
+	font-size: 12.5px;
+	font-weight: 600;
+	border-radius: 999px;
+	border: 1px solid var( --vm-ink );
+}
+
+.videos-modal__pill--cat {
+	color: var( --vm-on-primary );
+	background: var( --vm-ink );
+}
+
+.videos-modal__pill--size {
+	color: var( --vm-ink );
+	background: transparent;
+}
+
+.videos-modal__title {
+	margin: 4px 0 0;
+	font-family: var( --wp--preset--font-family--sans, inherit );
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1.2;
+	overflow-wrap: anywhere;
+}
+
+.videos-modal__title:focus {
+	outline: none;
+}
+
+.videos-modal__desc {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var( --vm-subtle );
+	overflow-wrap: anywhere;
+}
+
+.videos-modal__results,
+.videos-modal__tools,
+.videos-modal__next {
+	margin-top: 22px;
+}
+
+.videos-modal__caption {
+	margin: 0 0 8px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var( --vm-subtle );
+}
+
+.videos-modal__stats {
+	display: grid;
+	grid-template-columns: repeat( 3, minmax( 0, 1fr ) );
+	gap: 8px;
+	margin: 0;
+}
+
+.videos-modal__stats > div {
+	min-width: 0;
+	padding: 10px 12px;
+	border: 1px solid var( --vm-line );
+	border-radius: 10px;
+}
+
+.videos-modal__stats dd {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 800;
+	overflow-wrap: anywhere;
+}
+
+.videos-modal__stats dt {
+	margin: 2px 0 0;
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	overflow-wrap: anywhere;
+	color: var( --vm-subtle );
+}
+
+.videos-modal__toollist {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.videos-modal__toollist li {
+	padding: 4px 9px;
+	font-size: 12.5px;
+	font-weight: 600;
+	border: 1px solid var( --vm-line );
+	border-radius: 6px;
+}
+
+.videos-modal__nextlist {
+	display: grid;
+	grid-template-columns: repeat( 3, minmax( 0, 1fr ) );
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.videos-modal__nextitem {
+	display: block;
+	width: 100%;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 8px;
+	cursor: pointer;
+	text-align: left;
+}
+
+.videos-modal__nextitem:focus-visible {
+	outline: 2px solid var( --vm-ink );
+	outline-offset: 2px;
+}
+
+.videos-modal__nexttile {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 9 / 16;
+	overflow: hidden;
+	background: var( --vm-surface-alt );
+	border-radius: 8px;
+}
+
+.videos-modal__blank {
+	display: grid;
+	place-items: center;
+	height: 100%;
+	max-width: 100%;
+	aspect-ratio: var( --vm-ratio, 0.7071 );
+	font-weight: 800;
+	color: var( --vm-subtle );
+	background: var( --vm-surface );
+	border: 1px solid var( --vm-line );
+}
+
+.videos-modal__nextimg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.videos-modal__actions {
+	display: grid;
+	gap: 8px;
+	flex: none;
+	padding: 14px 20px 18px;
+	border-top: 1px solid var( --vm-line );
+}
+
+.videos-modal__original,
+.videos-modal__copy {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 42px;
+	padding: 0 16px;
+	font: inherit;
+	font-weight: 600;
+	border-radius: 999px;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.videos-modal__copy {
+	color: var( --vm-ink );
+	background: transparent;
+	border: 1px solid var( --vm-ink );
+}
+
+.videos-modal__copy:focus-visible,
+.videos-modal__close:focus-visible {
+	outline: 2px solid var( --vm-ink );
+	outline-offset: 2px;
+}
+
+/* Read by execCommand('copy'), so it is never display:none; it is off screen until the fallback shows it. */
+.videos-modal__copyfield {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect( 0 0 0 0 );
+	white-space: nowrap;
+	border: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.videos-modal__copyfield.is-shown {
+	position: static;
+	width: 100%;
+	height: auto;
+	clip: auto;
+	padding: 8px 10px;
+	font: inherit;
+	font-size: 13px;
+	border: 1px solid var( --vm-line-strong );
+	border-radius: 8px;
+}
+
+.videos-modal__actions {
+	position: relative;
+}
+
+/* Screen-reader status only: it is a grid item, so it must not take a visible row under the buttons. */
+.videos-modal__live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect( 0 0 0 0 );
+	white-space: nowrap;
+}
+
+/* ---- Video pane (DPV-010): edge to edge, no padding or frame ----------------------------------- */
+
+.videos-modal__video {
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	background: #111;
+}
+
+.videos-modal__stage {
+	position: absolute;
+	inset: 0;
+}
+
+.videos-modal__stage > video,
+.videos-modal__stage > iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	object-fit: contain;
+	background: #111;
+}
+
+.videos-modal__nopreview {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	margin: 0;
+	padding: 24px;
+	color: #fff;
+	text-align: center;
+	font-size: 14px;
+}
+
+.videos-modal__nopreview[hidden] {
+	display: none;
+}
+
+/* The nextitem tile is 9:16 (the grid's tile shape), not the collateral page ratio. */
+.videos-modal__nextitem {
+	--vm-ratio: 0.5625;
+}
+
+.videos-modal__nextlen {
+	position: absolute;
+	right: 4px;
+	bottom: 4px;
+	padding: 1px 5px;
+	font-size: 11px;
+	font-weight: 600;
+	color: #fff;
+	background: rgb( 0 0 0 / 0.65 );
+	border-radius: 4px;
+}
+
+/* ---- Original post link: the filled button (the Download button's twin) ---------------------- */
+
+.videos-modal__original {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	padding: 0 16px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+	color: var( --vm-on-primary );
+	background: var( --vm-ink );
+	border: 1px solid var( --vm-ink );
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+.videos-modal__original[hidden] {
+	display: none;
+}
+
+.videos-modal__original:focus-visible {
+	outline: 2px solid var( --vm-ink );
+	outline-offset: 3px;
+}
+
+/* ---- Which dialog a screen gets: repeats shared/routing.js exactly ---------------------------------- */
+
+@media (max-width: 700px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.videos-modal {
+		display: none !important;
+	}
+}
+
+@media (max-width: 900px) {
+	.videos-modal__stats {
+		grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	}
+}
+
+@media (prefers-contrast: more) {
+	.videos-modal {
+		--vm-line: var(--wp--custom--modal--subtle);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.videos-modal[open] {
+		animation: none;
+	}
+}
+
+@keyframes videos-modal-up {
+	from {
+		opacity: 0;
+		transform: translateY( 12px );
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
