@@ -27,7 +27,6 @@ export function createPlayer( dialog, strings = {} ) {
 	const replay = $( '.videos-modal__replay' );
 	const scrub = $( '.videos-modal__scrub' );
 	const time = $( '.videos-modal__time' );
-	const mute = $( '.videos-modal__mute' );
 	const volume = $( '.videos-modal__volume' );
 	const volumeBtn = $( '.videos-modal__volbtn' );
 	const volumePop = $( '.videos-modal__popover--volume' );
@@ -60,6 +59,8 @@ export function createPlayer( dialog, strings = {} ) {
 		}
 		const level = video.muted ? 0 : video.volume;
 		volume.value = String( level );
+		// The volume button dims while muted (style.css); the slider at 0 is the mute.
+		volumeBtn.dataset.muted = video.muted ? 'true' : 'false';
 		// The slider's fill is the --v percentage (0 to 100) read by the track's gradient in style.css.
 		volume.style.setProperty( '--v', String( Math.round( level * 100 ) ) );
 	};
@@ -106,13 +107,6 @@ export function createPlayer( dialog, strings = {} ) {
 		if ( video && ! video.paused && ! video.ended ) {
 			idleTimer = window.setTimeout( () => playerEl.classList.add( 'is-idle' ), IDLE_MS );
 		}
-	};
-
-	const syncMute = () => {
-		const label = video && video.muted ? strings.unmute || 'Unmute' : strings.mute || 'Mute';
-		mute.setAttribute( 'aria-label', label );
-		mute.setAttribute( 'title', label );
-		mute.setAttribute( 'aria-pressed', video && video.muted ? 'true' : 'false' );
 	};
 
 	const syncTime = () => {
@@ -205,7 +199,6 @@ export function createPlayer( dialog, strings = {} ) {
 			playerEl.classList.remove( 'is-idle' );
 		} );
 		video.addEventListener( 'volumechange', () => {
-			syncMute();
 			syncVolume();
 		} );
 		video.addEventListener( 'ended', () => {
@@ -223,7 +216,6 @@ export function createPlayer( dialog, strings = {} ) {
 		video.playbackRate = preferRate;
 		syncRate();
 		fullscreen.hidden = ! ( playerEl.requestFullscreen || video.webkitEnterFullscreen );
-		syncMute();
 		syncVolume();
 		syncTime();
 		start( gesture );
@@ -265,12 +257,6 @@ export function createPlayer( dialog, strings = {} ) {
 		if ( video ) {
 			video.currentTime = 0;
 			userPlay();
-		}
-	} );
-	mute.addEventListener( 'click', () => {
-		if ( video ) {
-			preferMuted = ! video.muted;
-			video.muted = preferMuted;
 		}
 	} );
 	playerEl.addEventListener( 'click', ( event ) => {

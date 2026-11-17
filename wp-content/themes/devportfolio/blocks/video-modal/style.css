@@ -655,8 +655,8 @@
 	display: block;
 }
 
-/* Mute: the slashed speaker is the mute state's icon; the open speaker shows while sound is on. */
-.videos-modal__mute[aria-pressed="true"] svg {
+/* Muted: the volume button's icon dims (player.js sets data-muted from the video's mute state). */
+.videos-modal__volbtn[data-muted="true"] svg {
 	opacity: 0.6;
 }
 
@@ -814,6 +814,7 @@
 	position: relative;
 	display: inline-flex;
 	flex: none;
+	align-self: center;
 }
 
 .videos-modal__bar .videos-modal__ratebtn {
@@ -825,9 +826,10 @@
 	height: 42px;
 	min-width: 42px;
 	margin: 0;
-	padding: 0 12px;
-	border: 1px solid rgb( 255 255 255 / 0.6 );
-	border-radius: 999px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 10px;
+	line-height: 1;
 	background: transparent;
 	color: #fff;
 	font: inherit;
@@ -841,7 +843,6 @@
 .videos-modal__bar .videos-modal__ratebtn:hover,
 .videos-modal__bar .videos-modal__ratebtn[aria-expanded="true"] {
 	background: rgb( 255 255 255 / 0.16 );
-	border-color: #fff;
 }
 
 .videos-modal__popover {

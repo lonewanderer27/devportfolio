@@ -1573,8 +1573,6 @@ if ( ! function_exists( 'devportfolio_video_modal_strings' ) ) :
 			'playerFor' => _x( 'Video: %s', 'video modal', 'devportfolio' ),
 			'play'      => _x( 'Play', 'video modal', 'devportfolio' ),
 			'pause'     => _x( 'Pause', 'video modal', 'devportfolio' ),
-			'mute'      => _x( 'Mute', 'video modal', 'devportfolio' ),
-			'unmute'    => _x( 'Unmute', 'video modal', 'devportfolio' ),
 			'fullscreen'     => _x( 'Full screen', 'video modal', 'devportfolio' ),
 			'exitFullscreen' => _x( 'Exit full screen', 'video modal', 'devportfolio' ),
 		);
