@@ -4,7 +4,8 @@
  * (WIDE_QUERY, SIDEWAYS_QUERY); tests/test-video-modal.php checks the copy.
  */
 
-.videos-modal {
+.videos-modal,
+.videos-mobile {
 	--vm-ink: var(--wp--custom--modal--ink);
 	--vm-subtle: var(--wp--custom--modal--subtle);
 	--vm-line: var(--wp--custom--modal--line);
@@ -490,7 +491,8 @@
 	opacity: 1;
 }
 
-.videos-modal__state {
+.videos-modal__state,
+.videos-mobile__state {
 	position: absolute;
 	top: 50%;
 	right: 16px;
@@ -504,24 +506,28 @@
 	color: #fff;
 }
 
-.videos-modal__state[hidden] {
+.videos-modal__state[hidden],
+.videos-mobile__state[hidden] {
 	display: none;
 }
 
-.videos-modal__state-hint {
+.videos-modal__state-hint,
+.videos-mobile__state-hint {
 	display: block;
 	margin-top: 4px;
 	font-size: 12px;
 	color: #c9c9c9;
 }
 
-.videos-modal__state-hint:empty {
+.videos-modal__state-hint:empty,
+.videos-mobile__state-hint:empty {
 	display: none;
 }
 
 .videos-modal__bigplay,
 .videos-modal__replay,
-.videos-modal__bar {
+.videos-modal__bar,
+.videos-mobile__replay {
 	display: none;
 }
 
@@ -573,7 +579,8 @@
 	fill: currentColor;
 }
 
-.videos-modal__replay {
+.videos-modal__replay,
+.videos-mobile__replay {
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -594,7 +601,8 @@
 	transition: background-color 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
 }
 
-.videos-modal__replay:hover {
+.videos-modal__replay:hover,
+.videos-mobile__replay:hover {
 	background: rgb( 0 0 0 / 0.6 );
 }
 
@@ -659,7 +667,8 @@
 }
 
 /* Muted: the volume button's icon dims (player.js sets data-muted from the video's mute state). */
-.videos-modal__volbtn[data-muted="true"] svg {
+.videos-modal__volbtn[data-muted="true"] svg,
+.videos-mobile__volbtn[data-muted="true"] svg {
 	opacity: 0.6;
 }
 
@@ -741,7 +750,8 @@
 
 .videos-modal__bigplay:focus-visible,
 .videos-modal__replay:focus-visible,
-.videos-modal__bar button:focus-visible {
+.videos-modal__bar button:focus-visible,
+.videos-mobile__replay:focus-visible {
 	outline: 2px solid var( --vm-focus );
 	outline-offset: 2px;
 }
@@ -756,7 +766,8 @@
 /* Volume and speed are buttons that open a popover above the bar; the slider and the speed list live in
    the popovers. The bar controls are the Copy link button's size (42px). Fullscreen (DPV-018 parity).
    The volume fill reads --v (0 to 100, written by player.js); Firefox draws the fill as its progress part. */
-.videos-modal__volume {
+.videos-modal__volume,
+.videos-mobile__volume {
 	-webkit-appearance: none;
 	appearance: none;
 	flex: none;
@@ -768,25 +779,29 @@
 	cursor: pointer;
 }
 
-.videos-modal__volume::-webkit-slider-runnable-track {
+.videos-modal__volume::-webkit-slider-runnable-track,
+.videos-mobile__volume::-webkit-slider-runnable-track {
 	height: 5px;
 	border-radius: 999px;
 	background: var( --vm-grad ) 0 0 / calc( var( --v, 100 ) * 1% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
 }
 
-.videos-modal__volume::-moz-range-track {
+.videos-modal__volume::-moz-range-track,
+.videos-mobile__volume::-moz-range-track {
 	height: 5px;
 	border-radius: 999px;
 	background: rgb( 255 255 255 / 0.32 );
 }
 
-.videos-modal__volume::-moz-range-progress {
+.videos-modal__volume::-moz-range-progress,
+.videos-mobile__volume::-moz-range-progress {
 	height: 5px;
 	border-radius: 999px;
 	background: var( --vm-grad );
 }
 
-.videos-modal__volume::-webkit-slider-thumb {
+.videos-modal__volume::-webkit-slider-thumb,
+.videos-mobile__volume::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
 	width: 12px;
@@ -797,7 +812,8 @@
 	background: #fff;
 }
 
-.videos-modal__volume::-moz-range-thumb {
+.videos-modal__volume::-moz-range-thumb,
+.videos-mobile__volume::-moz-range-thumb {
 	width: 12px;
 	height: 12px;
 	border: 0;
@@ -805,7 +821,8 @@
 	background: #fff;
 }
 
-.videos-modal__volume:focus-visible {
+.videos-modal__volume:focus-visible,
+.videos-mobile__volume:focus-visible {
 	outline: 2px solid var( --vm-focus );
 	outline-offset: 2px;
 	border-radius: 2px;
@@ -813,7 +830,8 @@
 
 /* Popovers. The bar's own button rule has the same specificity as a single class, so these use
    `.videos-modal__bar` in front to win over it. */
-.videos-modal__pop {
+.videos-modal__pop,
+.videos-mobile__pop {
 	position: relative;
 	display: inline-flex;
 	flex: none;
@@ -822,7 +840,8 @@
 
 /* Volume, speed and full screen sit closer together than the bar's 10px gap. */
 .videos-modal__pop + .videos-modal__pop,
-.videos-modal__pop + .videos-modal__fullscreen {
+.videos-modal__pop + .videos-modal__fullscreen,
+.videos-mobile__pop + .videos-mobile__pop {
 	margin-left: -6px;
 }
 
@@ -854,7 +873,8 @@
 	background: rgb( 255 255 255 / 0.16 );
 }
 
-.videos-modal__popover {
+.videos-modal__popover,
+.videos-mobile__popover {
 	position: absolute;
 	right: 0;
 	bottom: calc( 100% + 10px );
@@ -869,7 +889,8 @@
 	background: rgb( 17 17 17 / 0.96 );
 }
 
-.videos-modal__popover[hidden] {
+.videos-modal__popover[hidden],
+.videos-mobile__popover[hidden] {
 	display: none;
 }
 
@@ -878,7 +899,8 @@
 	padding: 14px 16px;
 }
 
-.videos-modal__popover .videos-modal__volume {
+.videos-modal__popover .videos-modal__volume,
+.videos-mobile__popover .videos-mobile__volume {
 	width: 120px;
 }
 
@@ -916,24 +938,731 @@
 
 @media ( prefers-reduced-motion: reduce ) {
 	.videos-modal__video::after,
-	.videos-modal__bar,
-	.videos-modal__bigplay,
-	.videos-modal__replay,
-	.videos-modal__bar button,
-	.videos-modal__scrub::-webkit-slider-thumb,
-	.videos-modal__scrub::-moz-range-thumb {
+.videos-modal__bar,
+.videos-modal__bigplay,
+.videos-modal__replay,
+.videos-modal__bar button,
+.videos-modal__scrub::-webkit-slider-thumb,
+.videos-modal__scrub::-moz-range-thumb,
+.videos-mobile__replay {
 		transition: none;
 	}
 }
 
 @media ( forced-colors: active ) {
 	.videos-modal__bar,
-	.videos-modal__bigplay,
-	.videos-modal__replay {
+.videos-modal__bigplay,
+.videos-modal__replay,
+.videos-mobile__replay {
 		forced-color-adjust: auto;
 	}
 
 	.videos-modal__video::after {
 		display: none;
 	}
+}
+
+/* ---- DPV-011, DPV-019 to DPV-023: mobile viewer (dialog.videos-mobile, mobile.js) ------------------------ */
+
+/* Which dialog shows: the same queries as shared/routing.js (a test compares them). The mobile query is above. */
+@media (min-width: 701px) and (not ((pointer: coarse) and (orientation: landscape) and (max-height: 520px))) {
+	.videos-mobile {
+		display: none;
+	}
+}
+
+.videos-mobile {
+	box-sizing: border-box;
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100dvh;
+	max-width: none;
+	max-height: none;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	background: #000;
+	color: #fff;
+}
+
+.videos-mobile::backdrop {
+	background: none;
+}
+
+.videos-mobile[open] {
+	animation: videos-mobile-fade 160ms ease;
+}
+
+@keyframes videos-mobile-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+.videos-mobile__panel {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.videos-mobile__video {
+	position: absolute;
+	inset: 0;
+}
+
+/* The incoming video during a slide: its poster, a screen away until the slide brings it in (mobile.js). */
+.videos-mobile__peek {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	background: #000;
+	pointer-events: none;
+}
+
+/* While the video is dragged or slides, its controls and overlays fade out (mobile.js sets data-sliding on the
+   dialog) and fade back in once it has settled. The video stage is the only part that moves. */
+.videos-mobile__panel > :not(.videos-mobile__video):not(.videos-mobile__peek),
+.videos-mobile__video > :not(.videos-mobile__stage) {
+	transition: opacity 160ms ease;
+}
+
+.videos-mobile[data-sliding] .videos-mobile__panel > :not(.videos-mobile__video):not(.videos-mobile__peek),
+.videos-mobile[data-sliding] .videos-mobile__video > :not(.videos-mobile__stage) {
+	opacity: 0;
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.videos-mobile__panel > :not(.videos-mobile__video):not(.videos-mobile__peek),
+	.videos-mobile__video > :not(.videos-mobile__stage) {
+		transition: none;
+	}
+}
+
+.videos-mobile__peek[data-fit="zoom"] img {
+	object-fit: cover;
+}
+
+.videos-mobile__peek[data-fit="stretch"] img {
+	object-fit: fill;
+}
+
+.videos-mobile__peek img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.videos-mobile__stage {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	touch-action: none;
+}
+
+.videos-mobile__stage video,
+.videos-mobile__stage iframe {
+	width: 100%;
+	height: 100%;
+	border: 0;
+	object-fit: contain;
+}
+
+/* The video is positioned, not a grid item: a tall video must not stretch the stage (a portrait video in a
+   landscape screen shows bars at its own height, not a zoomed-in picture). */
+.videos-mobile__stage video {
+	position: absolute;
+	inset: 0;
+}
+
+/* The fit button's modes (controls/fit.js sets data-fit on the frame): fit is the default, zoom crops to fill,
+   stretch fills and distorts. Embeds (iframes) keep their provider's own sizing. */
+.videos-mobile__video[data-fit="zoom"] .videos-mobile__stage video {
+	object-fit: cover;
+}
+
+.videos-mobile__video[data-fit="stretch"] .videos-mobile__stage video {
+	object-fit: fill;
+}
+
+.videos-mobile__fit .videos-mobile__icon {
+	display: none;
+}
+
+.videos-mobile__fit[data-fit="fit"] .videos-mobile__icon--fit,
+.videos-mobile__fit[data-fit="zoom"] .videos-mobile__icon--zoom,
+.videos-mobile__fit[data-fit="stretch"] .videos-mobile__icon--stretch {
+	display: block;
+}
+
+/* A wide video is letterboxed at its own shape; held sideways it still fills the screen height (stage height). */
+.videos-mobile__video[data-shape="wide"] .videos-mobile__stage iframe {
+	aspect-ratio: 16 / 9;
+	height: auto;
+	max-height: 100%;
+}
+
+.videos-mobile__scrim {
+	position: absolute;
+	inset: auto 0 0 0;
+	height: 30%;
+	pointer-events: none;
+	background: linear-gradient( to top, var( --wp--custom--modal--scrim ), transparent );
+}
+
+.videos-mobile__icon {
+	width: 22px;
+	height: 22px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* Round outline buttons: ✕, ▲ ▼, ⓘ and the extras. The ::before widens the touch target to 44px. */
+.videos-mobile__btn {
+	box-sizing: border-box;
+	position: relative;
+	z-index: 4;
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: #fff;
+	background: rgb( 0 0 0 / 0.35 );
+	-webkit-backdrop-filter: blur( 10px );
+	backdrop-filter: blur( 10px );
+	border: 1.5px solid rgb( 255 255 255 / 0.85 );
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+.videos-mobile__btn::before {
+	position: absolute;
+	inset: -3px;
+	content: "";
+}
+
+.videos-mobile__btn:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+}
+
+.videos-mobile__btn[aria-disabled="true"] {
+	opacity: 0.35;
+}
+
+.videos-mobile__close {
+	position: absolute;
+	top: calc( 12px + env( safe-area-inset-top, 0px ) );
+	left: calc( 12px + env( safe-area-inset-left, 0px ) );
+}
+
+/* One capsule per group of controls: ▲ ▼ above ⓘ, and the top-right extras. The outline and blur belong to the
+   capsule; its buttons are plain, and a hairline divides them. */
+.videos-mobile__rail,
+.videos-mobile__extras {
+	box-sizing: border-box;
+	display: grid;
+	width: 44px;
+	color: #fff;
+	background: rgb( 0 0 0 / 0.35 );
+	-webkit-backdrop-filter: blur( 10px );
+	backdrop-filter: blur( 10px );
+	border: 1.5px solid rgb( 255 255 255 / 0.85 );
+	border-radius: 999px;
+}
+
+.videos-mobile__rail {
+	position: absolute;
+	bottom: calc( 84px + env( safe-area-inset-bottom, 0px ) );
+	right: calc( 12px + env( safe-area-inset-right, 0px ) );
+	z-index: 4;
+}
+
+.videos-mobile__rail .videos-mobile__btn,
+.videos-mobile__extras .videos-mobile__btn {
+	width: 100%;
+	height: 44px;
+	background: transparent;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	border: 0;
+	border-radius: 0;
+}
+
+.videos-mobile__rail .videos-mobile__up {
+	border-bottom: 1px solid rgb( 255 255 255 / 0.45 );
+}
+
+.videos-mobile__details {
+	position: absolute;
+	right: calc( 12px + env( safe-area-inset-right, 0px ) );
+	bottom: 28px;
+	z-index: 4;
+}
+
+/* The title, with its chevron, sits over the scrim; one line, cut with an ellipsis. */
+.videos-mobile__title {
+	position: absolute;
+	right: 66px;
+	bottom: 28px;
+	left: 16px;
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	height: 44px; /* the ⓘ button's height, so the two share a centre line */
+	margin: 0;
+	padding: 0;
+	color: #fff;
+	font: inherit;
+	font-size: 16px;
+	font-weight: 700;
+	text-align: left;
+	text-shadow: 0 1px 2px rgb( 0 0 0 / 0.5 );
+	background: none;
+	border: 0;
+	cursor: pointer;
+}
+
+.videos-mobile__title-text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.videos-mobile__title .videos-mobile__icon {
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+
+/* "Rotate for full screen" pill: wide videos in portrait only. */
+.videos-mobile__hint {
+	position: absolute;
+	left: 50%;
+	bottom: 92px;
+	z-index: 4;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 12px;
+	color: #fff;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+	background: rgb( 0 0 0 / 0.6 );
+	border-radius: 999px;
+	transform: translateX( -50% );
+	pointer-events: none;
+}
+
+@media ( orientation: landscape ) {
+	.videos-mobile__hint {
+		display: none;
+	}
+}
+
+/* The double-tap flash: a round dark glyph in the middle, forward or back. */
+.videos-mobile__flash {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 3;
+	width: 64px;
+	height: 64px;
+	margin: -32px 0 0 -32px;
+	background: rgb( 0 0 0 / 0.45 ) center / 28px 28px no-repeat;
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.videos-mobile__flash[data-kind="forward"] {
+	background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M4 5l9 7-9 7zM13 5l9 7-9 7z'/%3E%3C/svg%3E" );
+}
+
+.videos-mobile__flash[data-kind="back"] {
+	background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20 5l-9 7 9 7zM11 5l-9 7 9 7z'/%3E%3C/svg%3E" );
+}
+
+.videos-mobile__flash.is-on {
+	animation: videos-mobile-flash 600ms ease-out;
+}
+
+@keyframes videos-mobile-flash {
+	0% {
+		opacity: 0;
+		transform: scale( 0.9 );
+	}
+	30% {
+		opacity: 1;
+		transform: scale( 1.1 );
+	}
+	100% {
+		opacity: 0;
+		transform: scale( 1.1 );
+	}
+}
+
+/* Controls. A control exists only when the markup rendered it (Settings → Videos), so no rule checks the settings. */
+.videos-mobile__bigplay {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	width: 72px;
+	height: 72px;
+	margin: auto;
+	color: #fff;
+	background: rgb( 0 0 0 / 0.35 );
+	-webkit-backdrop-filter: blur( 10px );
+	backdrop-filter: blur( 10px );
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 160ms ease;
+}
+
+.videos-mobile__bigplay .videos-mobile__icon {
+	width: 30px;
+	height: 30px;
+}
+
+.videos-mobile__video[data-state="paused"] .videos-mobile__bigplay {
+	opacity: 1;
+}
+
+/* Replay (loop off) shows only at the end; the look is the desktop pill. */
+.videos-mobile__video[data-state="ended"] .videos-mobile__replay {
+	display: inline-flex;
+}
+
+/* The progress line, as the design system draws it: a 3px line whose played part is the gradient and whose rest is
+   translucent white. The thumb shows only while the line is pressed or focused, as on desktop (inert = read-only). */
+.videos-mobile__scrub {
+	position: absolute;
+	right: 0;
+	bottom: env( safe-area-inset-bottom, 0px );
+	left: 0;
+	z-index: 4;
+	box-sizing: border-box;
+	width: 100%;
+	height: 24px;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	appearance: none;
+	-webkit-appearance: none;
+	cursor: pointer;
+}
+
+.videos-mobile__scrub[inert] {
+	pointer-events: none;
+}
+
+.videos-mobile__scrub:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: -2px;
+}
+
+.videos-mobile__scrub::-webkit-slider-runnable-track {
+	height: 3px;
+	border-radius: 999px;
+	background: var( --vm-grad ) 0 0 / var( --p, 0% ) 100% no-repeat, rgb( 255 255 255 / 0.32 );
+}
+
+.videos-mobile__scrub::-moz-range-track {
+	height: 3px;
+	border-radius: 999px;
+	background: rgb( 255 255 255 / 0.32 );
+}
+
+.videos-mobile__scrub::-moz-range-progress {
+	height: 3px;
+	border-radius: 999px;
+	background: var( --vm-grad );
+}
+
+.videos-mobile__scrub::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 12px;
+	height: 12px;
+	margin-top: -4.5px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	transition: opacity 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-mobile__scrub::-moz-range-thumb {
+	width: 12px;
+	height: 12px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	transition: opacity 160ms cubic-bezier( 0.2, 0.8, 0.2, 1 );
+}
+
+.videos-mobile__scrub:not([inert]):active::-webkit-slider-thumb,
+.videos-mobile__scrub:not([inert]):focus-visible::-webkit-slider-thumb {
+	opacity: 1;
+}
+
+.videos-mobile__scrub:not([inert]):active::-moz-range-thumb,
+.videos-mobile__scrub:not([inert]):focus-visible::-moz-range-thumb {
+	opacity: 1;
+}
+
+.videos-mobile__time {
+	position: absolute;
+	bottom: calc( 80px + env( safe-area-inset-bottom, 0px ) );
+	left: 16px;
+	z-index: 4;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	color: #fff;
+	text-shadow: 0 1px 2px rgb( 0 0 0 / 0.5 );
+}
+
+.videos-mobile__extras {
+	position: absolute;
+	top: calc( 12px + env( safe-area-inset-top, 0px ) );
+	right: calc( 12px + env( safe-area-inset-right, 0px ) );
+	z-index: 4;
+}
+
+/* The capsule's children sit flush inside it (the desktop bar's negative popover margins do not apply here). */
+.videos-mobile__extras > * {
+	width: 100%;
+}
+
+/* The desktop bar's popover spacing (.videos-modal__pop + .videos-modal__pop) pulls a second popover left; it does
+   not apply inside the capsule. :not( :first-child ) makes this win over that rule. */
+.videos-mobile__extras > *:not( :first-child ) {
+	margin: 0;
+}
+
+/* A hairline between the buttons of the extras capsule (the popover wrappers count as buttons). */
+.videos-mobile__extras > *:not( :first-child ) {
+	border-top: 1px solid rgb( 255 255 255 / 0.45 );
+}
+
+.videos-mobile__mutebtn[data-muted="true"] .videos-mobile__icon--on,
+.videos-mobile__mutebtn[data-muted="false"] .videos-mobile__icon--off {
+	display: none;
+}
+
+.videos-mobile__pop {
+	position: relative;
+}
+
+/* Volume and speed open to the left of their button (below it held sideways). */
+.videos-mobile__popover {
+	position: absolute;
+	top: 0;
+	right: calc( 100% + 8px );
+	bottom: auto;
+	max-width: calc( 100vw - 80px );
+}
+
+.videos-mobile__state {
+	z-index: 5;
+}
+
+.videos-mobile__state[hidden],
+.videos-mobile__rail[hidden],
+.videos-mobile__hint[hidden],
+.videos-mobile__popover[hidden] {
+	display: none;
+}
+
+/* The speed options, as the desktop bar's (its rules are scoped to the bar, so the mobile list has its own). */
+.videos-mobile__rateopt {
+	justify-content: flex-start;
+	width: 100%;
+	height: 36px;
+	margin: 0;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.videos-mobile__rateopt:hover,
+.videos-mobile__rateopt[aria-pressed="true"] {
+	background: rgb( 255 255 255 / 0.16 );
+}
+
+.videos-mobile__ratebtn:focus-visible,
+.videos-mobile__rateopt:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+}
+
+/* Embeds: the provider's own player has its controls, so ours do not show. */
+.videos-mobile__video[data-state="embed"] .videos-mobile__bigplay,
+.videos-mobile__video[data-state="embed"] .videos-mobile__scrub,
+.videos-mobile__video[data-state="embed"] .videos-mobile__time,
+.videos-mobile__video[data-state="embed"] .videos-mobile__extras,
+.videos-mobile__video[data-state="embed"] .videos-mobile__replay {
+	display: none;
+}
+
+/* Sideways (a touch screen held landscape, the same query as routing.js): the extras run in a row and the
+   popovers open below their buttons. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.videos-mobile__extras {
+		grid-auto-flow: column;
+		grid-auto-columns: 44px;
+		width: auto;
+	}
+
+	.videos-mobile__extras > *:not( :first-child ) {
+		border-top: 0;
+		border-left: 1px solid rgb( 255 255 255 / 0.45 );
+	}
+
+	/* Held sideways the details sheet is two columns; the footer goes in the right-hand column's bottom row. */
+	.videos-mobile__sheet-foot {
+		grid-area: foot;
+	}
+
+	.videos-mobile__popover {
+		top: calc( 100% + 8px );
+		right: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.videos-mobile[open],
+	.videos-mobile__flash.is-on {
+		animation: none;
+	}
+}
+
+/* Details sheet content (DPV-021): the collateral sheet's rules with the video tokens. The title, description,
+   tools and result rows are in document-modal/style.css, which the Videos archive loads too. */
+.videos-mobile__details-category {
+	padding: 4px 10px;
+	color: var( --vm-on-primary );
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1.5;
+	background: var( --vm-ink );
+	border: 0;
+	border-radius: 999px;
+}
+
+.videos-mobile__details-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 12px; /* the same space as above the pills (the sheet body's top margin) */
+}
+
+.videos-mobile__details-size {
+	padding: 3px 9px;
+	font-size: 12px;
+	border: 1px solid var( --vm-ink );
+	border-radius: 999px;
+}
+
+.videos-mobile__details-caption {
+	margin: 0 0 6px;
+	color: var( --vm-subtle );
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.videos-mobile__details-made {
+	margin-top: 12px;
+}
+
+.videos-mobile__details-results {
+	margin-top: 14px;
+}
+
+.videos-mobile__details-results .videos-mobile__details-row dt {
+	color: var( --vm-subtle );
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.videos-mobile__details-results .videos-mobile__details-row dd {
+	margin: 0;
+	font-weight: 800;
+}
+
+.videos-mobile__sheet-foot {
+	display: grid;
+	flex: none;
+	gap: 8px;
+	margin-top: 10px;
+	padding-bottom: env( safe-area-inset-bottom, 0px );
+}
+
+/* Open original post is the filled primary button; Copy link is outlined under it (the collateral sheet's order). */
+.videos-mobile__details-copy {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	margin: 0;
+	color: var( --vm-ink );
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	background: transparent;
+	border: 1px solid var( --vm-ink );
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.videos-mobile__details-copy:focus-visible,
+.videos-mobile__details-original:focus-visible {
+	outline: 2px solid var( --vm-focus );
+	outline-offset: 2px;
+}
+
+.videos-mobile__details-original {
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 48px;
+	margin: 0;
+	color: var( --vm-on-primary );
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+	background: var( --vm-ink );
+	border: 0;
+	border-radius: 10px;
+}
+
+.videos-mobile__details-original[hidden] {
+	display: none;
 }

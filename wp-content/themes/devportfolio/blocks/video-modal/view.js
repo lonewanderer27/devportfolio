@@ -1,10 +1,11 @@
 /**
- * Video modal (DPV-009 to DPV-016), desktop.
+ * Video modal (DPV-009 to DPV-016, DPV-011 to DPV-023): the desktop dialog and the mobile viewer.
  *
- * A click on `[data-video-id]` (the grid's tile button) opens the dialog on a 701px+ screen. The sidebar is
- * filled from the JSON payload with textContent only. The deeplink is `video_slug`: a click pushes one
- * history entry, a Next up swap replaces it, closing steps back (as collateral-modal/view.js). The mobile
- * viewer is DPV-011: on a mobile screen nothing opens, and a resize to mobile closes the dialog.
+ * A click on `[data-video-id]` (the grid's tile button) opens the desktop dialog on a 701px+ screen, or the
+ * mobile viewer (mobile.js) on a screen 700px wide or less or a touch screen held sideways (routing.js). The
+ * desktop sidebar is filled from the JSON payload with textContent only. The deeplink is `video_slug`: a click
+ * pushes one history entry, a Next up swap replaces it, closing steps back (as collateral-modal/view.js). Crossing
+ * the routing boundary with a viewer open swaps to the other dialog in place.
  */
 import { createRouting } from '../shared/routing.js';
 import { bindOpen } from '../shared/modal-trigger.js';
@@ -12,12 +13,15 @@ import { createDeeplink, hasSheetState } from '../shared/deeplink.js';
 import { nextItems } from '../shared/next-items.js';
 import { linkFor, copyText } from '../shared/copy-link.js';
 import { createPlayer } from './player.js';
+import { mountControls, DESKTOP_CONTROLS } from './controls/index.js';
+import { createMobileVideo } from './mobile.js';
 
 const SLUG_PARAM = 'video_slug';
 
 const root = document.querySelector( '.videos-modal-root' );
 const dialog = root ? root.querySelector( '.videos-modal' ) : null;
 const dataEl = root ? root.querySelector( '.videos-modal__data' ) : null;
+const mobileDialog = root ? root.querySelector( '.videos-mobile' ) : null;
 
 const readJson = ( text ) => {
 	try {
@@ -28,12 +32,13 @@ const readJson = ( text ) => {
 	}
 };
 
-if ( dialog && dataEl ) {
+if ( dialog && mobileDialog && dataEl ) {
 	const { order = [], items = {} } = readJson( dataEl.textContent );
 	const strings = readJson( root.getAttribute( 'data-strings' ) );
 	const deeplink = createDeeplink( SLUG_PARAM );
 	const routing = createRouting();
 	const player = createPlayer( dialog, strings );
+	mountControls( { dialog, prefix: 'videos-modal', player, strings, keys: DESKTOP_CONTROLS, seek: true } );
 
 	const idBySlug = {};
 	order.forEach( ( id ) => {
@@ -68,15 +73,28 @@ if ( dialog && dataEl ) {
 	let opener = null;
 	let pushed = false;
 	let closingFromHistory = false;
+	let swapping = false;
+	let skipNextPop = false;
 	let copyTimer = 0;
-
-	/** Stops and unloads whatever the stage holds (DPV-009: closing stops and unloads the video). */
-	const unload = () => player.unload();
 
 	const activeFilter = () => {
 		const pressed = document.querySelector( '.wp-block-devportfolio-document-categories [aria-pressed="true"]' );
 		return pressed ? pressed.getAttribute( 'data-filter' ) || '' : '';
 	};
+
+	const mobile = createMobileVideo( {
+		dialog: mobileDialog,
+		order,
+		items,
+		strings: readJson( root.getAttribute( 'data-mobile-strings' ) ),
+		options: readJson( root.getAttribute( 'data-mobile-options' ) ),
+		getFilter: activeFilter,
+		onGo: ( id ) => goTo( id ),
+		onClose: () => mobileDialog.close(),
+	} );
+
+	const isOpen = () => dialog.open || mobileDialog.open;
+	const shownDialog = () => ( dialog.open ? dialog : mobileDialog.open ? mobileDialog : null );
 
 	const renderNext = () => {
 		// DPV-015: three, same category first, from the active filter's list; one or two still show.
@@ -171,8 +189,20 @@ if ( dialog && dataEl ) {
 		return opener && document.contains( opener ) ? opener : null;
 	};
 
-	const finishClose = () => {
-		unload();
+	/**
+	 * A dialog closed. `extra` is the number of history entries a mobile sheet left open. Mirrors
+	 * collateral-modal/view.js: a swap only reconciles, a sheet's entry goes with the viewer's.
+	 */
+	const finishClose = ( extra = 0 ) => {
+		if ( swapping ) {
+			// The other dialog is taking over; only the sheet's entry (same URL) is left to remove.
+			swapping = false;
+			if ( extra > 0 ) {
+				skipNextPop = true;
+				window.history.go( -extra );
+			}
+			return;
+		}
 		document.documentElement.style.overflow = '';
 		const target = focusTarget();
 		opener = null;
@@ -181,7 +211,10 @@ if ( dialog && dataEl ) {
 			pushed = false;
 		} else if ( pushed ) {
 			pushed = false;
-			window.history.go( -1 );
+			window.history.go( -( 1 + extra ) );
+		} else if ( extra > 0 ) {
+			skipNextPop = true;
+			window.history.go( -extra );
 		} else if ( deeplink.slugFromUrl( window.location.href ) ) {
 			window.history.replaceState( window.history.state, '', deeplink.urlWithoutSlug( window.location.href ) );
 		}
@@ -190,10 +223,24 @@ if ( dialog && dataEl ) {
 		}
 	};
 
+	const replaceUrl = ( item ) => window.history.replaceState( window.history.state, '', deeplink.urlWithSlug( window.location.href, item.slug ) );
+
+	/** Fills and shows the dialog this screen gets: desktop (side by side) or mobile (full screen). */
+	const open = ( item, gesture ) => {
+		if ( routing.isDesktop() ) {
+			fill( item, gesture );
+			dialog.showModal();
+			els.close.focus();
+			return;
+		}
+		mobile.show( item, { gesture } );
+		mobileDialog.showModal();
+		mobileDialog.querySelector( '.videos-mobile__close' ).focus();
+	};
+
 	const show = ( id, { push, trigger } ) => {
 		const item = items[ id ];
-		// DPV-011 will add the mobile viewer; until then a mobile screen opens nothing.
-		if ( ! item || dialog.open || ! routing.isDesktop() ) {
+		if ( ! item || isOpen() ) {
 			return;
 		}
 		currentId = Number( id );
@@ -203,9 +250,17 @@ if ( dialog && dataEl ) {
 		}
 		opener = trigger;
 		document.documentElement.style.overflow = 'hidden';
-		fill( item, push );
-		dialog.showModal();
-		els.close.focus();
+		open( item, push );
+	};
+
+	/** The mobile viewer's ▲ ▼ and swipes: another video, the URL replaced, sound allowed (a gesture). */
+	const goTo = ( id ) => {
+		const item = items[ id ];
+		if ( item ) {
+			currentId = Number( id );
+			replaceUrl( item );
+			mobile.show( item, { gesture: true } );
+		}
 	};
 
 	/** Next up: the video, sidebar and URL change in place, playback restarts at 0:00 (a new player is mounted). */
@@ -216,7 +271,7 @@ if ( dialog && dataEl ) {
 		}
 		currentId = Number( id );
 		fill( item, true );
-		window.history.replaceState( window.history.state, '', deeplink.urlWithSlug( window.location.href, item.slug ) );
+		replaceUrl( item );
 		els.title.focus();
 	};
 
@@ -229,7 +284,14 @@ if ( dialog && dataEl ) {
 		}
 	} );
 	els.close.addEventListener( 'click', () => dialog.close() );
-	dialog.addEventListener( 'close', finishClose );
+	dialog.addEventListener( 'close', () => {
+		player.unload();
+		finishClose();
+	} );
+	mobileDialog.addEventListener( 'close', () => {
+		mobile.unload();
+		finishClose( mobile.release() );
+	} );
 
 	els.nextList.addEventListener( 'click', ( event ) => {
 		const button = event.target.closest ? event.target.closest( '[data-video-next]' ) : null;
@@ -279,16 +341,21 @@ if ( dialog && dataEl ) {
 	window.addEventListener(
 		'popstate',
 		( event ) => {
+			if ( skipNextPop ) {
+				skipNextPop = false;
+				event.stopImmediatePropagation();
+				return;
+			}
 			const slug = deeplink.slugFromUrl( window.location.href );
-			if ( ! slug && dialog.open ) {
+			if ( ! slug && isOpen() ) {
 				event.stopImmediatePropagation();
 				closingFromHistory = true;
-				dialog.close();
-			} else if ( slug && ! dialog.open && idBySlug[ slug ] ) {
+				shownDialog().close();
+			} else if ( slug && ! isOpen() && idBySlug[ slug ] ) {
 				event.stopImmediatePropagation();
 				pushed = true;
 				show( idBySlug[ slug ], { push: false, trigger: null } );
-			} else if ( slug && dialog.open && hasSheetState( event.state ) ) {
+			} else if ( slug && isOpen() && hasSheetState( event.state ) ) {
 				event.stopImmediatePropagation();
 			}
 		},
@@ -308,10 +375,14 @@ if ( dialog && dataEl ) {
 		}
 	}
 
-	// A resize to the mobile screen closes the desktop dialog (the mobile viewer, DPV-011, takes over there).
+	// Crossing the 700px / sideways boundary with a viewer open: the other dialog takes over, same video and URL.
 	routing.onChange( () => {
-		if ( dialog.open && ! routing.isDesktop() ) {
-			dialog.close();
+		const shown = shownDialog();
+		if ( ! shown || ( shown === dialog ) === routing.isDesktop() ) {
+			return;
 		}
+		swapping = true;
+		shown.close();
+		open( items[ currentId ], false );
 	} );
 }

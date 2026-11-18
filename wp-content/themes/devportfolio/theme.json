@@ -19,7 +19,8 @@
 				"surface-alt": "#f2f2f7",
 				"on-primary": "#fff",
 				"grad": "linear-gradient(135deg, rgb(26 214 253) 0%, rgb(29 98 240) 100%)",
-				"focus": "rgb(29 98 240)"
+				"focus": "rgb(29 98 240)",
+				"scrim": "rgb( 0 0 0 / 0.6 )"
 			},
 			"glass": {
 				"tint": "rgb(255 255 255 / 0.8)",

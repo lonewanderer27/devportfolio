@@ -33,3 +33,9 @@ test( 'the stylesheet repeats the same queries, so CSS and script cannot disagre
 	assert.ok( css.includes( `@media (max-width: 700px), ${ SIDEWAYS_QUERY }` ), 'desktop dialog hidden when narrow or sideways' );
 	assert.equal( WIDE_QUERY, '(min-width: 701px)' );
 } );
+
+test( 'the video stylesheet repeats the same queries too (DPV-011)', () => {
+	const css = readFileSync( new URL( '../../video-modal/style.css', import.meta.url ), 'utf8' );
+	assert.ok( css.includes( `@media (min-width: 701px) and (not (${ SIDEWAYS_QUERY }))` ), 'video mobile dialog hidden only when wide and not sideways' );
+	assert.ok( css.includes( `@media (max-width: 700px), ${ SIDEWAYS_QUERY }` ), 'video desktop dialog hidden when narrow or sideways' );
+} );
