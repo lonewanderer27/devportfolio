@@ -14,6 +14,7 @@ import { nextItems } from '../shared/next-items.js';
 import { linkFor, copyText } from '../shared/copy-link.js';
 import { createPlayer } from './player.js';
 import { neighbours } from './neighbours.js';
+import { createNextPreloader } from './preload-next.js';
 import { mountControls, DESKTOP_CONTROLS } from './controls/index.js';
 import { createMobileVideo } from './mobile.js';
 import { frameOf, flyTo, flightDuration, FLIGHT_EASE } from '../shared/flight.js';
@@ -40,6 +41,7 @@ if ( dialog && mobileDialog && dataEl ) {
 	const deeplink = createDeeplink( SLUG_PARAM );
 	const routing = createRouting();
 	const player = createPlayer( dialog, strings );
+	const preloadNext = createNextPreloader();
 	mountControls( { dialog, prefix: 'videos-modal', player, strings, keys: DESKTOP_CONTROLS, seek: true } );
 
 	const idBySlug = {};
@@ -181,6 +183,7 @@ if ( dialog && mobileDialog && dataEl ) {
 		els.copyField.classList.remove( 'is-shown' );
 		player.mount( item, gesture );
 		renderNext();
+		preloadNext.set( items[ neighbours( order, items, currentId, activeFilter() ).next ] );
 	};
 
 	const focusTarget = () => {
@@ -430,11 +433,13 @@ if ( dialog && mobileDialog && dataEl ) {
 	// A new press while a flight runs jumps it to the end (nothing is left half-way).
 	window.addEventListener( 'pointerdown', () => settleFlight(), true );
 	dialog.addEventListener( 'close', () => {
+		preloadNext.release();
 		dialog.classList.remove( 'is-flown' );
 		player.unload();
 		finishClose();
 	} );
 	mobileDialog.addEventListener( 'close', () => {
+		preloadNext.release();
 		mobile.unload();
 		finishClose( mobile.release() );
 	} );

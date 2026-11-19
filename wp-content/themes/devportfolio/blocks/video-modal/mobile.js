@@ -23,6 +23,7 @@ import {
 	shouldCommit,
 } from './mobile-gestures.js';
 import { neighbours } from './neighbours.js';
+import { createNextPreloader } from './preload-next.js';
 import { SEEK_STEP } from './player-model.js';
 import { preferences } from './preferences.js';
 
@@ -126,6 +127,8 @@ export function createMobileVideo( { dialog, order, items, strings, options = {}
 		}
 		peek.hidden = false;
 	};
+
+	const preloadNext = createNextPreloader();
 
 	/** Loads the posters either side now, so a slide never starts with an empty peek. */
 	const preloadNeighbours = () => {
@@ -378,6 +381,8 @@ export function createMobileVideo( { dialog, order, items, strings, options = {}
 			hint.hidden = ! WIDE_RATIOS.includes( item.ratio );
 			drawRail();
 			preloadNeighbours();
+			const ahead = near().next;
+			preloadNext.set( ahead === null ? null : items[ ahead ] );
 			player.mount( item, gesture );
 			player.wake();
 		},
@@ -386,6 +391,7 @@ export function createMobileVideo( { dialog, order, items, strings, options = {}
 			rest();
 			dropPeek();
 			player.unload();
+			preloadNext.release();
 		},
 		/** History entries a sheet still holds (see collateral-modal/view.js `finishClose( extra )`). */
 		release: () => sheets.release(),
