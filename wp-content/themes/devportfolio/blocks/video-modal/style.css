@@ -1806,3 +1806,30 @@
 .videos-mobile__details-original[hidden] {
 	display: none;
 }
+
+/* Touch targets (DPV-039): at least 44 x 44px wherever a finger is the pointer. */
+@media (pointer: coarse) {
+	.videos-modal__close,
+	.videos-modal__playpause,
+	.videos-modal__volbtn,
+	.videos-modal__ratebtn,
+	.videos-modal__rateopt,
+	.videos-modal__fullscreen,
+	.videos-modal__copy,
+	.videos-modal__original,
+	.videos-modal__nextitem,
+	.videos-mobile__btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.videos-modal__bar .videos-modal__ratebtn {
+		min-width: 44px;
+	}
+
+	.videos-modal__scrub,
+	.videos-modal__volume,
+	.videos-mobile__scrub {
+		min-height: 44px;
+	}
+}

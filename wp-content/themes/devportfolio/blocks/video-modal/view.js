@@ -13,6 +13,7 @@ import { createDeeplink, hasSheetState } from '../shared/deeplink.js';
 import { nextItems } from '../shared/next-items.js';
 import { linkFor, copyText } from '../shared/copy-link.js';
 import { createPlayer } from './player.js';
+import { neighbours } from './neighbours.js';
 import { mountControls, DESKTOP_CONTROLS } from './controls/index.js';
 import { createMobileVideo } from './mobile.js';
 import { frameOf, flyTo, flightDuration, FLIGHT_EASE } from '../shared/flight.js';
@@ -404,6 +405,18 @@ if ( dialog && mobileDialog && dataEl ) {
 		}
 	} );
 	els.close.addEventListener( 'click', closeDesktop );
+	// ← and → open the previous and next video of the active filter. The seek and volume sliders keep the arrows.
+	dialog.addEventListener( 'keydown', ( event ) => {
+		if ( ( event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' ) || event.target.closest( 'input, textarea, select' ) || fadingOut || flight ) {
+			return;
+		}
+		const near = neighbours( order, items, currentId, activeFilter() );
+		const id = event.key === 'ArrowLeft' ? near.prev : near.next;
+		if ( id !== null ) {
+			event.preventDefault();
+			swapTo( id );
+		}
+	} );
 	// Esc: a flight still running jumps to its end and the dialog closes at once; otherwise it closes animated.
 	dialog.addEventListener( 'cancel', ( event ) => {
 		event.preventDefault();
