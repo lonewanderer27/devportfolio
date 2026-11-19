@@ -6,7 +6,9 @@
  * document-categories/view.js inside the View Transition), synchronously: no requestAnimationFrame here.
  */
 import { matchesCategory } from './grid.js';
-import { attachPreviews, stopPreview } from './preview.js';
+import { attachPreviews, releasePreview, refreshPreviews } from './preview.js';
+import { attachLongPress } from './longpress.js';
+import { createPopout } from './popout.js';
 
 const FILTER_EVENT = 'devportfolio:category-change';
 
@@ -31,19 +33,29 @@ function init() {
 			const hidden = ! matchesCategory( item.getAttribute( 'data-video-categories' ) || '', slug );
 			item.hidden = hidden;
 			if ( hidden ) {
-				stopPreview( item );
+				releasePreview( item );
 			}
 		} );
+		refreshPreviews();
 	}
 
-	// A poster that fails to load leaves the plain blank tile.
+	// The skeleton shows until the poster is in (DPV-038). A poster that fails leaves the plain blank tile
+	// and the skeleton stops.
 	items.forEach( function ( item ) {
 		const img = item.querySelector( '.videos-item__img' );
-		if ( img ) {
-			img.addEventListener( 'error', function () {
-				img.hidden = true;
-			} );
+		if ( ! img ) {
+			return;
 		}
+		if ( img.complete && img.naturalWidth > 0 ) {
+			item.classList.add( 'is-loaded' );
+		}
+		img.addEventListener( 'load', function () {
+			item.classList.add( 'is-loaded' );
+		} );
+		img.addEventListener( 'error', function () {
+			img.hidden = true;
+			item.classList.add( 'is-failed' );
+		} );
 	} );
 
 	document.addEventListener( FILTER_EVENT, function ( event ) {
@@ -51,7 +63,13 @@ function init() {
 	} );
 
 	filter( pressedSlug() );
+	// The entrance (style.css) plays once, on load; after it a tile the filter shows again must not replay it.
+	window.setTimeout( function () {
+		grid.setAttribute( 'data-entered', '' );
+	}, 500 );
+
 	attachPreviews( grid );
+	attachLongPress( grid, createPopout( grid ) );
 }
 
 init();

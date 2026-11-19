@@ -344,8 +344,123 @@ class Devportfolio_Test_Video_Grid extends WP_UnitTestCase {
 
 		// Lo-fi B2: the rest of the page blurs about 7px under a 40% white veil that does not take the pointer.
 		$this->assertMatchesRegularExpression( '/body::after \{[^}]*pointer-events: none;[^}]*rgba\(255, 255, 255, 0\.4\)/s', $css );
-		$this->assertMatchesRegularExpression( '/body\.is-videos-previewing::after \{[^}]*backdrop-filter: blur\(7px\)/s', $css );
+		$this->assertMatchesRegularExpression( '/body\.is-videos-previewing::after,\s*body\.is-videos-popout::after \{[^}]*backdrop-filter: blur\(7px\)/s', $css );
+		$this->assertMatchesRegularExpression( '/body::after \{[^}]*z-index: 30;/s', $css ); // above the header (20)
+		$this->assertMatchesRegularExpression( '/body::after \{[^}]*backdrop-filter: blur\(0\)/s', $css ); // the blur itself fades
+		$this->assertMatchesRegularExpression( '/body\.is-videos-popout::after \{[^}]*rgba\(255, 255, 255, 0\.45\)/s', $css );
+		$this->assertStringContainsString( 'body.is-videos-instant::after', $css );
 		$this->assertStringContainsString( 'opacity 200ms', $css );
+	}
+
+	public function test_outline_and_tile_layers(): void {
+		$css = $this->css();
+
+		$this->assertStringContainsString( ".videos-item.is-previewing,\n.videos-item.is-highlighted {\n\tz-index: 31;", $css );
+		$this->assertStringContainsString( 'highlightOnly', $this->js( 'preview.js' ) ); // no preview file: highlight, keep the blur
+		$this->assertMatchesRegularExpression( '/\.videos-outline \{[^}]*z-index: 32;/s', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-outline \{[^}]*border: 2\.5px solid/s', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-outline \{[^}]*pointer-events: none;/s', $css );
+		$this->assertStringContainsString( '::view-transition-group(videos-outline)', $css );
+		$this->assertMatchesRegularExpression( '/::view-transition-group\(videos-outline\) \{\s*animation-duration: 240ms;/', $css );
+		$this->assertStringContainsString( 'html.is-morphing-outline .videos-outline', $css );
+		$this->assertStringContainsString( 'transition: opacity 200ms linear, transform 220ms', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-grid \{[^}]*position: relative;/s', $css );
+	}
+
+	public function test_previous_video_fades_and_new_one_does_not(): void {
+		$css = $this->css();
+
+		// The new video has no fade-in: the video rule has no transition of its own.
+		$this->assertMatchesRegularExpression( '/\.videos-item__video \{[^}]*\}/s', $css );
+		$this->assertDoesNotMatchRegularExpression( '/\.videos-item__video \{[^}]*transition:/s', $css );
+		$this->assertStringContainsString( ".videos-item.is-fading .videos-item__video,\n.videos-item.is-fading .videos-item__bar,\n.videos-item.is-fading .videos-item__mute {\n\ttransition: opacity 150ms ease-in;", $css );
+		$this->assertStringContainsString( 'FADE_MS = 150', $this->js( 'preview.js' ) );
+	}
+
+	public function test_entrance_rises_once(): void {
+		$css = $this->css();
+
+		// As the Documents shelf: opacity and an 8px rise over 360ms, played once and not replayed by the filter.
+		$this->assertMatchesRegularExpression( '/\.videos-item \{\s*animation: videos-item-rise 360ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\) backwards;/', $css );
+		$this->assertMatchesRegularExpression( '/@keyframes videos-item-rise \{\s*from \{\s*opacity: 0;\s*transform: translateY\(8px\);/', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-grid\[data-entered\] \.videos-item \{\s*animation: none;/', $css );
+		$this->assertMatchesRegularExpression( '/@media \(prefers-reduced-motion: reduce\) \{.*?\.videos-item \{\s*animation: none;/s', $css );
+		$this->assertStringContainsString( "'data-entered'", $this->js( 'view.js' ) );
+	}
+
+	public function test_skeleton_contract(): void {
+		$css = $this->css();
+
+		$this->assertMatchesRegularExpression( '/\.videos-item--poster:not\(\.is-loaded, \.is-failed\)::before \{[^}]*repeating-linear-gradient/s', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-item--poster:not\(\.is-loaded, \.is-failed\)::before \{[^}]*animation: videos-pulse 1\.4s ease-in-out infinite/s', $css );
+		$this->assertMatchesRegularExpression( '/@media \(prefers-reduced-motion: reduce\) \{.*?\.videos-item--poster:not\(\.is-loaded, \.is-failed\)::before \{\s*animation: none;/s', $css );
+
+		$view = $this->js( 'view.js' );
+		$this->assertStringContainsString( "'is-loaded'", $view );
+		$this->assertStringContainsString( "'is-failed'", $view );
+
+		$this->assertStringContainsString( "'loading'  => 'lazy'", (string) file_get_contents( $this->theme_dir() . '/blocks/video-grid/render.php' ) );
+	}
+
+	public function test_long_press_and_popout_contract(): void {
+		$css   = $this->css();
+		$press = $this->js( 'longpress.js' );
+		$popup = $this->js( 'popout.js' );
+		$view  = $this->js( 'view.js' );
+
+		$this->assertStringContainsString( 'HOLD_MS = 450', $press );
+		$this->assertStringContainsString( 'MOVE_TOLERANCE = 10', $press );
+		$this->assertStringContainsString( 'contextmenu', $press );
+		$this->assertStringContainsString( '{ passive: false }', $press );
+
+		$this->assertStringContainsString( 'scale(0.93)', $css );
+		$this->assertStringContainsString( 'animation: videos-ring 450ms linear forwards', $css );
+		$this->assertStringContainsString( '-webkit-touch-callout: none', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-popout__card \{[^}]*70vw/s', $css );
+		$this->assertStringContainsString( 'body.is-videos-popout::after', $css );
+
+		$this->assertStringContainsString( 'aria-hidden', $popup );
+		$this->assertStringContainsString( 'element.animate', $popup ); // the card grows itself, no view transition
+
+		$this->assertStringContainsString( 'attachLongPress(', $view );
+		$this->assertStringContainsString( 'createPopout(', $view );
+	}
+
+	public function test_reduced_motion_contract(): void {
+		$preview = $this->js( 'preview.js' );
+		$popup   = $this->js( 'popout.js' );
+		$morph   = (string) file_get_contents( $this->theme_dir() . '/blocks/shared/morph.js' );
+		$css     = $this->css();
+
+		// Reduced motion or data saver: no hover preview (canPreview), and the pop-out reads the same rule.
+		$this->assertStringContainsString( 'env.reducedMotion', $preview );
+		$this->assertStringContainsString( 'env.saveData', $preview );
+		$this->assertStringContainsString( 'motionEnvironment(', $popup );
+		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', $morph );
+
+		// The press shrink is off with reduced motion.
+		$this->assertMatchesRegularExpression( '/@media \(prefers-reduced-motion: reduce\) \{.*?\.videos-item\.is-pressing \{\s*transform: none;/s', $css );
+	}
+
+	public function test_grid_markup_has_outline_ring_hint_and_ratio(): void {
+		$id = $this->make_video( array( 'title' => 'Wide', 'poster' => true ) );
+		wp_set_object_terms( $id, array( $this->term( '16x9', 'aspect_ratio' ) ), 'aspect_ratio' );
+		$this->make_video( array( 'title' => 'Plain', 'order' => 1 ) );
+
+		$xpath = $this->xpath( $this->render_grid() );
+
+		$this->assertSame( 1, $xpath->query( "//div[@data-videos-grid]/div[contains(concat(' ', normalize-space(@class), ' '), ' videos-outline ')][@aria-hidden='true']" )->length );
+
+		$articles = $xpath->query( '//article' );
+		$this->assertSame( 1, $xpath->query( "//article[contains(concat(' ', normalize-space(@class), ' '), ' videos-item--poster ')][@data-ratio='16x9']" )->length );
+		// One ring per tile (two videos here), each with a track and a fill circle.
+		$this->assertSame( 2, $xpath->query( "//span[contains(concat(' ', normalize-space(@class), ' '), ' videos-item__ring ')]/svg/circle[contains(@class, 'videos-item__ring-track')]" )->length );
+		$this->assertSame( 2, $xpath->query( "//span[contains(concat(' ', normalize-space(@class), ' '), ' videos-item__ring ')]/svg/circle[contains(@class, 'videos-item__ring-fill')]" )->length );
+		$this->assertSame( 'Release to close', $xpath->query( '//div[@data-videos-grid]' )->item( 0 )->getAttribute( 'data-hint' ) );
+
+		// The tile without a poster or a ratio term gets neither the skeleton class nor data-ratio.
+		$this->assertFalse( $articles->item( 1 )->hasAttribute( 'data-ratio' ) );
+		$this->assertSame( 1, $xpath->query( "//article[contains(concat(' ', normalize-space(@class), ' '), ' videos-item--poster ')]" )->length );
 	}
 
 	public function test_page_css_is_loaded_on_the_video_archive(): void {
