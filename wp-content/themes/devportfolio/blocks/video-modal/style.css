@@ -591,6 +591,79 @@
 	display: none;
 }
 
+/* Failure actions (DPV-027): under the message, 44px tall. */
+.videos-modal__retry,
+.videos-mobile__retry,
+.videos-modal__watch,
+.videos-mobile__watch {
+	position: absolute;
+	left: 50%;
+	z-index: 5;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0 20px;
+	transform: translateX( -50% );
+	border: 1px solid #fff;
+	border-radius: 999px;
+	background: transparent;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.videos-modal__retry,
+.videos-mobile__retry {
+	top: calc( 50% + 40px );
+}
+
+.videos-modal__watch,
+.videos-mobile__watch {
+	top: calc( 50% + 96px );
+	border-color: transparent;
+	text-decoration: underline;
+}
+
+.videos-modal__retry[hidden],
+.videos-mobile__retry[hidden],
+.videos-modal__watch[hidden],
+.videos-mobile__watch[hidden] {
+	display: none;
+}
+
+.videos-modal__retry:focus-visible,
+.videos-mobile__retry:focus-visible,
+.videos-modal__watch:focus-visible,
+.videos-mobile__watch:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 3px;
+}
+
+/* An error state shows no Play, bar or scrub over the failed video (the embed state does the same). */
+.videos-modal__video[data-state="error"] .videos-modal__bigplay,
+.videos-modal__video[data-state="error"] .videos-modal__bar,
+.videos-modal__video[data-state="error"] .videos-modal__replay,
+.videos-mobile__video[data-state="error"] .videos-mobile__bigplay,
+.videos-mobile__video[data-state="error"] .videos-mobile__scrub,
+.videos-mobile__video[data-state="error"] .videos-mobile__time,
+.videos-mobile__video[data-state="error"] .videos-mobile__extras,
+.videos-mobile__video[data-state="error"] .videos-mobile__replay {
+	display: none;
+}
+
+@media (forced-colors: active) {
+	.videos-modal__retry,
+	.videos-mobile__retry {
+		border-color: ButtonText;
+		color: ButtonText;
+	}
+}
+
 .videos-modal__bigplay,
 .videos-modal__replay,
 .videos-modal__bar,

@@ -35,11 +35,15 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 	const stage = $( 'stage' );
 	const root = $( 'video' );
 	const status = createStatus( { stage, status: $( 'state' ), prefix } );
+	const retryButton = $( 'retry' );
+	const watchLink = $( 'watch' );
 	const title = ( item ) => ( strings.playerFor || 'Video: %s' ).replace( '%s', item.title );
 
 	let video = null;
 	let autoReplays = 0;
 	let idleTimer = 0;
+	let current = null;
+	let failed = false;
 	const listeners = {};
 
 	const on = ( type, fn ) => {
@@ -49,8 +53,28 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 		};
 	};
 	const emit = ( type ) => ( listeners[ type ] || [] ).forEach( ( fn ) => fn() );
+	// Once a video failed, only the next mount clears it: a play() that rejects later must not bring the controls back.
 	const setState = ( state ) => {
+		if ( failed && state !== 'error' ) {
+			return;
+		}
 		root.dataset.state = state;
+	};
+
+	/** A video that cannot play: the message, "Try again" when there is something to load, the original post when known. */
+	const fail = ( item ) => {
+		failed = true;
+		status.set( 'unavailable' );
+		setState( 'error' );
+		if ( retryButton ) {
+			retryButton.hidden = ! ( item.fileUrl || item.embedSrc );
+		}
+		if ( watchLink ) {
+			watchLink.hidden = ! item.postUrl;
+			if ( item.postUrl ) {
+				watchLink.href = item.postUrl;
+			}
+		}
 	};
 
 	/** The controls fade 3 seconds after the last pointer move, touch or focus while playing. */
@@ -98,6 +122,7 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 	};
 
 	const unload = () => {
+		failed = false;
 		window.clearTimeout( idleTimer );
 		root.classList.remove( 'is-idle' );
 		emit( 'unmount' );
@@ -110,6 +135,12 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 		stage.replaceChildren();
 		status.set( null );
 		setState( 'paused' );
+		if ( retryButton ) {
+			retryButton.hidden = true;
+		}
+		if ( watchLink ) {
+			watchLink.hidden = true;
+		}
 	};
 
 	const mountFile = ( item, gesture ) => {
@@ -129,8 +160,7 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 		}
 		video.addEventListener( 'canplay', () => status.set( null ) );
 		video.addEventListener( 'error', () => {
-			status.set( 'unavailable' );
-			setState( 'paused' );
+			fail( item );
 		} );
 		video.addEventListener( 'play', () => {
 			setState( 'playing' );
@@ -163,6 +193,10 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 	};
 
 	const mountEmbed = ( item, gesture ) => {
+		if ( navigator.onLine === false ) {
+			fail( item );
+			return;
+		}
 		setState( 'embed' );
 		const frame = document.createElement( 'iframe' );
 		frame.title = title( item );
@@ -176,13 +210,13 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 
 	const mount = ( item, gesture ) => {
 		unload();
+		current = item;
 		if ( item.fileUrl ) {
 			mountFile( item, gesture );
 		} else if ( item.embedSrc ) {
 			mountEmbed( item, gesture );
 		} else {
-			setState( 'embed' );
-			status.set( 'unavailable' );
+			fail( item );
 		}
 	};
 
@@ -204,6 +238,17 @@ export function createPlayer( dialog, strings = {}, { prefix = 'videos-modal', c
 			toggle();
 		}
 	} );
+
+	if ( retryButton ) {
+		retryButton.addEventListener( 'click', () => {
+			if ( current ) {
+				// The click is a gesture: sound is allowed, as for the first open.
+				mount( current, true );
+				root.tabIndex = -1;
+				root.focus( { preventScroll: true } );
+			}
+		} );
+	}
 
 	return { mount, unload, toggle, userPlay, skip, wake, on, video: () => video, root };
 }
