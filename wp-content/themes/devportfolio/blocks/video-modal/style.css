@@ -451,6 +451,73 @@
 	}
 }
 
+/* DPV-033: no view transitions, the dialog and its backdrop fade quickly in and out. */
+.videos-modal[open]::backdrop {
+	animation: videos-fade-in 200ms linear;
+}
+
+.videos-modal.is-closing {
+	opacity: 0;
+	transition: opacity 160ms linear;
+}
+
+.videos-modal.is-closing::backdrop {
+	opacity: 0;
+	transition: opacity 160ms linear;
+}
+
+@keyframes videos-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+/*
+ * Desktop flight (shared/flight.js): the pane grows out of its tile and settles into the dialog, the sidebar fades in
+ * beside it and the backdrop fades with it (400ms). The dialog's own entrance is off during the flight and the
+ * controls are hidden, so no text travels. Closing runs the same flight back (`is-leaving` fades the backdrop out).
+ */
+/* No entrance of its own for the whole time it is open after a flight: the flight is the motion, and removing
+ * this class when the flight ends would restart the entrance (the dialog faded out and back in). */
+.videos-modal.is-flown {
+	animation: none;
+}
+
+.videos-modal.is-morphing-modal {
+	/* The picture starts at its tile, outside the dialog's box: nothing may clip it while it flies. */
+	overflow: visible;
+}
+
+.videos-modal.is-morphing-modal::backdrop {
+	animation: videos-fade-in 400ms linear;
+}
+
+.videos-modal.is-leaving::backdrop {
+	animation: videos-fade-out 400ms linear both;
+}
+
+.videos-modal.is-morphing-modal .videos-modal__bar,
+.videos-modal.is-morphing-modal .videos-modal__bigplay,
+.videos-modal.is-morphing-modal .videos-modal__replay,
+.videos-modal.is-morphing-modal .videos-modal__state,
+.videos-modal.is-morphing-modal .videos-modal__video::after {
+	/* ::after is the playing frame: it would fade in around the pane while it flies. */
+	visibility: hidden;
+}
+
+@keyframes videos-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+/* Last, so it overrides the backdrop fade above (same specificity). */
+@media (prefers-reduced-motion: reduce) {
+	.videos-modal[open]::backdrop {
+		animation: none;
+	}
+}
+
 @keyframes videos-modal-up {
 	from {
 		opacity: 0;

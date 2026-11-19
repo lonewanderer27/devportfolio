@@ -15,6 +15,7 @@ import { linkFor, copyText } from '../shared/copy-link.js';
 import { createPlayer } from './player.js';
 import { mountControls, DESKTOP_CONTROLS } from './controls/index.js';
 import { createMobileVideo } from './mobile.js';
+import { frameOf, flyTo, flightDuration, FLIGHT_EASE } from '../shared/flight.js';
 
 const SLUG_PARAM = 'video_slug';
 
@@ -225,12 +226,131 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	const replaceUrl = ( item ) => window.history.replaceState( window.history.state, '', deeplink.urlWithSlug( window.location.href, item.slug ) );
 
+	// The visible thumbnail of a video, or null (hidden by the filter, or not in the grid).
+	const tileFor = ( id ) => {
+		const button = document.querySelector( `.videos-item__open[data-video-id="${ id }"]` );
+		const tile = button ? button.closest( '.videos-item' ) : null;
+		return tile && ! tile.hidden ? tile : null;
+	};
+
+	let fadingOut = false;
+	// The desktop picture's flight, { anim, side, closing, end }: settling it lands the dialog at its end state.
+	let flight = null;
+	const pane = dialog.querySelector( '.videos-modal__video' );
+	const side = dialog.querySelector( '.videos-modal__side' );
+	const reducedMotion = () => window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+
+	const clearPane = () => {
+		pane.style.removeProperty( 'width' );
+		pane.style.removeProperty( 'height' );
+	};
+	const endOpen = () => {
+		dialog.classList.remove( 'is-morphing-modal' );
+		clearPane();
+	};
+	const endClose = () => {
+		dialog.classList.remove( 'is-morphing-modal', 'is-leaving' );
+		clearPane();
+		dialog.close();
+	};
+
+	/** Jumps a running flight to its end state. @return {boolean} True when there was one. */
+	const settleFlight = () => {
+		if ( ! flight ) {
+			return false;
+		}
+		const { anim, side: sideAnim, end } = flight;
+		flight = null;
+		anim.cancel();
+		if ( sideAnim ) {
+			sideAnim.cancel();
+		}
+		end();
+		return true;
+	};
+
+	/**
+	 * The pane grows out of its tile (opening) or shrinks back into it (closing), with the sidebar fading beside it
+	 * and the backdrop fading by CSS. Everything runs in the dialog's own layer, so it stays above the grid.
+	 */
+	const flyPane = ( tile, closing ) => {
+		settleFlight();
+		// Before measuring: `is-flown` keeps the dialog's own entrance from playing (now, and again when the flight
+		// ends) until it closes, so the pane is measured at its real place.
+		dialog.classList.add( 'is-flown', 'is-morphing-modal' );
+		const place = pane.getBoundingClientRect();
+		const tileRect = tile.getBoundingClientRect();
+		const duration = flightDuration();
+		pane.style.width = `${ place.width }px`;
+		pane.style.height = `${ place.height }px`;
+		if ( closing ) {
+			dialog.classList.add( 'is-leaving' );
+		}
+		const anim = flyTo(
+			pane,
+			closing ? frameOf( place, place, 'start' ) : frameOf( tileRect, place, 'start' ),
+			closing ? frameOf( tileRect, place, 'start' ) : frameOf( place, place, 'start' ),
+			{
+				duration,
+				radius: [ '0px', '0px' ],
+				onDone: () => {
+					if ( flight && flight.anim === anim ) {
+						const { end } = flight;
+						flight = null;
+						end();
+					}
+				},
+			}
+		);
+		const sideAnim = side
+			? side.animate( [ { opacity: closing ? 1 : 0 }, { opacity: closing ? 0 : 1 } ], { duration, easing: FLIGHT_EASE } )
+			: null;
+		flight = { anim, side: sideAnim, closing, end: closing ? endClose : endOpen };
+	};
+
+	/** Closes the desktop dialog: the pane flies back into its tile, else a quick fade, else at once. */
+	const closeDesktop = () => {
+		if ( ! dialog.open || fadingOut || ( flight && flight.closing ) ) {
+			return;
+		}
+		if ( reducedMotion() ) {
+			settleFlight();
+			dialog.close();
+			return;
+		}
+		const tile = tileFor( currentId );
+		if ( tile ) {
+			flyPane( tile, true );
+			return;
+		}
+		settleFlight();
+		fadingOut = true;
+		dialog.classList.add( 'is-closing' );
+		window.setTimeout( () => {
+			fadingOut = false;
+			dialog.classList.remove( 'is-closing' );
+			if ( dialog.open ) {
+				dialog.close();
+			}
+		}, 160 );
+	};
+
 	/** Fills and shows the dialog this screen gets: desktop (side by side) or mobile (full screen). */
 	const open = ( item, gesture ) => {
 		if ( routing.isDesktop() ) {
-			fill( item, gesture );
-			dialog.showModal();
-			els.close.focus();
+			const reveal = () => {
+				fill( item, gesture );
+				dialog.showModal();
+				els.close.focus();
+			};
+			// A click grows its thumbnail into the pane; a deeplink or Back/Forward has no thumbnail to grow from.
+			const tile = gesture && opener ? opener.closest( '.videos-item' ) : null;
+			if ( tile && ! reducedMotion() ) {
+				reveal();
+				flyPane( tile, false );
+			} else {
+				reveal();
+			}
 			return;
 		}
 		mobile.show( item, { gesture } );
@@ -280,11 +400,24 @@ if ( dialog && mobileDialog && dataEl ) {
 	// A click on the dimmed backdrop lands on the dialog itself.
 	dialog.addEventListener( 'click', ( event ) => {
 		if ( event.target === dialog ) {
-			dialog.close();
+			closeDesktop();
 		}
 	} );
-	els.close.addEventListener( 'click', () => dialog.close() );
+	els.close.addEventListener( 'click', closeDesktop );
+	// Esc: a flight still running jumps to its end and the dialog closes at once; otherwise it closes animated.
+	dialog.addEventListener( 'cancel', ( event ) => {
+		event.preventDefault();
+		if ( flight ) {
+			settleFlight();
+			dialog.close();
+		} else {
+			closeDesktop();
+		}
+	} );
+	// A new press while a flight runs jumps it to the end (nothing is left half-way).
+	window.addEventListener( 'pointerdown', () => settleFlight(), true );
 	dialog.addEventListener( 'close', () => {
+		dialog.classList.remove( 'is-flown' );
 		player.unload();
 		finishClose();
 	} );
@@ -350,7 +483,7 @@ if ( dialog && mobileDialog && dataEl ) {
 			if ( ! slug && isOpen() ) {
 				event.stopImmediatePropagation();
 				closingFromHistory = true;
-				shownDialog().close();
+				shownDialog() === dialog ? closeDesktop() : mobileDialog.close();
 			} else if ( slug && ! isOpen() && idBySlug[ slug ] ) {
 				event.stopImmediatePropagation();
 				pushed = true;
@@ -377,6 +510,7 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	// Crossing the 700px / sideways boundary with a viewer open: the other dialog takes over, same video and URL.
 	routing.onChange( () => {
+		settleFlight();
 		const shown = shownDialog();
 		if ( ! shown || ( shown === dialog ) === routing.isDesktop() ) {
 			return;
