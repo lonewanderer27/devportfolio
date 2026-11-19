@@ -320,6 +320,38 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/\.videos-modal__stage > video,\s*\.videos-modal__stage > iframe \{[^}]*object-fit: contain/', $css );
 	}
 
+	public function test_modal_flight_contract(): void {
+		$js  = $this->js();
+		$css = $this->css();
+
+		// DPV-033: the pane flies out of its tile in the dialog's own layer (no view transition, so it stays above the grid).
+		$this->assertStringContainsString( "from '../shared/flight.js'", $js );
+		$this->assertStringContainsString( 'flyPane', $js );
+		$this->assertStringContainsString( 'closeDesktop', $js );
+		$this->assertStringContainsString( 'is-morphing-modal', $js );
+		$this->assertStringContainsString( 'is-leaving', $js );
+		$this->assertStringContainsString( "'cancel'", $js );
+		$this->assertStringContainsString( 'settleFlight', $js );
+		$this->assertStringNotContainsString( 'startViewTransition', $js );
+		$this->assertStringNotContainsString( 'morph.js', $js );
+
+		// The backdrop, ✕ and Esc go through closeDesktop, not a bare dialog.close().
+		$this->assertStringContainsString( "els.close.addEventListener( 'click', closeDesktop )", $js );
+		$this->assertStringNotContainsString( "els.close.addEventListener( 'click', () => dialog.close() )", $js );
+		$this->assertStringContainsString( 'closeDesktop();', $js );
+
+		$this->assertStringNotContainsString( 'view-transition', $css );
+		$this->assertStringContainsString( '.videos-modal.is-leaving::backdrop', $css );
+		$this->assertStringContainsString( '.videos-modal.is-morphing-modal', $css );
+		// The entrance stays off until the dialog closes: dropping it when the flight ends replayed it (a fade out and in).
+		$this->assertMatchesRegularExpression( '/\.videos-modal\.is-flown \{\s*animation: none;/', $css );
+		$this->assertStringContainsString( "'is-flown'", $js );
+
+		// The reduced-motion override of the backdrop fade comes after it, so it wins.
+		$this->assertMatchesRegularExpression( '/@media \(prefers-reduced-motion: reduce\) \{\s*\.videos-modal\[open\]::backdrop \{\s*animation: none;/', $css );
+		$this->assertGreaterThan( strpos( $css, '.videos-modal[open]::backdrop {' ), strrpos( $css, 'prefers-reduced-motion: reduce' ) );
+	}
+
 	public function test_css_has_no_collateral_prefix_or_serif_font(): void {
 		$css = $this->css();
 

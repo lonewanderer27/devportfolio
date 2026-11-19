@@ -1418,6 +1418,7 @@ if ( ! function_exists( 'devportfolio_video_item' ) ) :
 			'title'      => html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
 			'categories' => is_wp_error( $slugs ) ? array() : array_values( $slugs ),
 			'poster_id'  => (int) get_post_thumbnail_id( $post_id ),
+			'ratio'      => devportfolio_video_ratio_slug( $post_id ),
 			'preview'    => devportfolio_video_preview_url(
 				get_post_meta( $post_id, 'cptdp_video_preview', true ),
 				get_post_meta( $post_id, 'cptdp_video_file', true )
