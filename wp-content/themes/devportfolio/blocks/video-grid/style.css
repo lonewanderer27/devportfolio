@@ -481,3 +481,34 @@ html.is-morphing-outline .videos-outline {
 		animation: none;
 	}
 }
+
+/*
+ * Empty lines (DPV-027), as DPC-025's `.collaterals-empty`: a sibling after the grid for "no videos in this
+ * category", the same element with `--none` and no grid when there are no videos at all.
+ */
+.videos-empty {
+	margin: 44px 0 0;
+	padding: 56px 16px;
+	min-height: 160px;
+	color: var(--wp--preset--color--mid);
+	font-size: 14px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.videos-empty[hidden] {
+	display: none;
+}
+
+/* Nothing to filter: the pills would only filter an empty page. */
+.documents-page__content:has(.videos-empty--none) .wp-block-devportfolio-document-categories {
+	display: none;
+}
+
+@media (max-width: 700px) {
+	.videos-empty {
+		margin-top: 28px;
+		padding: 40px 8px;
+		min-height: 120px;
+	}
+}
