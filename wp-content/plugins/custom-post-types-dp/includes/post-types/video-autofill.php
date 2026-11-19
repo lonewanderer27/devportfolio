@@ -724,6 +724,56 @@ function cptdp_video_preview_kind( string $body ): string {
 }
 
 /**
+ * Whether an attachment can be the manual preview clip: an MP4 or WebM under the size cap, by its first bytes.
+ *
+ * @param int $attachment_id Attachment ID.
+ */
+function cptdp_video_preview_pick_ok( int $attachment_id ): bool {
+	$path = (string) get_attached_file( $attachment_id );
+	if ( '' === $path || ! is_readable( $path ) ) {
+		return false;
+	}
+
+	$size = (int) filesize( $path );
+	if ( $size < 1 || $size > cptdp_video_preview_max_bytes() ) {
+		return false;
+	}
+
+	$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fopen -- reads the first bytes only.
+	if ( false === $handle ) {
+		return false;
+	}
+	$head = (string) fread( $handle, 12 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fread
+	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose
+
+	return '' !== cptdp_video_preview_kind( $head );
+}
+
+/**
+ * Apply the Preview clip field on save (DPV-040, manual upload). The field holds the chosen attachment, 0 when it was
+ * removed. A manual clip is never deleted by the system: removing it only unlinks it from the video.
+ *
+ * @param int $post_id Video ID.
+ * @param int $pick   Attachment ID from the form, 0 for none.
+ */
+function cptdp_video_preview_apply_pick( int $post_id, int $pick ): void {
+	if ( 0 === $pick ) {
+		if ( 'editor' === cptdp_video_preview_owner( $post_id ) ) {
+			delete_post_meta( $post_id, 'cptdp_video_preview' );
+		}
+		return;
+	}
+
+	if ( (int) get_post_meta( $post_id, 'cptdp_video_preview', true ) === $pick || ! cptdp_video_preview_pick_ok( $pick ) ) {
+		return;
+	}
+
+	// Our generated clip is replaced (and deleted); a clip that is not ours is never touched by this path.
+	cptdp_video_preview_remove( $post_id );
+	update_post_meta( $post_id, 'cptdp_video_preview', $pick );
+}
+
+/**
  * The browser makes the clip (D16): the server only drops ours when the video has no file any more.
  *
  * @param int                                                   $post_id Video ID.

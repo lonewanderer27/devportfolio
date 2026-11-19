@@ -40,6 +40,35 @@
 			frame.open();
 		} );
 
+		// Manual preview clip (DPV-040): the media picker sets the attachment ID; Remove sets 0 (saved as "none").
+		var $pick = $( '#cptdp_video_preview_pick' );
+		var $pickName = $( '#cptdp-preview-pick-name' );
+		var $pickRemove = $( '#cptdp-preview-pick-remove' );
+
+		$( '#cptdp-preview-pick-select' ).on( 'click', function ( event ) {
+			event.preventDefault();
+			var frame = wp.media( {
+				title: cptdpVideo.previewTitle,
+				button: { text: cptdpVideo.selectButton },
+				library: { type: 'video' },
+				multiple: false
+			} );
+			frame.on( 'select', function () {
+				var clip = frame.state().get( 'selection' ).first().toJSON();
+				$pick.val( clip.id );
+				$pickName.text( clip.filename || clip.title || '' );
+				$pickRemove.show();
+			} );
+			frame.open();
+		} );
+
+		$pickRemove.on( 'click', function ( event ) {
+			event.preventDefault();
+			$pick.val( '0' );
+			$pickName.text( '' );
+			$pickRemove.hide();
+		} );
+
 		function bigNote( bytes ) {
 			if ( ! bytes || ! cptdpVideo.warnBytes || bytes < cptdpVideo.warnBytes || ! cptdpVideo.bigNote ) { return ''; }
 

@@ -462,6 +462,20 @@ function cptdp_video_render_details_box( WP_Post $post ): void {
 		</span>
 		<span id="cptdp-video-size-note" class="description" style="display:block"><?php echo esc_html( cptdp_video_big_note( $file_id ? (int) filesize( (string) get_attached_file( $file_id ) ) : 0 ) ); ?></span>
 	</p>
+	<?php
+	// The manual clip is an editor's choice (owner `editor`); the one the plugin made is not shown here.
+	$preview_kept = 'editor' === cptdp_video_preview_owner( $post->ID ) ? (int) get_post_meta( $post->ID, 'cptdp_video_preview', true ) : 0;
+	$preview_name = $preview_kept ? wp_basename( (string) get_attached_file( $preview_kept ) ) : '';
+	?>
+	<p>
+		<strong><?php esc_html_e( 'Preview clip (optional)', 'custom-post-types-dp' ); ?></strong><br>
+		<input type="hidden" id="cptdp_video_preview_pick" name="cptdp_video_preview_pick" value="<?php echo esc_attr( (string) $preview_kept ); ?>">
+		<button type="button" class="button" id="cptdp-preview-pick-select"><?php esc_html_e( 'Choose clip', 'custom-post-types-dp' ); ?></button>
+		<span id="cptdp-preview-pick-name"><?php echo esc_html( $preview_name ); ?></span>
+		<a href="#" id="cptdp-preview-pick-remove" <?php echo $preview_kept ? '' : 'style="display:none"'; ?>><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></a>
+		<br>
+		<span class="description"><?php esc_html_e( 'A short video shown as preview, instead of the clip made from the video file.', 'custom-post-types-dp' ); ?></span>
+	</p>
 	<p>
 		<label for="cptdp_embed_url"><strong><?php esc_html_e( 'Embed URL', 'custom-post-types-dp' ); ?></strong></label><br>
 		<input type="url" id="cptdp_embed_url" name="cptdp_embed_url" class="widefat" placeholder="https://www.youtube.com/embed/..." value="<?php echo esc_attr( $embed_url ); ?>">
@@ -629,6 +643,11 @@ function cptdp_video_save_meta( int $post_id ): void {
 
 	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
 
+	// Manual preview clip (DPV-040): the field holds the attachment, 0 when removed; a form without the field leaves it alone.
+	if ( isset( $_POST['cptdp_video_preview_pick'] ) ) {
+		cptdp_video_preview_apply_pick( $post_id, absint( wp_unslash( $_POST['cptdp_video_preview_pick'] ) ) );
+	}
+
 	cptdp_video_autofill( $post_id );
 }
 add_action( 'save_post_video', 'cptdp_video_save_meta' );
@@ -665,6 +684,7 @@ function cptdp_video_enqueue_admin( string $hook ): void {
 	$data = array(
 		'selectTitle'  => esc_html__( 'Select video', 'custom-post-types-dp' ),
 		'selectButton' => esc_html__( 'Use this video', 'custom-post-types-dp' ),
+		'previewTitle' => esc_html__( 'Choose a preview clip', 'custom-post-types-dp' ),
 	);
 	$post = get_post();
 

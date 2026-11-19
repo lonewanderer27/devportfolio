@@ -810,4 +810,72 @@ class CPTDP_Test_Video_Autofill extends CPTDP_Test_Case {
 		$this->assertNull( get_post( $embed ) );
 		$this->assertSame( 'file:' . $file, CPTDP_Generated_Image::source_of( $id ) );
 	}
+
+	/** A readable attachment whose file is a real clip (or the given bytes): the manual preview field needs one. */
+	private function picked_clip( string $body = '', string $ext = 'mp4' ): int {
+		$id   = $this->make_attachment( 'video/mp4' );
+		$path = wp_tempnam( 'clip.' . $ext );
+		file_put_contents( $path, '' === $body ? $this->clip( $ext ) : $body ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		update_attached_file( $id, $path );
+
+		return $id;
+	}
+
+	/** DPV-040 manual preview: a picked clip replaces the one the plugin made; the plugin's own removal path deletes that one only. */
+	public function test_a_manual_clip_replaces_a_generated_one(): void {
+		$id   = $this->video();
+		$file = $this->make_video_file( 5 );
+		$this->save_form( $id, array( 'cptdp_video_file' => $file ) );
+		$ours = (int) $this->preview( $id, $this->clip(), $file )->get_data()['id'];
+
+		$manual = $this->picked_clip();
+		$this->save_form( $id, array( 'cptdp_video_file' => $file, 'cptdp_video_preview_pick' => (string) $manual ) );
+
+		$this->assertSame( $manual, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+		$this->assertSame( 'editor', cptdp_video_preview_owner( $id ) );
+		$this->assertNull( get_post( $ours ) );
+	}
+
+	public function test_a_manual_clip_is_never_deleted_by_the_system(): void {
+		$id     = $this->video();
+		$file   = $this->make_video_file( 5 );
+		$manual = $this->picked_clip();
+		$this->save_form( $id, array( 'cptdp_video_file' => $file, 'cptdp_video_preview_pick' => (string) $manual ) );
+
+		// The video file is removed: the clip stays linked and in the Media library.
+		$this->save_form( $id, array( 'cptdp_video_file' => 0, 'cptdp_video_preview_pick' => (string) $manual ) );
+
+		$this->assertSame( $manual, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+		$this->assertNotNull( get_post( $manual ) );
+	}
+
+	public function test_clearing_the_field_unlinks_a_manual_clip_and_keeps_the_media_item(): void {
+		$id     = $this->video();
+		$manual = $this->picked_clip();
+		$this->save_form( $id, array( 'cptdp_video_preview_pick' => (string) $manual ) );
+
+		$this->save_form( $id, array( 'cptdp_video_preview_pick' => '0' ) );
+
+		$this->assertSame( 0, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+		$this->assertNotNull( get_post( $manual ) );
+	}
+
+	public function test_an_invalid_or_oversized_clip_is_ignored_and_a_webm_is_accepted(): void {
+		$id   = $this->video();
+		$text = $this->picked_clip( 'not a video' );
+		$this->save_form( $id, array( 'cptdp_video_preview_pick' => (string) $text ) );
+		$this->assertSame( 0, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+
+		$cap = static fn() => 10;
+		add_filter( 'cptdp_video_preview_max_bytes', $cap );
+		$big = $this->picked_clip();
+		$this->save_form( $id, array( 'cptdp_video_preview_pick' => (string) $big ) );
+		remove_filter( 'cptdp_video_preview_max_bytes', $cap );
+		$this->assertSame( 0, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+
+		$webm = $this->picked_clip( '', 'webm' );
+		$this->save_form( $id, array( 'cptdp_video_preview_pick' => (string) $webm ) );
+		$this->assertSame( $webm, (int) get_post_meta( $id, 'cptdp_video_preview', true ) );
+	}
 }
+
