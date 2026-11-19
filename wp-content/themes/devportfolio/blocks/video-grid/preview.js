@@ -117,7 +117,7 @@ function videoOf( item ) {
 	video.defaultMuted = true;
 	video.playsInline = true;
 	video.loop = isClip;
-	video.preload = 'auto';
+	video.preload = 'none';
 	video.disablePictureInPicture = true;
 	video.tabIndex = -1;
 	video.setAttribute( 'aria-hidden', 'true' );

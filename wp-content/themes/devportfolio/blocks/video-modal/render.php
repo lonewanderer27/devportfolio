@@ -70,6 +70,8 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 			<div class="videos-modal__video" data-state="paused">
 				<div class="videos-modal__stage"></div>
 				<p class="videos-modal__state" role="status" hidden data-loading="<?php echo esc_attr_x( 'Loading video…', 'video modal', 'devportfolio' ); ?>" data-unavailable="<?php echo esc_attr_x( 'This video can’t be previewed here.', 'video modal', 'devportfolio' ); ?>" data-hint="<?php echo esc_attr_x( 'Use the original post.', 'video modal', 'devportfolio' ); ?>"><span class="videos-modal__state-text"></span><span class="videos-modal__state-hint"></span></p>
+				<button class="videos-modal__retry" type="button" hidden><?php echo esc_html_x( 'Try again', 'video modal', 'devportfolio' ); ?></button>
+				<a class="videos-modal__watch" target="_blank" rel="noopener" hidden><?php echo esc_html_x( 'Watch on the original site', 'video modal', 'devportfolio' ); ?></a>
 				<button class="videos-modal__bigplay" type="button" aria-label="<?php echo esc_attr_x( 'Play', 'video modal', 'devportfolio' ); ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg></button>
 				<button class="videos-modal__replay" type="button"><?php echo esc_html_x( 'Replay', 'video modal', 'devportfolio' ); ?></button>
 				<div class="videos-modal__bar">
@@ -139,6 +141,8 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 					<span class="videos-mobile__state-text"></span>
 					<span class="videos-mobile__state-hint"></span>
 				</p>
+					<button class="videos-mobile__retry" type="button" hidden><?php echo esc_html_x( 'Try again', 'video modal', 'devportfolio' ); ?></button>
+					<a class="videos-mobile__watch" target="_blank" rel="noopener" hidden><?php echo esc_html_x( 'Watch on the original site', 'video modal', 'devportfolio' ); ?></a>
 				<span class="videos-mobile__flash" aria-hidden="true" data-kind="forward"></span>
 				<?php echo devportfolio_video_mobile_controls( $devportfolio_mobile_options ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper. ?>
 			</div>

@@ -227,3 +227,10 @@
 		color: var(--wp--preset--color--base);
 	}
 }
+
+/* Touch target (DPV-039): the dropdown trigger is at least 44px tall where a finger is the pointer. */
+@media (pointer: coarse) {
+	.documents-categories__trigger {
+		min-height: 44px;
+	}
+}

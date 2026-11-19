@@ -124,10 +124,28 @@ class Devportfolio_Test_Video_Grid extends WP_UnitTestCase {
 	// DPV-008 and DPV-006: order, markup, poster, categories, template.
 	// ---------------------------------------------------------------------------------------------
 
-	public function test_nothing_is_rendered_without_published_videos(): void {
+	public function test_no_videos_renders_the_empty_line_and_no_grid(): void {
 		$this->make_video( array( 'status' => 'draft' ) );
 
-		$this->assertSame( '', $this->render_grid() );
+		$html = $this->render_grid();
+		$this->assertStringContainsString( 'videos-empty videos-empty--none', $html );
+		$this->assertStringContainsString( 'role="status"', $html );
+		$this->assertStringContainsString( 'No videos yet.', $html );
+		$this->assertStringNotContainsString( 'data-videos-grid', $html );
+	}
+
+	public function test_the_empty_category_line_sits_after_the_grid_not_inside_it(): void {
+		$this->make_video();
+
+		$xpath = $this->xpath( $this->render_grid() );
+		$line  = $xpath->query( '//p[@data-videos-empty]' );
+
+		$this->assertSame( 1, $line->length );
+		$this->assertTrue( $line->item( 0 )->hasAttribute( 'hidden' ) );
+		$this->assertSame( 'status', $line->item( 0 )->getAttribute( 'role' ) );
+		$this->assertSame( 'No videos in this category', trim( $line->item( 0 )->textContent ) );
+		$this->assertSame( 'div', $line->item( 0 )->parentNode->nodeName );
+		$this->assertSame( 0, $xpath->query( '//div[@data-videos-grid]//p[@data-videos-empty]' )->length );
 	}
 
 	public function test_items_follow_menu_order_then_title_and_drafts_are_excluded(): void {
@@ -174,7 +192,7 @@ class Devportfolio_Test_Video_Grid extends WP_UnitTestCase {
 		$this->assertSame( 1, $buttons->length );
 		$this->assertSame( (string) $id, $buttons->item( 0 )->getAttribute( 'data-video-id' ) );
 		$this->assertSame( 'Sunset Reel', $buttons->item( 0 )->getAttribute( 'aria-label' ) );
-		$this->assertSame( 0, $xpath->query( '//h1|//h2|//h3|//h4|//h5|//h6|//p' )->length );
+		$this->assertSame( 0, $xpath->query( '//div[@data-videos-grid]//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p]' )->length );
 		$this->assertSame( '', trim( $xpath->query( '//article' )->item( 0 )->textContent ) );
 	}
 
@@ -471,4 +489,44 @@ class Devportfolio_Test_Video_Grid extends WP_UnitTestCase {
 
 		$this->assertTrue( wp_style_is( 'devportfolio-page', 'enqueued' ) );
 	}
+
+	/** DPV-027: the empty lines, the count in the filter and the pins of the phone grid (DPV-034). */
+	public function test_empty_line_css_and_filter_wiring(): void {
+		$css = $this->css();
+		$this->assertStringContainsString( '.videos-empty {', $css );
+		$this->assertStringContainsString( '.videos-empty[hidden]', $css );
+		$this->assertStringContainsString( '.documents-page__content:has(.videos-empty--none) .wp-block-devportfolio-document-categories', $css );
+		$this->assertStringContainsString( '@media (max-width: 700px)', $css );
+
+		$view = $this->js( 'view.js' );
+		$this->assertStringContainsString( "import { matchesCategory, visibleCount } from './grid.js';", $view );
+		$this->assertStringContainsString( 'empty.hidden =', $view );
+		$start = strpos( $view, 'function filter( slug )' );
+		$this->assertNotFalse( $start );
+		$body = substr( $view, $start, strpos( $view, 'refreshPreviews();', $start ) - $start );
+		$this->assertStringNotContainsString( 'requestAnimationFrame', $body );
+	}
+
+	public function test_phone_grid_pins(): void {
+		$css = $this->css();
+		$this->assertStringContainsString( 'minmax(clamp(104px, 72px + 8vw, 180px), 1fr)', $css );
+		$this->assertStringContainsString( '--videos-gap: 4px;', $css );
+		$this->assertStringContainsString( 'aspect-ratio: 9 / 16;', $css );
+
+		$this->assertMatchesRegularExpression( '/\.videos-item__bar\s*\{[^}]*opacity:\s*0/', $css );
+		$this->assertMatchesRegularExpression( '/\.videos-item__ring\s*\{[^}]*opacity:\s*0/', $css );
+		$this->assertStringContainsString( "HOVER_QUERY = '(hover: hover) and (pointer: fine)'", $this->js( 'preview.js' ) );
+	}
+
+	/** DPV-040 manual preview: a clip the editor chose is shown like the generated one (loops, marked as a clip). */
+	public function test_a_manually_chosen_clip_is_used_as_the_preview(): void {
+		$id   = $this->make_video( array( 'file' => true ) );
+		$clip = $this->attachment( 'video/mp4' );
+		update_post_meta( $id, 'cptdp_video_preview', $clip );
+
+		$article = $this->xpath( $this->render_grid() )->query( '//article[@data-video-categories]' )->item( 0 );
+		$this->assertSame( wp_get_attachment_url( $clip ), $article->getAttribute( 'data-preview-src' ) );
+		$this->assertTrue( $article->hasAttribute( 'data-preview-clip' ) );
+	}
 }
+

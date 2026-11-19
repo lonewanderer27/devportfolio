@@ -500,4 +500,123 @@ class Devportfolio_Test_Video_Modal extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<track', $js );
 		$this->assertStringNotContainsString( "createElement( 'track' )", $js );
 	}
+
+	private function theme_file( string $path ): string {
+		return (string) file_get_contents( $this->theme_dir() . '/' . $path );
+	}
+
+	/** DPV-027: each dialog has a hidden "Try again" button and watch link, outside the state line. */
+	public function test_each_dialog_has_hidden_retry_and_watch_actions_outside_the_state_line(): void {
+		$this->make_video();
+		$html = $this->render_modal();
+
+		foreach ( array( 'videos-modal', 'videos-mobile' ) as $prefix ) {
+			$this->assertStringContainsString( '<button class="' . $prefix . '__retry" type="button" hidden>', $html );
+			$this->assertStringContainsString( '<a class="' . $prefix . '__watch" target="_blank" rel="noopener" hidden>', $html );
+		}
+	}
+
+	public function test_player_enters_the_error_state_with_retry_and_watch(): void {
+		$js = $this->theme_file( 'blocks/video-modal/player.js' );
+
+		$this->assertStringContainsString( 'const fail = ( item ) => {', $js );
+		$this->assertStringContainsString( "setState( 'error' );", $js );
+		$this->assertStringContainsString( "retryButton.addEventListener( 'click'", $js );
+		$this->assertStringContainsString( 'fail( item );', $js );
+	}
+
+	public function test_css_hides_the_failure_actions_until_needed(): void {
+		$css = $this->theme_file( 'blocks/video-modal/style.css' );
+
+		foreach ( array( '.videos-modal__retry[hidden]', '.videos-mobile__retry[hidden]', '.videos-modal__watch[hidden]', '.videos-mobile__watch[hidden]' ) as $selector ) {
+			$this->assertStringContainsString( $selector, $css );
+		}
+	}
+
+	/** DPV-039: ← and → step the desktop dialog; the sliders keep the arrows; mobile keeps its own keys. */
+	public function test_desktop_arrow_keys_step_and_mobile_keeps_its_keys(): void {
+		$view   = $this->theme_file( 'blocks/video-modal/view.js' );
+		$mobile = $this->theme_file( 'blocks/video-modal/mobile.js' );
+
+		$this->assertStringContainsString( "import { neighbours } from './neighbours.js';", $view );
+		$this->assertStringContainsString( "'ArrowLeft'", $view );
+		$this->assertStringContainsString( "'ArrowRight'", $view );
+		$this->assertStringContainsString( 'input, textarea, select', $view );
+		$this->assertStringContainsString( 'ArrowLeft', $mobile );
+		$this->assertStringContainsString( 'ArrowRight', $mobile );
+	}
+
+	/** DPV-039: a coarse-pointer block sizes every control of the viewers to 44px. */
+	public function test_coarse_pointer_block_sizes_the_controls_to_44px(): void {
+		$css   = $this->theme_file( 'blocks/video-modal/style.css' );
+		$start = strpos( $css, '@media (pointer: coarse)' );
+		$this->assertNotFalse( $start );
+		$block = substr( $css, $start );
+
+		$this->assertStringContainsString( 'min-height: 44px;', $block );
+		foreach ( array( '.videos-modal__close', '.videos-modal__playpause', '.videos-modal__volbtn', '.videos-modal__ratebtn', '.videos-modal__rateopt', '.videos-modal__fullscreen', '.videos-modal__copy', '.videos-modal__original', '.videos-modal__nextitem', '.videos-mobile__btn', '.videos-modal__scrub', '.videos-modal__volume', '.videos-mobile__scrub' ) as $selector ) {
+			$this->assertStringContainsString( $selector, $block );
+		}
+	}
+
+	/** DPV-040: only the open video's player may preload to auto; previews and popouts load on play. */
+	public function test_only_the_open_player_preloads_automatically(): void {
+		$this->assertStringNotContainsString( "preload = 'auto'", $this->theme_file( 'blocks/video-grid/preview.js' ) );
+		$this->assertStringNotContainsString( "preload = 'auto'", $this->theme_file( 'blocks/video-grid/popout.js' ) );
+		$this->assertSame( 1, substr_count( $this->theme_file( 'blocks/video-modal/player.js' ), "preload = 'auto'" ) );
+	}
+
+	public function test_both_viewers_import_the_next_preloader_and_release_it_on_close(): void {
+		foreach ( array( 'view.js', 'mobile.js' ) as $file ) {
+			$js = $this->theme_file( 'blocks/video-modal/' . $file );
+			$this->assertStringContainsString( "import { createNextPreloader } from './preload-next.js';", $js, $file );
+			$this->assertStringContainsString( 'preloadNext.release();', $js, $file );
+		}
+	}
+
+	/** DPV-025 (field QA): every stored field reaches the grid and the payload; no post URL means no link. */
+	public function test_a_video_with_every_field_reaches_the_grid_and_the_payload(): void {
+		$tool = self::factory()->post->create( array( 'post_type' => 'software_tool', 'post_title' => 'Figma', 'post_status' => 'publish' ) );
+		$id   = $this->make_video(
+			array(
+				'title'    => 'Field Reel',
+				'category' => 'Short Form',
+				'ratio'    => '9x16',
+				'file'     => true,
+				'post_url' => 'https://example.com/post',
+				'length'   => 75,
+				'stats'    => array( array( 'Views', '1200' ) ),
+				'order'    => 3,
+			)
+		);
+		wp_update_post( array( 'ID' => $id, 'post_excerpt' => 'A reel about fields.' ) );
+		update_post_meta( $id, 'cptdp_software_tools', array( $tool ) );
+		set_post_thumbnail( $id, $this->attachment( 'image/jpeg' ) );
+
+		$grid = trim( do_blocks( '<!-- wp:devportfolio/video-grid /-->' ) );
+		$this->assertStringContainsString( 'data-video-categories="short-form"', $grid );
+		$this->assertStringContainsString( 'data-ratio="9x16"', $grid );
+		$this->assertStringContainsString( 'aria-label="Field Reel"', $grid );
+		$this->assertStringContainsString( 'videos-item--poster', $grid );
+
+		$payload = devportfolio_video_modal_payload( $id );
+		$this->assertSame( 'Field Reel', $payload['title'] );
+		$this->assertStringContainsString( 'A reel about fields.', $payload['description'] );
+		$this->assertSame( 'https://example.com/post', $payload['postUrl'] );
+		$this->assertSame( 'tall', $payload['pane'] );
+		$this->assertNotSame( '', $payload['fileUrl'] );
+		$this->assertNotSame( '', $payload['poster'] );
+		$this->assertArrayHasKey( 'length', $payload );
+		$this->assertArrayHasKey( 'stats', $payload );
+		$this->assertArrayHasKey( 'tools', $payload );
+
+		$bare = $this->make_video( array( 'title' => 'No Link', 'file' => true ) );
+		$this->assertSame( '', devportfolio_video_modal_payload( $bare )['postUrl'] );
+
+		$view    = $this->js();
+		$details = (string) file_get_contents( $this->theme_dir() . '/blocks/video-modal/details-sheet.js' );
+		$this->assertStringContainsString( 'els.original.hidden = true;', $view );
+		$this->assertStringContainsString( "original.hidden = model.postUrl === '';", $details );
+	}
 }
+

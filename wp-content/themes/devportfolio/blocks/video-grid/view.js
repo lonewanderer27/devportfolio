@@ -5,7 +5,7 @@
  * `data-video-categories`. The filter runs on `devportfolio:category-change` (dispatched by
  * document-categories/view.js inside the View Transition), synchronously: no requestAnimationFrame here.
  */
-import { matchesCategory } from './grid.js';
+import { matchesCategory, visibleCount } from './grid.js';
 import { attachPreviews, releasePreview, refreshPreviews } from './preview.js';
 import { attachLongPress } from './longpress.js';
 import { createPopout } from './popout.js';
@@ -28,6 +28,9 @@ function init() {
 		return el.classList.contains( 'videos-item' );
 	} );
 
+	// The line after the grid (a sibling, so the grid's own rules never touch it).
+	const empty = grid.nextElementSibling && grid.nextElementSibling.hasAttribute( 'data-videos-empty' ) ? grid.nextElementSibling : null;
+
 	function filter( slug ) {
 		items.forEach( function ( item ) {
 			const hidden = ! matchesCategory( item.getAttribute( 'data-video-categories' ) || '', slug );
@@ -36,6 +39,10 @@ function init() {
 				releasePreview( item );
 			}
 		} );
+		if ( empty ) {
+			// Same tick as the item changes, so a View Transition's new snapshot already shows it.
+			empty.hidden = visibleCount( items.map( ( item ) => item.getAttribute( 'data-video-categories' ) || '' ), slug ) !== 0;
+		}
 		refreshPreviews();
 	}
 

@@ -81,7 +81,7 @@ export function createPopout( grid ) {
 		video.defaultMuted = true;
 		video.playsInline = true;
 		video.loop = isClip;
-		video.preload = 'auto';
+		video.preload = 'none';
 		video.disablePictureInPicture = true;
 		video.src = src;
 		video.addEventListener( 'playing', function () {
