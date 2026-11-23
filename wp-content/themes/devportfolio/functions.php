@@ -74,7 +74,7 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 	 * Enqueue styles shared by the Documents, Collaterals and Videos archives.
 	 */
 	function devportfolio_enqueue_page_styles() {
-		if ( ! is_post_type_archive( array( 'document', 'collateral', 'video' ) ) ) {
+		if ( ! is_front_page() && ! is_post_type_archive( array( 'document', 'collateral', 'video' ) ) ) {
 			return;
 		}
 

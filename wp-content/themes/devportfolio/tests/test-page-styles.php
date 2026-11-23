@@ -40,7 +40,7 @@ class Devportfolio_Test_Page_Styles extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '.documents-page .documents-page__title', $css );
 	}
 
-	public function test_page_css_is_enqueued_on_the_page_archives_only(): void {
+	public function test_page_css_is_enqueued_on_the_page_archives_and_the_home_page(): void {
 		require_once $this->theme_dir() . '/functions.php';
 		add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
 		foreach ( array( 'document', 'collateral', 'video' ) as $type ) {
@@ -51,8 +51,9 @@ class Devportfolio_Test_Page_Styles extends WP_UnitTestCase {
 			$this->assertTrue( wp_style_is( 'devportfolio-page', 'enqueued' ) );
 			wp_dequeue_style( 'devportfolio-page' );
 		}
+		// The Home page uses the same shell (documents-page) so its gutters match the other pages.
 		$this->go_to( home_url( '/' ) );
 		do_action( 'wp_enqueue_scripts' );
-		$this->assertFalse( wp_style_is( 'devportfolio-page', 'enqueued' ) );
+		$this->assertTrue( wp_style_is( 'devportfolio-page', 'enqueued' ) );
 	}
 }
