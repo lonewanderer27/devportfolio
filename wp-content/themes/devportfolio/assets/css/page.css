@@ -12,6 +12,43 @@
 	overflow-x: clip;
 }
 
+/*
+ * Home "Selected work" and its archive: the card title and the archive title share a view-transition name, so the
+ * title morphs when going Back from an archive to Home. Going forward, Chrome drops the title morph on a freshly
+ * loaded page, so the change there is the page cross-fade. The card names are in blocks/selected-work/style.css.
+ */
+@view-transition {
+	navigation: auto;
+}
+
+body.post-type-archive-document .documents-page__title {
+	view-transition-name: work-title-documents;
+}
+
+body.post-type-archive-video .documents-page__title {
+	view-transition-name: work-title-videos;
+}
+
+body.post-type-archive-collateral .documents-page__title {
+	view-transition-name: work-title-collaterals;
+}
+
+::view-transition-group(work-title-documents),
+::view-transition-group(work-title-videos),
+::view-transition-group(work-title-collaterals) {
+	animation-duration: 0.6s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root),
+	::view-transition-group(work-title-documents),
+	::view-transition-group(work-title-videos),
+	::view-transition-group(work-title-collaterals) {
+		animation: none;
+	}
+}
+
 .documents-page .documents-page__title {
 	margin: 0 0 28px;
 	font-size: clamp(44px, 6.4vw, 72px);
