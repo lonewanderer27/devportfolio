@@ -1,0 +1,13 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/selected-work",
+	"title": "Selected Work",
+	"category": "widgets",
+	"description": "The Home Selected work cards: Documents (a fan of books), Videos (a film strip) and Brand collaterals (a glimpse of pieces), each with a link to its page.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}

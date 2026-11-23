@@ -65,6 +65,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/site-footer' );
 		register_block_type( __DIR__ . '/blocks/stats-strip' );
 		register_block_type( __DIR__ . '/blocks/service-list' );
+		register_block_type( __DIR__ . '/blocks/selected-work' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -2179,5 +2180,202 @@ if ( ! function_exists( 'devportfolio_collateral_modal_strings' ) ) :
 			'copied'   => _x( 'Copied', 'collateral modal', 'devportfolio' ),
 			'copyHint' => _x( 'Press Ctrl/⌘ + C', 'collateral modal', 'devportfolio' ),
 		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_picks' ) ) :
+	/**
+	 * IDs of the posts the owner picked for the Home "Selected work" cards (DPH-012, DPH-016, DPH-020).
+	 *
+	 * "Picked" is the existing `cptdp_highlight` checkbox ("Mark as highlight (Selected work)") that Documents, Videos
+	 * and Collaterals already have, so nothing new is stored for Home. Published only, in Order then title order, at
+	 * most `$limit`. No fallback: a post type with no highlight shows nothing on its card.
+	 *
+	 * @param string $post_type document, video or collateral.
+	 * @param int    $limit     Most posts to return.
+	 * @return int[]
+	 */
+	function devportfolio_work_picks( $post_type, $limit ) {
+		return array_map(
+			'intval',
+			devportfolio_published_ids(
+				$post_type,
+				array(
+					'posts_per_page' => max( 1, (int) $limit ),
+					'meta_query'     => array(
+						array(
+							'key'   => 'cptdp_highlight',
+							'value' => '1',
+						),
+					),
+					'orderby'        => array(
+						'menu_order' => 'ASC',
+						'title'      => 'ASC',
+					),
+				)
+			)
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_card_text' ) ) :
+	/**
+	 * The text side of a Selected work card: the title and line (one link) and the pill button (DPH-011, DPH-015, DPH-019).
+	 *
+	 * Both links open the same page. The title block and the pill are separate links because a button inside a link
+	 * is not valid HTML.
+	 *
+	 * @param string $title  Card title.
+	 * @param string $line   One line of grey text.
+	 * @param string $button Pill label, e.g. "View all documents →".
+	 * @param string $url    The page both links open.
+	 * @return string HTML, escaped.
+	 */
+	function devportfolio_work_card_text( $title, $line, $button, $url ) {
+		return sprintf(
+			'<div class="work-card__body"><a class="work-card__text" href="%1$s"><h3 class="work-card__title">%2$s</h3><p class="work-card__line">%3$s</p></a><a class="work-card__btn" href="%1$s">%4$s</a></div>',
+			esc_url( $url ),
+			esc_html( $title ),
+			esc_html( $line ),
+			esc_html( $button )
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_archive_url' ) ) :
+	/**
+	 * The archive page a Selected work card opens.
+	 *
+	 * @param string $post_type document, video or collateral.
+	 * @return string
+	 */
+	function devportfolio_work_archive_url( $post_type ) {
+		$url = get_post_type_archive_link( $post_type );
+
+		return $url ? $url : home_url( '/' );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_book_role' ) ) :
+	/**
+	 * Where a book of the Documents fan sits on first paint, with the first book in front (DPH-012).
+	 *
+	 * The same rule as `bookRole()` in blocks/selected-work/rotation.js, which takes over once the script runs
+	 * (a test keeps the two tables equal).
+	 *
+	 * @param int $index Book position in the list.
+	 * @param int $count Number of books.
+	 * @return string front, right, left or hidden.
+	 */
+	function devportfolio_work_book_role( $index, $count ) {
+		if ( 0 === $index ) {
+			return 'front';
+		}
+		if ( 1 === $index ) {
+			return 'right';
+		}
+
+		return ( $count >= 3 && $index === $count - 1 ) ? 'left' : 'hidden';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_frame_role' ) ) :
+	/**
+	 * What a film frame is on first paint, with the first frame active (DPH-016).
+	 *
+	 * The same rule as `frameRole()` in blocks/selected-work/rotation.js.
+	 *
+	 * @param int $index Frame position in the list.
+	 * @param int $count Number of frames.
+	 * @return string active, prev, next, far-prev or far-next.
+	 */
+	function devportfolio_work_frame_role( $index, $count ) {
+		$offset = $index > $count / 2 ? $index - $count : $index;
+
+		if ( 0 === $offset ) {
+			return 'active';
+		}
+		if ( -1 === $offset ) {
+			return 'prev';
+		}
+		if ( 1 === $offset ) {
+			return 'next';
+		}
+
+		return $offset < 0 ? 'far-prev' : 'far-next';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_piece_columns' ) ) :
+	/**
+	 * Groups the collateral pieces into the glimpse's columns (DPH-020).
+	 *
+	 * A wide strip (ratio 1.8 or more, such as a 5:2 voucher or a 2:1 coupon) shares a column with the strip before
+	 * it, so the two are stacked; every other piece has a column of its own. At most `$max` columns.
+	 *
+	 * @param array<int,array{ratio:float}> $pieces Pieces in display order.
+	 * @param int                           $max    Most columns.
+	 * @return array<int,array<int,array{ratio:float}>>
+	 */
+	function devportfolio_work_piece_columns( array $pieces, $max = 5 ) {
+		$columns = array();
+
+		foreach ( $pieces as $piece ) {
+			$last     = count( $columns ) - 1;
+			$is_strip = $piece['ratio'] >= 1.8;
+
+			if ( $is_strip && $last >= 0 && 1 === count( $columns[ $last ] ) && $columns[ $last ][0]['ratio'] >= 1.8 ) {
+				$columns[ $last ][] = $piece;
+				continue;
+			}
+
+			if ( count( $columns ) >= $max ) {
+				break;
+			}
+
+			$columns[] = array( $piece );
+		}
+
+		return $columns;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_work_piece_art' ) ) :
+	/**
+	 * The artwork inside a glimpse piece: the same picture the Brand Collaterals page shows (DPH-020).
+	 *
+	 * Page 1 of the stored page images (its thumbnail, with the larger page as the other candidate), else the featured
+	 * image, else nothing (the piece stays a blank page).
+	 *
+	 * @param array $preview Result of devportfolio_collateral_preview().
+	 * @return string HTML, escaped.
+	 */
+	function devportfolio_work_piece_art( array $preview ) {
+		if ( 'page' === $preview['kind'] ) {
+			return sprintf(
+				'<img class="work-piece__img" src="%1$s" srcset="%2$s" sizes="180px" width="%3$d" height="%4$d" alt="" loading="lazy" decoding="async">',
+				esc_url( $preview['src'] ),
+				esc_attr( $preview['srcset'] ),
+				(int) $preview['width'],
+				(int) $preview['height']
+			);
+		}
+
+		if ( 'featured' === $preview['kind'] ) {
+			return wp_get_attachment_image(
+				$preview['featured_id'],
+				'medium',
+				false,
+				array(
+					'class'    => 'work-piece__img',
+					'sizes'    => '180px',
+					'alt'      => '',
+					'loading'  => 'lazy',
+					'decoding' => 'async',
+				)
+			);
+		}
+
+		return '';
 	}
 endif;

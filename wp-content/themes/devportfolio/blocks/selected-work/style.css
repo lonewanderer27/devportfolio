@@ -1,0 +1,629 @@
+/*
+ * Home "Selected work" cards (DPH-010 to DPH-017, DPH-019 to DPH-021).
+ * Follows .claude/plans/home/home-lofi-wireframe.html (section B2). Greyscale tokens only; the book covers keep
+ * their own look from blocks/document-book/style.css.
+ */
+
+/* ---------- layout (DPH-010) ---------- */
+
+.work {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20px;
+	margin-top: 24px;
+}
+
+.work-card {
+	--work-text-col: 200px;
+
+	position: relative;
+	display: grid;
+	grid-template-columns: var(--work-text-col) minmax(0, 1fr);
+	gap: 20px;
+	height: 300px;
+	padding: 30px;
+	overflow: hidden;
+	box-sizing: border-box;
+	border: 1.5px solid var(--wp--preset--color--contrast);
+	border-radius: 14px;
+	background: var(--wp--preset--color--fill);
+}
+
+.work-card--collaterals {
+	grid-column: 1 / -1;
+}
+
+/* On desktop the collaterals text column is as wide as its title and description, so neither breaks onto narrow lines,
+   and the glimpse gets the rest of the card. */
+@media (min-width: 1001px) {
+	.work-card--collaterals {
+		--work-text-col: max-content;
+	}
+}
+
+/* Two cards side by side need about 460px each; below 1000px wide every card has its own row. */
+@media (max-width: 1000px) {
+	.work {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Under 620px the visual drops under the text and the card grows with it (DPH-010 AC4). */
+@media (max-width: 620px) {
+	.work-card {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 18px;
+		height: auto;
+		padding: 24px 24px 20px;
+	}
+
+	/* Phones: every visual is its own full-width row under the text, starting at the text's left edge (as the collaterals row). */
+	.work-card__visual {
+		justify-self: stretch;
+	}
+
+}
+
+/* ---------- text side (DPH-011, DPH-015, DPH-019) ---------- */
+
+.work-card__body {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 16px;
+	min-width: 0;
+}
+
+.work-card__text {
+	color: inherit;
+	text-decoration: none;
+}
+
+/* The same names as the archive titles in assets/css/page.css: the title moves to its page on "View all". */
+.work-card--documents .work-card__title {
+	view-transition-name: work-title-documents;
+}
+
+.work-card--videos .work-card__title {
+	view-transition-name: work-title-videos;
+}
+
+.work-card--collaterals .work-card__title {
+	view-transition-name: work-title-collaterals;
+}
+
+.work-card__title {
+	margin: 0 0 8px;
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+}
+
+.work-card__line {
+	margin: 0;
+	color: var(--wp--preset--color--mid);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.work-card__btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	min-height: 32px;
+	padding: 0 14px;
+	border: 1.5px solid var(--wp--preset--color--contrast);
+	border-radius: 9999px;
+	background: var(--wp--preset--color--base);
+	color: var(--wp--preset--color--contrast);
+	font-size: 12.5px;
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+/* A 44px tap area around the 32px pill. */
+.work-card__btn::after {
+	content: "";
+	position: absolute;
+	inset: -6px;
+}
+
+.work-card__btn:hover {
+	background: var(--wp--preset--color--contrast);
+	color: var(--wp--preset--color--base);
+}
+
+.work-card a:focus-visible,
+.work-card button:focus-visible {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: 3px;
+}
+
+.work-card__visual {
+	min-width: 0;
+	min-height: 0;
+}
+
+/* ---------- Documents: the book fan (DPH-012, DPH-013) ---------- */
+
+/*
+ * Right-aligned, and the fan is shifted left by one spread: its right-hand book then ends at the same 30px padding
+ * line as the strip and the glimpse, and the left-hand book stays clear of the description.
+ */
+.work-card--documents .work-card__visual {
+	display: grid;
+	justify-items: end;
+	align-items: center;
+}
+
+.work-docs {
+	--work-book-w: 150px;
+	--work-book-h: 225px;
+	--work-scale: 0.75;
+	--work-spread: 40px;
+	/* The right-hand book's spread plus its tilt, so its outer edge lands on the card's 30px padding line. */
+	--work-shift: 63px;
+
+	position: relative;
+	width: var(--work-book-w);
+	height: var(--work-book-h);
+	translate: calc(var(--work-shift) * -1) 0;
+}
+
+/* Between the phone and the wide desktop the fan is smaller, so its books fit the narrower column. */
+@media (min-width: 621px) and (max-width: 1200px) {
+	.work-docs {
+		--work-book-w: 112px;
+		--work-book-h: 168px;
+		--work-scale: 0.56;
+		--work-spread: 26px;
+		--work-shift: 43px;
+	}
+}
+
+.work-docs__item {
+	position: absolute;
+	inset: 0;
+	transform-origin: 50% 90%;
+	transition: transform 0.6s ease, translate 0.2s ease, filter 0.6s ease, opacity 0.6s ease;
+}
+
+/* The cover is drawn at its normal 200px width and scaled down, so its type and spine keep their proportions. */
+.work-docs__scale {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: calc(var(--work-book-w) / var(--work-scale));
+	transform: scale(var(--work-scale));
+	transform-origin: 0 0;
+}
+
+.work-docs__item[data-role="front"] {
+	z-index: 3;
+}
+
+.work-docs__item[data-role="right"],
+.work-docs__item[data-role="left"] {
+	z-index: 2;
+	filter: brightness(0.82);
+}
+
+.work-docs__item[data-role="right"] {
+	transform: translateX(var(--work-spread)) rotate(7deg);
+}
+
+.work-docs__item[data-role="left"] {
+	transform: translateX(calc(var(--work-spread) * -1)) rotate(-7deg);
+}
+
+.work-docs__item[data-role="hidden"] {
+	z-index: 1;
+	opacity: 0;
+	filter: brightness(0.82);
+	pointer-events: none;
+	transform: scale(0.92);
+}
+
+/* The button covers the book (as on the Documents shelf), so the lift is driven from the item. */
+.work-docs__open {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	cursor: pointer;
+}
+
+@media (hover: hover) {
+	.work-docs__item[data-role="front"]:hover {
+		translate: 0 -8px;
+	}
+}
+
+@media (max-width: 620px) {
+	/* A moderate fan, centred in its row (auto margins centre it whatever the row's alignment). */
+	.work-docs {
+		--work-book-w: 170px;
+		--work-book-h: 255px;
+		--work-scale: 0.85;
+		--work-spread: 34px;
+
+		margin: 0 auto;
+		translate: none;
+	}
+
+	/* Narrow phones (320px to 360px): a smaller fan keeps the side books inside the card's padding. */
+	@media (max-width: 360px) {
+		.work-docs {
+			--work-book-w: 150px;
+			--work-book-h: 225px;
+			--work-scale: 0.75;
+			--work-spread: 30px;
+		}
+	}
+}
+
+/* ---------- Videos: the film strip (DPH-016, DPH-017) ---------- */
+
+/* The band fills the visual column; the frame is 100px at most and never wider than a third of the column. */
+.work-card--videos .work-card__visual {
+	container-type: inline-size;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.work-strip {
+	--fw: min(100px, calc(100cqi / 3.2));
+	--pitch: calc(var(--fw) + 6px);
+	--holes: 8px;
+
+	position: relative;
+	width: 100%;
+	height: calc(var(--fw) * 16 / 9 + 44px);
+	background: var(--wp--preset--color--contrast);
+	-webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+	mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+}
+
+/* Square sprocket holes cut into the band along the top and the bottom. */
+.work-strip::before,
+.work-strip::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	left: 0;
+	height: var(--holes);
+	background: repeating-linear-gradient(90deg, var(--wp--preset--color--fill) 0 var(--holes), transparent var(--holes) 22px);
+}
+
+.work-strip::before {
+	top: 7px;
+}
+
+.work-strip::after {
+	bottom: 7px;
+}
+
+.work-strip__frame {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: var(--fw);
+	height: calc(var(--fw) * 16 / 9);
+	translate: -50% -50%;
+	transition: transform 0.7s ease, opacity 0.7s ease, filter 0.7s ease;
+}
+
+.work-strip__frame[data-role="active"] {
+	z-index: 3;
+}
+
+.work-strip__frame[data-role="prev"],
+.work-strip__frame[data-role="next"] {
+	z-index: 2;
+	opacity: 0.55;
+	filter: saturate(0.6);
+}
+
+.work-strip__frame[data-role="prev"] {
+	transform: translateX(calc(var(--pitch) * -1)) scale(0.78);
+}
+
+.work-strip__frame[data-role="next"] {
+	transform: translateX(var(--pitch)) scale(0.78);
+}
+
+.work-strip__frame[data-role="far-prev"],
+.work-strip__frame[data-role="far-next"] {
+	z-index: 1;
+	opacity: 0;
+}
+
+.work-strip__frame[data-role="far-prev"] {
+	transform: translateX(calc(var(--pitch) * -2)) scale(0.6);
+}
+
+.work-strip__frame[data-role="far-next"] {
+	transform: translateX(calc(var(--pitch) * 2)) scale(0.6);
+}
+
+.work-strip__art {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: 4px;
+	background: #4a4a4a;
+}
+
+.work-strip__poster,
+.work-strip__video {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* The video only shows once it is really playing; until then (and always without a clip) the poster does. */
+.work-strip__video {
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.work-strip__frame.is-playing .work-strip__video {
+	opacity: 1;
+}
+
+.work-strip__eq,
+.work-strip__time,
+.work-strip__bar {
+	position: absolute;
+	z-index: 2;
+}
+
+.work-strip__eq {
+	top: 5px;
+	left: 5px;
+	display: flex;
+	align-items: flex-end;
+	gap: 2px;
+	height: 14px;
+	padding: 3px 4px;
+	box-sizing: border-box;
+	border-radius: 3px;
+	background: rgb(0 0 0 / 0.55);
+}
+
+.work-strip__eq i {
+	width: 2px;
+	height: 100%;
+	background: #fff;
+	transform-origin: bottom;
+	animation: work-eq 0.9s ease-in-out infinite alternate;
+}
+
+.work-strip__eq i:nth-child(2) {
+	animation-delay: -0.3s;
+}
+
+.work-strip__eq i:nth-child(3) {
+	animation-delay: -0.6s;
+}
+
+@keyframes work-eq {
+	from {
+		transform: scaleY(0.3);
+	}
+
+	to {
+		transform: scaleY(1);
+	}
+}
+
+.work-strip__time {
+	top: 5px;
+	right: 5px;
+	padding: 2px 4px;
+	border-radius: 3px;
+	background: rgb(0 0 0 / 0.55);
+	color: #fff;
+	font-size: 9.5px;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.work-strip__bar {
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: 4px;
+	background: rgb(255 255 255 / 0.3);
+}
+
+.work-strip__bar::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	transform: scaleX(var(--progress, 0));
+	transform-origin: left;
+}
+
+/* The button covers the frame (as the book's does); only the middle frame is reachable, the others are inert. */
+.work-strip__open {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	cursor: pointer;
+}
+
+/* Only the playing frame carries the badge, the time and the bar. */
+.work-strip__frame:not([data-role="active"]) :is(.work-strip__eq, .work-strip__time, .work-strip__bar) {
+	display: none;
+}
+
+@media (max-width: 620px) {
+	/* Phones: the collaterals glimpse uses its fixed size below, so its column keeps its content width. The reel
+	   keeps the container and sizes its frames from the full width. */
+	.work-card--collaterals .work-card__visual {
+		container-type: normal;
+	}
+
+	/* The reel spans the whole card width; the centre frame is about a third of it, the neighbours show at the sides. */
+	.work-strip {
+		--fw: calc(100cqi / 2.8);
+		--pitch: calc(var(--fw) + 6px);
+		--holes: 5px;
+
+		position: relative;
+		top: auto;
+		right: auto;
+		width: 100%;
+		margin: 0;
+		transform: none;
+	}
+
+	.work-strip::before {
+		top: 6px;
+	}
+
+	.work-strip::after {
+		bottom: 6px;
+	}
+
+	.work-strip__eq,
+	.work-strip__time {
+		display: none;
+	}
+}
+
+/* ---------- Brand collaterals: the glimpse (DPH-020) ---------- */
+
+.work-card--collaterals .work-card__visual {
+	container-type: inline-size;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+}
+
+/*
+ * The base height fills the visual column: five pieces (widths 0.8 + 0.714 + 0.6 + 0.8 + 0.8 of the base height)
+ * and four 16px gaps must fit, so the height is (column width - 64px) / 3.72, up to 216px (the card's inner height).
+ * The 176px before it is the fallback for browsers without container query units.
+ */
+.work-glimpse {
+	--glimpse-h: 176px;
+	--glimpse-h: min(216px, calc((100cqi - 64px) / 3.72));
+
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	gap: 16px;
+	width: 100%;
+	max-width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	/* Room for the lift on top and the flat shadow below and beside; anything wider is clipped, never scrolled. */
+	padding: 16px 6px 6px 0;
+	overflow: hidden;
+}
+
+.work-glimpse__col {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	justify-content: flex-end;
+	gap: 12px;
+	transition: translate 0.2s ease;
+}
+
+/* Every other piece sits 6px higher; with the 8px lift that makes the 14px of the spec. */
+.work-glimpse__col:nth-child(even) {
+	margin-bottom: 6px;
+}
+
+@media (hover: hover) {
+	.work-glimpse__col:hover {
+		translate: 0 -8px;
+	}
+}
+
+/*
+ * Every piece keeps its real ratio (inline --ratio). The width is the piece's own width at the base height, but never
+ * more than 0.8 of it, so a square comes out shorter and a wide voucher or coupon comes out as a thin strip.
+ */
+.work-piece {
+	display: block;
+	flex: none;
+	width: min(calc(var(--glimpse-h) * var(--ratio)), calc(var(--glimpse-h) * 0.8));
+	aspect-ratio: var(--ratio);
+	padding: 0;
+	overflow: hidden;
+	box-sizing: border-box;
+	border: 1.5px solid var(--wp--preset--color--contrast);
+	border-radius: 4px;
+	background: var(--wp--preset--color--base);
+	box-shadow: 4px 4px 0 rgb(0 0 0 / 0.18);
+	cursor: pointer;
+}
+
+.work-piece__img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+@media (max-width: 620px) {
+	.work-glimpse {
+		--glimpse-h: 84px;
+
+		gap: 10px;
+	}
+
+	.work-card--collaterals .work-card__visual {
+		justify-self: stretch;
+	}
+}
+
+/*
+ * iPad Mini size (621px to 900px): only the first three highlighted pieces show, so each one is bigger. Three columns
+ * need the width less two 16px gaps, so the height is (column width - 32px) / 2.4, up to 216px. 2.4 is the widest case
+ * (three pieces at 0.8 of the height each: a landscape paper is capped there).
+ */
+@media (min-width: 621px) and (max-width: 900px) {
+	.work-piece--extra,
+	.work-glimpse__col--extra {
+		display: none;
+	}
+
+	.work-glimpse {
+		--glimpse-h: min(216px, calc((100cqi - 32px) / 2.4));
+	}
+}
+
+/* ---------- reduced motion (DPH-013 AC3, DPH-017 AC3) ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+	.work-docs__item,
+	.work-strip__frame,
+	.work-strip__video,
+	.work-glimpse__col {
+		transition: none;
+	}
+
+	.work-strip__eq i {
+		animation: none;
+	}
+}
