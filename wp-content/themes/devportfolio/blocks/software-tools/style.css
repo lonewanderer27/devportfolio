@@ -1,0 +1,135 @@
+/*
+ * Home software tools (DPH-024), wireframe .claude/plans/home/home-lofi-wireframe.html section D.
+ * Greyscale until hover (devices with hover) or tap (aria-pressed).
+ */
+
+.software-tools {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 18px 4px;
+	margin: 24px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 601px) {
+	.software-tools {
+		grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+		gap: 18px 10px;
+	}
+}
+
+.software-tools__item {
+	margin: 0;
+	padding: 0;
+}
+
+.software-tools__tile {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 7px;
+	width: 100%;
+	min-height: 44px;
+	padding: 6px 0;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.software-tools__icon {
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 44px;
+	height: 44px;
+	border: 1.5px solid var(--wp--preset--color--line);
+	border-radius: 10px;
+	background: var(--wp--preset--color--base);
+	filter: grayscale(1);
+	transition: filter 0.25s, transform 0.2s;
+}
+
+@media (min-width: 601px) {
+	.software-tools__icon {
+		width: 58px;
+		height: 58px;
+		border-radius: 14px;
+	}
+}
+
+.software-tools__img {
+	display: block;
+	width: 62%;
+	height: 62%;
+	object-fit: contain;
+}
+
+.software-tools__icon--text {
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+@media (min-width: 601px) {
+	.software-tools__icon--text {
+		font-size: 20px;
+	}
+}
+
+.software-tools__name {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	font-size: 9px;
+	line-height: 1.25;
+	text-align: center;
+	color: var(--wp--preset--color--mid);
+	transition: color 0.2s;
+}
+
+@media (min-width: 601px) {
+	.software-tools__name {
+		font-size: 11.5px;
+	}
+}
+
+.software-tools__tile[aria-pressed='true'] .software-tools__icon {
+	filter: none;
+	transform: translateY(-3px);
+}
+
+.software-tools__tile[aria-pressed='true'] .software-tools__name {
+	color: var(--wp--preset--color--contrast);
+}
+
+@media (hover: hover) {
+	.software-tools__tile:hover .software-tools__icon {
+		filter: none;
+		transform: translateY(-3px);
+	}
+
+	.software-tools__tile:hover .software-tools__name {
+		color: var(--wp--preset--color--contrast);
+	}
+}
+
+.software-tools__tile:focus-visible {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.software-tools__icon,
+	.software-tools__name {
+		transition: none;
+	}
+
+	.software-tools__tile[aria-pressed='true'] .software-tools__icon,
+	.software-tools__tile:hover .software-tools__icon {
+		transform: none;
+	}
+}
