@@ -1,0 +1,12 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/site-footer",
+	"title": "Site Footer",
+	"category": "widgets",
+	"description": "Copyright on the left, LinkedIn, WhatsApp and Email links from Settings > Contact on the right.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}
