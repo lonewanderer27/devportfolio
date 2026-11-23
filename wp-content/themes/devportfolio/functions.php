@@ -64,6 +64,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/video-modal' );
 		register_block_type( __DIR__ . '/blocks/site-footer' );
 		register_block_type( __DIR__ . '/blocks/stats-strip' );
+		register_block_type( __DIR__ . '/blocks/service-list' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
