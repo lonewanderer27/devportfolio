@@ -1,0 +1,129 @@
+Story ID,Feature,Sub-Feature,User Story,Priority,Type,Pre-requisites,Acceptance Criteria,Passed
+DPH-001,Homepage,Hero - Name & Portrait,"As a visitor, I want to see the large name ""DAVE PORTFOLIO"" with a cut-out portrait of Dave overlapping its lower half, so that I know straight away whose portfolio this is.",Medium,User Story,N/A,"1.) The name is real text (not an image) on one line: ""DAVE"" outlined (2.5px stroke) and ""PORTFOLIO"" solid. It scales with the screen width.
+2.) The portrait is a greyscale, head-and-shoulders cut-out, centred (about 40% of the width on desktop), anchored to the bottom edge of the hero and overlapping the lower half of the name. The face is never covered or cropped.
+3.) The portrait has alt text and is the only image above the fold (compressed and preloaded).
+4.) On phones (900px and below) the big name is hidden; the nav title reads ""Dave Portfolio"" and the portrait is about 55% of the width, shifted slightly right.",
+DPH-002,Homepage,Navbar,"As a visitor, I want a navigation bar at the top of every page with Home highlighted, so that I can move between the sections of the site.",Medium,User Story,N/A,"1.) From 1024px the title Dave Portfolio sits on the left, the links are centred in this order: Home, Services, Documents, Videos, Collaterals, Testimonials, Contact, and Contact is an outlined pill on the right. Between 901px and 1023px the links are centred with no title.
+2.) Home is shown as the active link on the Home page. Testimonials and Contact never show as active (they are anchors on Home).
+3.) Documents, Videos, Collaterals and Services open their pages. Testimonials and Contact scroll to their sections on Home.
+4.) At 900px and below the links collapse into a menu icon, and the title ""Dave Portfolio"" appears on the left.
+5.) Every link has a tap area of at least 44 x 44px.",
+DPH-003,Homepage,Hero - Role & Call to Action,"As a visitor, I want to see Dave's role, his specialities (the top-level Services) and a main button in the hero, so that I understand what he offers and can start working with him.",Medium,User Story,N/A,"1.) ""Virtual Assistant"" is shown in bold (21px). Below it is one line in small caps listing the titles of the top-level (parent) Services, in their Services order and separated by dots. Child services are not listed. Editing the Services in wp-admin changes this line.
+2.) Below that is a single filled (black) button, ""Let's work together ↗"". It is the only filled button in the hero.
+3.) Clicking the button scrolls to the Contact section on the same page (it does not open a new page).
+4.) ""Scroll down ↓"" is shown as small grey text at the bottom left of the hero.
+5.) On phones the roles line and the scroll hint are hidden. The role and a full-width button sit under the portrait, centred.",
+DPH-004,Homepage,Hero - External Links,"As a visitor, I want quick links to Dave's LinkedIn, WhatsApp and email in the hero, so that I can contact him straight away.",Medium,User Story,N/A,"1.) Three outlined pills are shown in the hero: ""in LinkedIn"", ""WhatsApp"" and ""Email me"".
+2.) LinkedIn and WhatsApp open in a new tab. ""Email me"" opens the visitor's email app addressed to Dave.
+3.) The links come from Settings > Contact (LinkedIn URL, WhatsApp URL, email), so Dave edits them in wp-admin. A link with no value is not shown.
+4.) The pills are hidden on phones and appear in the footer instead.",
+DPH-005,Homepage,Stats Strip,"As a visitor, I want to see Dave's key numbers just under the hero, so that I get quick proof of his experience.",Medium,User Story,Dave supplies the real figures,"1.) Three numbers sit side by side under the hero, separated by thin dividers, in a light weight: ""+5 yrs Experience"", ""+40 Happy clients"", ""24 hr Typical reply time"".
+2.) The values and labels are managed in wp-admin (Statistics) so Dave can change them without a developer.
+3.) The numbers do nothing when clicked.
+4.) The three columns stay side by side on phones.",
+DPH-006,Homepage,What I Do - Intro,"As a visitor, I want a short statement under the heading ""What I do"", so that I understand how Dave helps businesses.",Medium,User Story,N/A,"1.) The heading ""What I do"" is shown, followed by: ""I help businesses grow their online presence through strategic content, marketing support and organized admin assistance, so you can focus on running your business.""
+2.) This sentence appears here only; it is not repeated in the hero.
+
+3.) A thin horizontal line separates the sentence from the first service row.",
+DPH-007,Homepage,Social Media Marketing,"As a visitor, I want to see service 01 ""Social Media Marketing"" with a one-line benefit and examples of the work, so that I know what Dave can do for me.",High,User Story,Services content entered in wp-admin,"1.) This row is one of the three top-level (parent) Services, in Services order. It shows its number ""01"", its title ""Social Media Marketing"" and its description line ""Strategic content that builds your audience."", all read from the Service record.
+2.) The grey chips (outlined and rounded, not links) are the child Services of this parent, in their Services order, so the sub-services always match the children in wp-admin. Currently: Analytics, Scheduled posting, Content calendar, Content creation, Short-form videos, AI-generated videos.
+3.) There is no arrow at the end of the row and no line under the rows.
+4.) The row is plain text, not a link. Hovering over it highlights the whole row.
+5.) On phones the tags are hidden.",
+DPH-008,Homepage,Digital Marketing,"As a visitor, I want to see service 02 ""Digital Marketing"" with a one-line benefit and examples of the work, so that I know what Dave can do for me.",High,User Story,Services content entered in wp-admin,"1.) This row is one of the three top-level (parent) Services, in Services order. It shows its number ""02"", its title ""Digital Marketing"" and its description line ""Marketing support that turns attention into customers."", all read from the Service record.
+2.) The grey chips (outlined and rounded, not links) are the child Services of this parent, in their Services order, so the sub-services always match the children in wp-admin. Currently: Ad analytics, Brand collaterals, Digital creation, Product mockups.
+3.) There is no arrow at the end of the row and no line under the rows.
+4.) The row is plain text, not a link. Hovering over it highlights the whole row.
+5.) On phones the tags are hidden.",
+DPH-009,Homepage,Web Creation / Management,"As a visitor, I want to see service 03 ""Web Creation / Management"" with a one-line benefit and examples of the work, so that I know what Dave can do for me.",High,User Story,Services content entered in wp-admin,"1.) This row is one of the three top-level (parent) Services, in Services order. It shows its number ""03"", its title ""Web Creation / Management"" and its description line ""Websites built, updated and kept running."", all read from the Service record.
+2.) The grey chips (outlined and rounded, not links) are the child Services of this parent, in their Services order, so the sub-services always match the children in wp-admin. Currently: Websites & portfolios, GoDaddy, WordPress.
+3.) There is no arrow at the end of the row and no line under the rows.
+4.) The row is plain text, not a link. Hovering over it highlights the whole row.
+5.) On phones the tags are hidden.",
+DPH-010,Homepage,Selected Work - Layout,"As a visitor, I want to see ""Selected work"" as three cards for Documents, Videos and Brand collaterals, so that I can see a sample of each and jump to the full pages.",Medium,User Story,N/A,"1.) The heading ""Selected work"" is shown above the cards, in bold.
+2.) On desktop row 1 holds the Documents and Videos cards side by side (equal width, about 480px each, 20px gap). Row 2 holds the Brand collaterals card across the full width. The order is fixed.
+3.) Each card is soft grey (#eee) with a 1.5px dark outline, a 14px radius, 30px padding and a height of 300px. Text is on the left and the visual on the right, on the same line.
+4.) Under 620px the visual drops under the text. Cards stack one per row on phones.
+5.) All content shown comes from the Documents, Videos and Brand Collaterals pages (nothing new is created for Home).
+6.) The items previewed in each card are the ones marked as Highlighted in wp-admin for that type (document, video or collateral). Unhighlighted items are never shown on Home.
+7.) Documents are drawn with the existing Documents page cover design. Videos and collaterals use the same thumbnail that wp-admin shows for them in the list: the featured image or, when there is none, the thumbnail of the first page (collaterals). An item with neither shows a blank placeholder in its real shape.",
+DPH-011,Homepage,Documents Card - Text,"As a visitor, I want a Documents card with a short description and a button, so that I know what documents Dave has and can see them all.",Medium,User Story,N/A,"1.) The card title is ""Documents"" (28px, extra-bold), with a grey line beneath it that summarises the available document categories: the Document categories that have at least one published document, in category order, written as a short sentence (for example ""Certificates, executive docs, operations docs, presentation decks and reports.""). It updates when categories change in wp-admin.
+2.) Below it is a pill button ""View all documents →"" (does not wrap).
+3.) The text side and the button both open the Documents page.",
+DPH-012,Homepage,Documents Card - Book Stack,"As a visitor, I want to see a small fan of three document books, so that I get a feel for Dave's documents before opening any.",Medium,User Story,At least four documents marked Highlighted,"1.) The books are the Highlighted documents. The front book is 128 x 192px (2:3) and uses the existing Documents page cover design (no thumbnail image): dark spine, dashed stitch line, cover pattern, small-caps category, bold serif title, and a footer with the format and page count on the left and ""DAVE"" on the right.
+2.) Two more books sit behind it, tilted 7 degrees left and right, pushed out 34px each side and about 18% darker, so only their outer edge shows.
+3.) Hovering the front book lifts it 8px.
+4.) Each book has the document title as its accessible name.
+5.) On phones the fan is smaller (about 62px wide books) and stays on the right.",
+DPH-013,Homepage,Documents Card - Rotation,"As a visitor, I want the books to change by themselves, so that I see more than one document without clicking.",Medium,User Story,DPH-012,"1.) Every 3.5 seconds the next document slides to the front and the front one drops behind (0.6s ease). It cycles through the Highlighted documents.
+2.) The rotation pauses while the pointer is over the card.
+3.) With ""reduce motion"" on, nothing moves and the first document stays in front.
+4.) The Documents rotation is not in step with the Videos strip (Documents 3.5s, Videos 4s).",
+DPH-014,Homepage,Documents Card - Open Viewer,"As a visitor, I want to click a book and read that document without leaving Home, so that I can look at it quickly.",High,User Story,Documents page viewer (DPD tickets),"1.) Clicking, or pressing Enter on, a book opens the same document viewer as the Documents page, on top of Home with a dim backdrop. The viewer's content, pagination, header and Download follow the Documents page tickets (DPD).
+2.) X, Esc or a click on the backdrop closes it and Home is exactly where it was left. The Home motion is paused while it is open.
+3.) The viewer has no locked pages and no ""Request full sample"" form.
+4.) Only Highlighted documents can be opened from Home, and the viewer opens on the one clicked.
+5.) On phones the viewer fills the whole screen.",
+DPH-015,Homepage,Videos Card - Text,"As a visitor, I want a Videos card with a short description and a button, so that I know what videos Dave makes and can see them all.",Medium,User Story,N/A,"1.) The card sits next to the Documents card in row 1. Its title is ""Videos"" with a grey line that summarises the available video categories: the Video categories that have at least one published video, in category order, written as a short sentence (for example ""AI generated, short form and video edits.""). It updates when categories change in wp-admin. Below it is a pill button ""View all videos →"".
+2.) The text side and the button open the Videos page.",
+DPH-016,Homepage,Videos Card - Film Strip,"As a visitor, I want to see a film strip of video previews, so that I can tell Dave's videos at a glance.",Medium,User Story,At least five videos marked Highlighted,"1.) A dark (#222) film band about 186px high runs off the right edge of the card, with square sprocket holes in the grey along the top and bottom. The band fades out at both ends.
+2.) The middle frame (80 x 142px, 9:16) autoplays a short video preview: muted, looping and inline, with an equalizer badge top left, a running time top right counting up and a 4px progress bar along the bottom that fills over the 4 seconds. It uses the video's stored preview clip when it has one.
+3.) The left and right frames show the posters of the previous and the next clip at 78% of the size and 55% opacity, slightly desaturated, with no badge, time or bar.
+4.) Only the middle frame loads video, and only once the card is on screen; the side frames stay posters. There is never any sound and no controls. A video with no preview clip (embed only), ""reduce motion"" or data saver shows the poster with the same time and bar instead. Frames have the clip title as their label.
+5.) On phones the strip is about 112px wide and the badge and time are hidden.",
+DPH-017,Homepage,Videos Card - Rotation,"As a visitor, I want the strip to advance by itself, so that I see several videos.",Medium,User Story,DPH-016,"1.) Every 4 seconds the strip moves one frame (0.7s ease): the active clip becomes ""last played"" on the left and the next clip becomes active and starts playing. It cycles through the Highlighted videos.
+2.) The strip, and the playing clip, pause while the pointer is over the card.
+3.) With ""reduce motion"" on nothing moves or plays and the first clip stays in the middle as a poster.",
+DPH-018,Homepage,Videos Card - Open Viewer,"As a visitor, I want to click a video frame and watch it on Home, so that I do not have to leave the page.",High,User Story,Videos page viewer (DPV tickets),"1.) Clicking, or pressing Enter on, a frame opens the same video viewer as the Videos page on top of Home (player, details, Next up, Open original post, Copy link). Behaviour follows the Videos page tickets (DPV).
+2.) X, Esc or a click on the backdrop closes it and returns to Home as it was. The strip is paused while it is open.
+3.) On phones the viewer fills the whole screen.",
+DPH-019,Homepage,Brand Collaterals Card - Text,"As a visitor, I want a Brand collaterals card with a short description and a button, so that I know what collaterals Dave designs.",Medium,User Story,N/A,"1.) The card is full width in row 2, under Documents and Videos. The title is ""Brand collaterals"" (it may wrap to two lines) with a grey line that summarises the available collateral categories: the Collateral categories that have at least one published collateral, in category order, written as a short sentence. It updates when categories change in wp-admin. Below it is a pill button ""View all collaterals →"".
+2.) The text side and the button open the Brand Collaterals page.",
+DPH-020,Homepage,Brand Collaterals Card - Glimpse,"As a visitor, I want to see a sample of each collateral type in its real shape, so that I understand the range of work.",Medium,User Story,"Collaterals marked Highlighted, covering the types","1.) The pieces are the Highlighted collaterals (up to five, in one row on the right, bottom-aligned with 16px gaps). Their shapes follow their type: brochure (4:5), newsletter (3:5), flyer (5:7), a voucher (5:2) stacked over a coupon (2:1), and a square post (1:1, shorter).
+2.) Each has a 1.5px dark border, a 4px radius and a flat offset shadow, shows the thumbnail wp-admin shows for it (featured image, else page 1, in its real ratio), and has the piece title as its label.
+3.) Alternate pieces sit 6px higher. On hover the pieces lift 8px (alternating ones 14px). There is no other motion.
+4.) On phones the pieces scale down (120px base height at 900px and below, 84px at 620px and below), stay in one row, and any overflow is clipped, never scrolled.",
+DPH-021,Homepage,Brand Collaterals Card - Open Viewer,"As a visitor, I want to click a collateral and view it on Home, so that I can see it up close.",High,User Story,Brand Collaterals page viewer (DPC tickets),"1.) Clicking, or pressing Enter on, a piece opens the same viewer as the Brand Collaterals page (brochure, tri-fold, flyer, newsletter, voucher or coupon) on top of Home. Content and controls follow the DPC tickets.
+2.) X, Esc or a click on the backdrop closes it and returns to Home as it was.
+3.) On phones the viewer fills the whole screen.",
+DPH-022,Homepage,Testimonial,"As a visitor, I want to read a short quote from a past client, so that I can see that Dave is trusted.",Medium,User Story,Dave supplies at least three testimonials,"1.) The heading ""What clients say"" is followed by one quote in large italic serif type, centred, with the client name and company below it (no photo).
+2.) Three dots below the quote switch between the quotes. The active dot is highlighted.
+3.) A link ""Read more testimonials →"" opens the Testimonials page.
+4.) On phones the quote can be swiped as well as changed with the dots.",
+DPH-023,Homepage,Testimonial - Rotation,"As a visitor, I want the quotes to change by themselves, so that I can read several without clicking.",Medium,User Story,DPH-022,"1.) The quote changes automatically every 6 seconds; the name, company and active dot change with it.
+2.) Rotation pauses on hover and on keyboard focus.
+3.) With ""reduce motion"" on, quotes only change when a dot is used.",
+DPH-024,Homepage,Software Tools,"As a visitor, I want to see the software Dave uses, so that I know he works with the tools my business uses.",Medium,User Story,Software Tools entered in wp-admin (order to be confirmed),"1.) The heading ""Software tools"" is followed by a grid of 30 tool tiles (a logo in a 58px rounded square, 44px on phones, with the tool name in small grey text beneath). Tools are in the most-used-first order Dave confirms (e.g. Google, Slack, Zoom, Notion, Canva, ChatGPT...).
+2.) Each tile image is the Software Tool's own thumbnail (featured image) when it has one. When it has none, a generated Adobe-style icon is shown instead: a rounded square with a thin outline and the first two letters of the tool name (first capital, second lowercase, e.g. ""Sl"" for Slack) in bold.
+3.) Tiles are fully greyscale by default. On a device that supports hover, hovering turns the logo to full colour in 0.25s, lifts it 3px and turns the name black.
+4.) On touch screens a tap colours that tool; tapping another moves the colour; tapping the same one again turns it grey. Enter and Space work the same way.
+5.) Tiles are not links. There are no filters or categories and no hint text.
+6.) The grid is 3 columns on phones; on desktop tiles are at least 112px wide (7 to 9 across) with an 18px row gap and a left-aligned last row.
+7.) Each tile is a focusable button labelled with the tool name. With ""reduce motion"" on there is no lift.",
+DPH-025,Homepage,Contact - Availability (Step 1),"As a prospect, I want to pick a day and time Dave is free, so that I can book a conversation.",High,User Story,N/A,"1.) The Contact section is a card with four progress crumbs: Availability > About you > Your need > Confirm. Done crumbs are black with a number, the current is ringed and bold, upcoming are grey. Done crumbs are tappable to go back.
+2.) Step 1 shows a month calendar on the left and times on the right (a hint until a day is picked). For now every future day is available and every day offers the same set of times; past days cannot be picked. Booked and unavailable day styles are not built yet (see DPH-031).
+3.) ""Next"" stays disabled until a time is chosen. There is no skip option.
+4.) The hero ""Let's work together"" button scrolls to this step.",
+DPH-026,Homepage,Contact - About You and Your Need (Steps 2 and 3),"As a prospect, I want to tell Dave who I am and what I need, so that he can prepare a useful reply.",High,User Story,DPH-025,"1.) Step 2 asks for Name and Email, one under the other. An empty field shows a plain-words inline error.
+2.) Step 3 shows the three service chips (Social Media Marketing, Digital Marketing, Web Creation / Management) plus ""Something else"", multi-select, and a ""Tell me more"" box. At least one chip is required.
+3.) Back (outline, left) and Next (filled, right) sit in a footer under a thin line. Enter submits the step. Esc does nothing.
+4.) Focus moves to the step heading when the step changes, and errors are announced to screen readers.",
+DPH-027,Homepage,Contact - Confirm and Thank You (Step 4),"As a prospect, I want to review my details and send my interest, so that I know Dave received it.",High,User Story,DPH-026,"1.) Step 4 shows a summary card with Time, Name, Email, Help with and Message. Each row has an ""Edit"" link that jumps back to that step.
+2.) A single filled button ""Confirm my interest ↗"" replaces Next. Nothing is sent before it is pressed.
+3.) After sending, the card is replaced by ""Thanks, [name]. Interest received."" with the chosen time and ""I'll confirm by email"". All four crumbs turn black.
+4.) Dave receives the request by email with all submitted details.",
+DPH-028,Homepage,Contact - Mobile Scheduler,"As a prospect on a phone, I want a simple scheduler, so that I can book without a cramped calendar on the page.",High,User Story,DPH-025,"1.) At 800px and below the Contact section shows only a heading and a ""Check availability"" button (no card or crumbs).
+2.) The button opens a full-screen modal. Header: X and ""Check my availability"". Body: calendar, legend and, once a day is picked, large time pills. Footer, pinned: ""Confirm date & time"", disabled until a time is picked.
+3.) X, Esc or the phone Back button close the modal without choosing and the page stays on the button.
+4.) After confirming, the modal closes and the 4-step card appears at step 2 with the chosen time at the top (""Tue 6 Oct · 10:30 · Change""). Change or Edit on step 4 reopens the modal with the old day and time selected.
+5.) Steps 2 to 4 are one screen each with Back and Next pinned at the bottom.",
+DPH-029,Homepage,Footer,"As a visitor, I want a footer with the copyright and links, so that I can reach Dave from the bottom of the page.",Medium,User Story,N/A,"1.) The footer shows ""© 2026 Dave Portfolio"" on the left and three links on the right: LinkedIn, WhatsApp and Email, taken from Settings > Contact. The Email link shows the email address when there is room (601px and wider) and the word Email on narrower screens. The copyright lines up with the header title.
+2.) On phones it carries the links that were hidden in the hero.
+3.) There is no sticky ""Hire me"" bar anywhere on the page.",
+DPH-030,Homepage,Motion and Accessibility (all of Home),"As a visitor, I want the page to respect my accessibility settings and load fast, so that it works for me.",Medium,User Story,N/A,"1.) With ""reduce motion"" on, the books, film strip (and its video), quote rotation and tool lift do not move or play.
+2.) Buttons, rows and dots are at least 44 x 44px of tap area.
+3.) Only the portrait loads above the fold. Book covers, posters and collateral artwork lazy-load. Only the active Videos card clip autoplays (muted).
+4.) Focus is visible on every control and all text keeps readable contrast.",
+DPH-031,Homepage,Contact - Availability Management (Future),"As Dave, I want to control which days and times can be booked, so that prospects only pick times I am free.",Low,User Story,DPH-025. Not part of the current release,"1.) FUTURE: Dave can mark days as fully booked or unavailable and set the times offered, and the calendar shows them (booked days struck through and striped, unavailable days faded).
+2.) FUTURE: a time that has been requested is no longer offered to other prospects.
+3.) The source of availability (wp-admin or an external calendar) is decided when this is scheduled.",
