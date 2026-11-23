@@ -1,0 +1,12 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/service-list",
+	"title": "Service List",
+	"category": "widgets",
+	"description": "The top-level Services as numbered rows, each with its benefit line and its child services as grey tags. The whole row is one link.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}

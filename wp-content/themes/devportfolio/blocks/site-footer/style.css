@@ -1,0 +1,57 @@
+.site-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 24px;
+	font-size: 14px;
+	color: var(--wp--preset--color--mid);
+}
+
+.site-footer__copy {
+	margin: 0;
+}
+
+.site-footer__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.site-footer__link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 4px;
+	color: var(--wp--preset--color--contrast);
+	text-decoration: none;
+}
+
+.site-footer__link:hover {
+	text-decoration: underline;
+}
+
+/* The email address when there is room for it (601px and up), otherwise the word "Email". */
+.site-footer__full {
+	display: none;
+}
+
+@media (min-width: 601px) {
+	.site-footer__full {
+		display: inline;
+	}
+
+	.site-footer__short {
+		display: none;
+	}
+}
+
+@media (max-width: 480px) {
+	.site-footer {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}

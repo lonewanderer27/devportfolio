@@ -324,6 +324,7 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'site-header__bar', $header );
 		$this->assertStringContainsString( 'padding-top:12px;padding-bottom:12px', $header );
 		$this->assertStringContainsString( '"blockGap":"2px"', $header );
+		// The 7 links, in order.
 		$this->assertSame( 7, substr_count( $header, 'wp:navigation-link' ) );
 	}
 
@@ -375,33 +376,42 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/\.is-menu-open \.wp-block-navigation-item \.wp-block-navigation-item__content \{[^}]*display: flex; align-items: center; justify-content: center; padding: 0 16px; min-height: 44px;/', $css );
 	}
 
-	public function test_large_screen_header_is_as_wide_as_the_documents_page_with_the_title_on_the_left(): void {
+	public function test_large_screen_header_is_as_wide_as_the_documents_page_with_the_title_left_and_contact_pinned_right(): void {
 		$wide = $this->media( $this->global_css(), '(min-width: 1024px)' );
 
 		$this->assertStringContainsString( '--wp--style--global--content-size: 1440px', $wide );
 		$this->assertStringContainsString( 'grid-template-columns: 1fr auto 1fr', $wide );
 		$this->assertStringContainsString( ".site-header__bar::after { content: ''; }", $wide );
+		$this->assertStringContainsString( '.site-header__title { display: block; }', $wide );
 	}
 
-	public function test_contact_is_pinned_right_as_an_outlined_pill_from_1024px(): void {
+	public function test_contact_is_an_outlined_pill_at_the_right_from_901px(): void {
 		$wide = $this->media( $this->global_css(), '(min-width: 1024px)' );
 
+		// Contact is the last link.
 		$item = $this->rule( $wide, '.site-header__bar .wp-block-navigation-item:last-child' );
 		$this->assertStringContainsString( 'position: absolute', $item );
 		$this->assertStringContainsString( 'right: 0', $item );
 
-		$link = $this->rule( $wide, '.site-header__bar .wp-block-navigation-item:last-child > a' );
+		// The pill look applies from 901px (Contact sits right there too); the absolute pinning is 1024px and up.
+		$pill = $this->media( $this->global_css(), '(min-width: 901px)' );
+		$link = $this->rule( $pill, '.site-header__bar .wp-block-navigation-item:last-child > a' );
 		$this->assertStringContainsString( 'display: flex', $link, 'A block link top-aligns its label.' );
 		$this->assertStringContainsString( 'border: 1.5px solid var(--wp--preset--color--contrast)', $link );
 		$this->assertStringContainsString( 'border-radius: 9999px', $link );
-
-		$this->assertStringContainsString( ':not(.is-menu-open)', $wide, 'The phone overlay must keep its own positioning.' );
 	}
 
-	public function test_title_is_hidden_only_between_phone_and_large_screen(): void {
+	public function test_between_901_and_1023px_links_start_left_and_contact_stays_right(): void {
+		$mid = $this->media( $this->global_css(), '(min-width: 901px) and (max-width: 1023px)' );
+
+		$this->assertStringContainsString( 'justify-content: flex-start', $mid );
+		$this->assertStringContainsString( 'margin-left: auto', $this->rule( $mid, '.site-header__bar .wp-block-navigation-item:last-child' ) );
+	}
+
+	public function test_title_shows_at_900px_and_below_and_from_1024px(): void {
 		$css = $this->global_css();
 
-		$this->assertStringContainsString( '@media (min-width: 600px) and (max-width: 1023px) { .site-header__title { display: none; } }', $css );
+		$this->assertStringContainsString( '.site-header__title { display: none; } @media (max-width: 900px) { .site-header__title { display: block; } }', $css );
 		$this->assertStringContainsString( ':root { --site-header-height: 61px; --site-sticky-top: 0px; }', $css );
 	}
 }

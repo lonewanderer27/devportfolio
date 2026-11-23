@@ -62,6 +62,9 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/collateral-modal' );
 		register_block_type( __DIR__ . '/blocks/video-grid' );
 		register_block_type( __DIR__ . '/blocks/video-modal' );
+		register_block_type( __DIR__ . '/blocks/site-footer' );
+		register_block_type( __DIR__ . '/blocks/stats-strip' );
+		register_block_type( __DIR__ . '/blocks/service-list' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -71,7 +74,7 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 	 * Enqueue styles shared by the Documents, Collaterals and Videos archives.
 	 */
 	function devportfolio_enqueue_page_styles() {
-		if ( ! is_post_type_archive( array( 'document', 'collateral', 'video' ) ) ) {
+		if ( ! is_front_page() && ! is_post_type_archive( array( 'document', 'collateral', 'video' ) ) ) {
 			return;
 		}
 

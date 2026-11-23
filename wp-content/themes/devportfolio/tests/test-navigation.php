@@ -332,18 +332,17 @@ class Devportfolio_Test_Navigation extends WP_UnitTestCase {
 		$this->assertDoesNotMatchRegularExpression( '/[^{}]*,[^{}]*\{/', $css );
 	}
 
-	public function test_header_shows_the_site_title_on_phones_and_large_screens(): void {
+	public function test_header_shows_the_site_title_on_phones_tablets_and_from_1024px(): void {
 		$header = (string) file_get_contents( $this->theme_dir() . '/parts/header.html' );
 		$json   = json_decode( (string) file_get_contents( $this->theme_dir() . '/theme.json' ), true );
 		$css    = $json['styles']['css'] ?? '';
 
 		$this->assertStringContainsString( 'wp:site-title', $header );
 		$this->assertStringContainsString( 'site-header__title', $header );
-		$this->assertStringContainsString( '@media (min-width: 600px) and (max-width: 1023px) { .site-header__title { display: none; } }', $css );
+		$this->assertStringContainsString( '.site-header__title { display: none; } @media (max-width: 900px) { .site-header__title { display: block; } }', $css );
 		$this->assertStringContainsString( 'width: 36px; height: 36px', $css );
-		// From 1024px the title sits left with the links centred (equal side columns).
+		// From 1024px: title left, links centred (equal side columns), Contact pinned right as a pill.
 		$this->assertStringContainsString( 'grid-template-columns: 1fr auto 1fr', $css );
-		// ...and the last link (Contact) leaves the row and sits right as an outlined pill; still the seventh link in the markup.
 		$this->assertStringContainsString( '.site-header__bar .wp-block-navigation-item:last-child { position: absolute; right: 0;', $css );
 	}
 

@@ -1,0 +1,12 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/stats-strip",
+	"title": "Stats Strip",
+	"category": "widgets",
+	"description": "Three key numbers from the Statistics post type, side by side.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}
