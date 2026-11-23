@@ -80,6 +80,8 @@ class CPTDP_Test_Page_REST extends CPTDP_Pages_Test_Case {
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/retry', $routes );
 		$this->assertArrayHasKey( '/cptdp/v1/documents/(?P<id>\d+)/pages/(?P<n>\d+)', $routes );
 		unset( $routes['/cptdp/v1'] );
+		// The contact request (DPH-027) is the one public route by design; test-contact-request.php covers it.
+		unset( $routes['/cptdp/v1/contact-request'] );
 		// The same five routes for collaterals (DPC-023), plus the video poster and preview routes (DPV-041).
 		$this->assertCount( 12, $routes );
 
