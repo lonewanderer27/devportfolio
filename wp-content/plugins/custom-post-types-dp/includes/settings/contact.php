@@ -21,6 +21,41 @@ function cptdp_contact_defaults(): array {
 }
 
 /**
+ * Every half hour of the day, "HH:MM": the choices on the booking-times list.
+ *
+ * @return string[]
+ */
+function cptdp_contact_all_times(): array {
+	$times = array();
+	for ( $minutes = 0; $minutes < 24 * 60; $minutes += 30 ) {
+		$times[] = sprintf( '%02d:%02d', intdiv( $minutes, 60 ), $minutes % 60 );
+	}
+
+	return $times;
+}
+
+/**
+ * The times offered when Dave has not chosen any yet.
+ *
+ * @return string[]
+ */
+function cptdp_contact_default_times(): array {
+	return array( '10:00', '11:00', '13:00', '14:00', '15:00', '16:00' );
+}
+
+/**
+ * The ticked booking times, in day order (Settings > Contact). Nothing ticked = no time can be booked.
+ *
+ * @return string[]
+ */
+function cptdp_contact_get_times(): array {
+	$saved = get_option( 'cptdp_contact_times', cptdp_contact_default_times() );
+	$saved = is_array( $saved ) ? $saved : array();
+
+	return array_values( array_intersect( cptdp_contact_all_times(), $saved ) );
+}
+
+/**
  * Get saved contact values.
  *
  * Callers must escape on output (esc_url, esc_html, antispambot).
@@ -65,6 +100,15 @@ function cptdp_contact_register_settings(): void {
 		)
 	);
 
+	register_setting(
+		'cptdp_contact',
+		'cptdp_contact_times',
+		array(
+			'type'              => 'array',
+			'default'           => cptdp_contact_default_times(),
+			'sanitize_callback' => 'cptdp_contact_times_sanitize',
+		)
+	);
 }
 add_action( 'admin_init', 'cptdp_contact_register_settings' );
 add_action( 'rest_api_init', 'cptdp_contact_register_settings' );
@@ -98,6 +142,21 @@ function cptdp_contact_register_sections(): void {
 			'type'        => 'url',
 			'placeholder' => 'https://www.linkedin.com/in/<handle>',
 		),
+	);
+
+	add_settings_section(
+		'cptdp_contact_times_section',
+		esc_html__( 'Booking times', 'custom-post-types-dp' ),
+		'cptdp_contact_render_times_intro',
+		'cptdp-contact'
+	);
+	add_settings_field(
+		'cptdp_contact_times',
+		esc_html__( 'Times offered', 'custom-post-types-dp' ),
+		'cptdp_contact_render_times',
+		'cptdp-contact',
+		'cptdp_contact_times_section',
+		array( 'label_for' => 'cptdp_contact_times' )
 	);
 
 	foreach ( $fields as $key => $field ) {
@@ -174,6 +233,47 @@ function cptdp_contact_render_field( array $args ): void {
 		esc_attr( cptdp_get_contact( $args['key'] ) ),
 		esc_attr( $args['placeholder'] )
 	);
+}
+
+/**
+ * Intro of the booking-times section.
+ */
+function cptdp_contact_render_times_intro(): void {
+	echo '<p>' . esc_html__( 'Tick the times you offer. Visitors see only these, in their own time zone, every day they can book.', 'custom-post-types-dp' ) . '</p>';
+}
+
+/**
+ * Render the 48 half-hour checkboxes. An unticked box sends nothing, so an empty choice is an empty list.
+ */
+function cptdp_contact_render_times(): void {
+	$chosen = cptdp_contact_get_times();
+
+	echo '<fieldset id="cptdp_contact_times" class="cptdp-times" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px 12px;max-width:760px">';
+	foreach ( cptdp_contact_all_times() as $time ) {
+		printf(
+			'<label><input type="checkbox" name="cptdp_contact_times[]" value="%1$s" %2$s /> %1$s</label>',
+			esc_attr( $time ),
+			checked( in_array( $time, $chosen, true ), true, false )
+		);
+	}
+	echo '</fieldset>';
+}
+
+/**
+ * Keep only the half hours of the day, in order. Nothing ticked is allowed, with a warning.
+ *
+ * @param mixed $input Raw submitted value.
+ * @return string[]
+ */
+function cptdp_contact_times_sanitize( $input ): array {
+	$picked = is_array( $input ) ? array_values( array_filter( $input, 'is_string' ) ) : array();
+	$clean  = array_values( array_intersect( cptdp_contact_all_times(), $picked ) );
+
+	if ( array() === $clean ) {
+		add_settings_error( 'cptdp_contact', 'cptdp_contact_times_none', esc_html__( 'No booking times are ticked, so visitors cannot book a call.', 'custom-post-types-dp' ), 'warning' );
+	}
+
+	return $clean;
 }
 
 /**
