@@ -68,6 +68,7 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/selected-work' );
 		register_block_type( __DIR__ . '/blocks/testimonials' );
 		register_block_type( __DIR__ . '/blocks/software-tools' );
+		register_block_type( __DIR__ . '/blocks/contact' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -2395,5 +2396,87 @@ if ( ! function_exists( 'devportfolio_work_piece_art' ) ) :
 		}
 
 		return '';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_contact_strings' ) ) :
+	/**
+	 * Every word of the Contact scheduler (DPH-025 to DPH-028). `{name}`, `{n}`, `{total}`, `{date}` and `{zone}` are
+	 * replaced by view.js. A test checks that every `strings.<key>` used by the scripts and every `$s['<key>']` used by
+	 * render.php is a key here.
+	 *
+	 * @return array<string,string>
+	 */
+	function devportfolio_contact_strings() {
+		return array(
+			'heading'           => __( 'Need an extra pair of hands?', 'devportfolio' ),
+			'lead'              => __( 'Pick a day that suits you, tell me what you need, and I’ll reply within 24 hours.', 'devportfolio' ),
+			'open'              => __( 'Check availability', 'devportfolio' ),
+			'progress'          => __( 'Progress', 'devportfolio' ),
+			'stepOf'            => __( 'step {n} of {total}', 'devportfolio' ),
+			'crumbAvailability' => __( 'Availability', 'devportfolio' ),
+			'crumbAbout'        => __( 'About you', 'devportfolio' ),
+			'crumbNeed'         => __( 'Your need', 'devportfolio' ),
+			'crumbConfirm'      => __( 'Confirm', 'devportfolio' ),
+			'title1'            => __( 'Pick a day and time', 'devportfolio' ),
+			'title2'            => __( 'Introduce yourself', 'devportfolio' ),
+			'title3'            => __( 'What do you need help with?', 'devportfolio' ),
+			'title4'            => __( 'Confirm the details', 'devportfolio' ),
+			'monthPrev'         => __( 'Previous month', 'devportfolio' ),
+			'monthNext'         => __( 'Next month', 'devportfolio' ),
+			'legendAvailable'   => __( 'Available', 'devportfolio' ),
+			'legendSelected'    => __( 'Selected', 'devportfolio' ),
+			'timesHint'         => __( 'Pick a day to see the times.', 'devportfolio' ),
+			'timesTitle'        => __( 'Available times', 'devportfolio' ),
+			'timezone'          => __( 'Times are in {zone} time.', 'devportfolio' ),
+			'slotLocal'         => __( '{when} ({zone} time)', 'devportfolio' ),
+			'nameLabel'         => __( 'Name', 'devportfolio' ),
+			'emailLabel'        => __( 'Email', 'devportfolio' ),
+			'messageLabel'      => __( 'Tell me more', 'devportfolio' ),
+			'messageHint'       => __( 'Optional', 'devportfolio' ),
+			'honeypotLabel'     => __( 'Leave this field empty', 'devportfolio' ),
+			'back'              => __( 'Back', 'devportfolio' ),
+			'next'              => __( 'Next', 'devportfolio' ),
+			'edit'              => __( 'Edit', 'devportfolio' ),
+			'change'            => __( 'Change', 'devportfolio' ),
+			'confirm'           => __( 'Confirm my interest ↗', 'devportfolio' ),
+			'sending'           => __( 'Sending…', 'devportfolio' ),
+			'summaryTime'       => __( 'Time', 'devportfolio' ),
+			'summaryName'       => __( 'Name', 'devportfolio' ),
+			'summaryEmail'      => __( 'Email', 'devportfolio' ),
+			'summaryHelp'       => __( 'Help with', 'devportfolio' ),
+			'summaryMessage'    => __( 'Message', 'devportfolio' ),
+			'noMessage'         => __( 'No message', 'devportfolio' ),
+			'slotRequired'      => __( 'Choose a day and a time to continue.', 'devportfolio' ),
+			'nameRequired'      => __( 'Please enter your name.', 'devportfolio' ),
+			'emailRequired'     => __( 'Please enter your email address.', 'devportfolio' ),
+			'emailInvalid'      => __( 'That email address does not look right.', 'devportfolio' ),
+			'needRequired'      => __( 'Choose at least one, so I know how to help.', 'devportfolio' ),
+			'slotGone'          => __( 'That time is no longer available. Please pick another.', 'devportfolio' ),
+			'sendError'         => __( 'That did not send. Please try again.', 'devportfolio' ),
+			'tooMany'           => __( 'Too many tries. Please wait a while and try again.', 'devportfolio' ),
+			'thanks'            => __( 'Thanks, {name}. Interest received.', 'devportfolio' ),
+			'thanksTime'        => __( 'Your time: {date}', 'devportfolio' ),
+			'thanksNote'        => __( 'I\'ll confirm by email.', 'devportfolio' ),
+			'modalTitle'        => __( 'Check my availability', 'devportfolio' ),
+			'close'             => __( 'Close', 'devportfolio' ),
+			'noscript'          => __( 'The booking form needs JavaScript.', 'devportfolio' ),
+			'noscriptEmail'     => __( 'You can email me instead:', 'devportfolio' ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_contact_config' ) ) :
+	/**
+	 * What the Contact scheduler needs, or an empty array when the plugin is not active (the block then renders nothing).
+	 *
+	 * @return array<string,mixed>
+	 */
+	function devportfolio_contact_config() {
+		if ( ! function_exists( 'cptdp_contact_config' ) ) {
+			return array();
+		}
+
+		return array_merge( cptdp_contact_config(), array( 'strings' => devportfolio_contact_strings() ) );
 	}
 endif;

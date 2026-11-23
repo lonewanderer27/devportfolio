@@ -1,0 +1,13 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/contact",
+	"title": "Contact scheduler",
+	"category": "widgets",
+	"description": "The Home Contact section: a 4-step card (availability, about you, your need, confirm) and, on phones, a full-screen scheduler.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}
