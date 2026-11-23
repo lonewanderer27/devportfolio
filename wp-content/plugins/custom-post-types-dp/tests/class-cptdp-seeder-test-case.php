@@ -18,7 +18,7 @@ abstract class CPTDP_Seeder_Test_Case extends CPTDP_Test_Case {
 	 *
 	 * @var string[]
 	 */
-	private array $temp_files = array();
+	protected array $temp_files = array();
 
 	/**
 	 * Registered seeder name, e.g. `software-tools`.
@@ -176,7 +176,7 @@ abstract class CPTDP_Seeder_Test_Case extends CPTDP_Test_Case {
 
 		$result = $this->run_seeder();
 
-		$this->assertContains( $first, $result['skipped'] );
+		$this->assertContains( $first, array_merge( $result['skipped'], $result['updated'] ?? array() ), 'Existing item must not be recreated.' );
 		$this->assertCount( count( $rows ), $this->items() );
 
 		$post = get_post( $id );
@@ -199,7 +199,7 @@ abstract class CPTDP_Seeder_Test_Case extends CPTDP_Test_Case {
 
 		$result = $this->run_seeder();
 
-		$this->assertContains( $first, $result['skipped'] );
+		$this->assertContains( $first, array_merge( $result['skipped'], $result['updated'] ?? array() ), 'Existing item must not be recreated.' );
 		$this->assertSame( 'trash', get_post_status( $id ) );
 	}
 

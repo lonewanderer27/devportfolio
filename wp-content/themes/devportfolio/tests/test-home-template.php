@@ -68,4 +68,25 @@ class Devportfolio_Test_Home_Template extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $count, 'The sentence must not be repeated in the hero or anywhere else.' );
 	}
+
+	public function test_testimonials_and_tools_follow_selected_work(): void {
+		$tpl     = $this->template();
+		$needles = array(
+			'id="selected-work"',
+			'<!-- wp:devportfolio/video-modal /-->',
+			'<!-- wp:devportfolio/testimonials /-->',
+			'id="software-tools"',
+			'>Software tools</h2>',
+			'<!-- wp:devportfolio/software-tools /-->',
+			'<!-- wp:template-part {"slug":"footer"',
+		);
+
+		$last = -1;
+		foreach ( $needles as $needle ) {
+			$pos = strpos( $tpl, $needle );
+			$this->assertNotFalse( $pos, "{$needle} missing." );
+			$this->assertGreaterThan( $last, $pos, "{$needle} is out of order." );
+			$last = $pos;
+		}
+	}
 }

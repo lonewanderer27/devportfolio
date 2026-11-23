@@ -66,6 +66,8 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/stats-strip' );
 		register_block_type( __DIR__ . '/blocks/service-list' );
 		register_block_type( __DIR__ . '/blocks/selected-work' );
+		register_block_type( __DIR__ . '/blocks/testimonials' );
+		register_block_type( __DIR__ . '/blocks/software-tools' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
@@ -743,6 +745,22 @@ if ( ! function_exists( 'devportfolio_software_tool_names' ) ) :
 				return $tools;
 			}
 		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_tool_monogram' ) ) :
+	/**
+	 * The two letters shown for a software tool with no icon: first capital, second lowercase ("Sl" for Slack).
+	 *
+	 * @param string $title Tool name.
+	 * @return string
+	 */
+	function devportfolio_tool_monogram( $title ) {
+		$letters = preg_replace( '/[^\p{L}\p{N}]+/u', '', (string) $title );
+		$first   = mb_strtoupper( mb_substr( $letters, 0, 1 ) );
+		$second  = mb_strtolower( mb_substr( $letters, 1, 1 ) );
+
+		return $first . $second;
 	}
 endif;
 

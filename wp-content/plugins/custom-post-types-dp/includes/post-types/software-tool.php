@@ -77,6 +77,14 @@ function cptdp_register_software_tool(): void {
 add_action( 'cptdp_register_post_types', 'cptdp_register_software_tool' );
 
 /**
+ * Register the square size software tool icons are drawn at (DPH-024). Sharp at 2x for a 58px tile.
+ */
+function cptdp_software_tool_image_sizes(): void {
+	add_image_size( 'cptdp-tool-icon', 128, 128, false );
+}
+add_action( 'init', 'cptdp_software_tool_image_sizes' );
+
+/**
  * Force the classic editor for Software Tools. REST stays enabled.
  *
  * @param bool   $use_block_editor Whether the block editor is used.

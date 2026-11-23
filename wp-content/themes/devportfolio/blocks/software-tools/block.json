@@ -1,0 +1,13 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/software-tools",
+	"title": "Software Tools",
+	"category": "widgets",
+	"description": "The grid of software tools from the Software Tool post type. Greyscale until hovered or tapped.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScriptModule": "file:./view.js"
+}

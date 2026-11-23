@@ -1,0 +1,130 @@
+/*
+ * Home testimonials (DPH-022, DPH-023). Greyscale tokens only. Slides share one grid cell, so the section is as high
+ * as the longest quote and nothing jumps when a quote changes.
+ */
+
+.testimonials {
+	text-align: center;
+	padding-top: var(--wp--preset--spacing--60);
+	padding-bottom: var(--wp--preset--spacing--60);
+}
+
+.testimonials__heading {
+	margin: 0 0 28px;
+	font-size: clamp(26px, 3.4vw, 34px);
+	font-weight: 800;
+}
+
+.testimonials__stage {
+	display: grid;
+	max-width: 760px;
+	margin: 0 auto;
+	touch-action: pan-y;
+}
+
+.testimonials__slide {
+	grid-area: 1 / 1;
+	margin: 0;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.3s, visibility 0s 0.3s;
+}
+
+.testimonials__slide.is-active {
+	opacity: 1;
+	visibility: visible;
+	transition: opacity 0.3s;
+}
+
+.testimonials__quote {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.testimonials__quote p {
+	margin: 0;
+	font-size: clamp(20px, 2.6vw, 28px);
+	font-weight: 300;
+	font-style: italic;
+	line-height: 1.4;
+	letter-spacing: -0.01em;
+}
+
+.testimonials__quote p::before {
+	content: '\201C';
+}
+
+.testimonials__quote p::after {
+	content: '\201D';
+}
+
+.testimonials__who {
+	margin-top: 18px;
+	font-size: 14px;
+}
+
+.testimonials__name {
+	font-weight: 700;
+}
+
+.testimonials__company {
+	color: var(--wp--preset--color--mid);
+}
+
+.testimonials__company::before {
+	content: ' \00B7  ';
+}
+
+/* The dot is small; the button around it is the 44px tap area (DPH-030). */
+.testimonials__dots {
+	display: flex;
+	justify-content: center;
+	margin-top: 6px;
+}
+
+.testimonials__dots[hidden] {
+	display: none;
+}
+
+.testimonials__dot {
+	position: relative;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+}
+
+.testimonials__dot::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 8px;
+	height: 8px;
+	margin: -4px 0 0 -4px;
+	border-radius: 50%;
+	background: var(--wp--preset--color--line);
+	transition: background-color 0.2s, transform 0.2s;
+}
+
+.testimonials__dot[aria-current='true']::before {
+	background: var(--wp--preset--color--contrast);
+	transform: scale(1.25);
+}
+
+.testimonials__dot:focus-visible {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: -6px;
+	border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.testimonials__slide,
+	.testimonials__slide.is-active,
+	.testimonials__dot::before {
+		transition: none;
+	}
+}
