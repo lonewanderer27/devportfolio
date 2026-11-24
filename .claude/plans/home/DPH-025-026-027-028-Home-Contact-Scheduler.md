@@ -5,6 +5,19 @@ Branch: `feat/DPH-025-026-027-028-Contact-Scheduler`. Touches the **plugin** (th
 
 **Implementer rule:** every "Fact" below was checked in the repo on the day of writing. If the code does not match a Fact, **stop and report**; do not improvise.
 
+## As built (supersedes the plan below where they differ)
+
+The plan below is the original design. What was built differs in these points; the Phase text is kept for history.
+
+- **Time zones (replaces "Dave's zone defines availability").** The visitor picks a day and one of the times offered, in their own zone (the browser's). The endpoint converts it to UTC in that zone and stores `cptdp_slot_utc` (UTC), `cptdp_visitor_local` (the time as entered) and `cptdp_visitor_tz`. Dave's zone is used only when no visitor zone arrives. The site-zone offsets table (`cptdp_contact_utc_offsets()`) and the zone label were removed.
+- **Times offered (replaces 09:00 to 16:30).** Settings → Contact has a "Booking times" list of 48 half-hour checkboxes (00:00 to 23:30), option `cptdp_contact_times`. Until Dave saves it, the offered times are 10:00, 11:00, 13:00, 14:00, 15:00 and 16:00. Nothing ticked means nothing can be booked (a warning is shown).
+- **Phone layout (replaces the step 1 dialog).** All four steps are one full-screen modal that covers the whole screen, the site header included. It has the same header (✕ and "Check my availability") and the same footer (Back and Next) on every step. On step 1 the day and time are a draft until Next, so ✕, Esc and Back discard it.
+- **Step 1 heading.** "Pick a day and time" is hidden visually; it stays for screen readers and for the focus that moves to it.
+- **Motion.** The modal rises in on opening. Steps slide in from the side they come from (forward from the right, Back from the left). The footer stays still. The thank-you rises in, and Send pulses while the request is sent. All of it is off under `prefers-reduced-motion`.
+- **Emails.** One email only: to the Settings → Contact address, with Reply-To set to the visitor. No confirmation is sent to the visitor (an auto-reply is out of scope). The email gives Dave's site-zone time and the visitor's entry.
+- **Admin sidebar order.** Core only honours whole-number positions for custom post types (a fraction gets the next free slot). The order is Pages (20), Interests (21), Statistics (22), Services (23), Testimonials (29), Software Tools (30), Documents (31), Collaterals (32), Videos (33), Comments (34). Comments is WordPress's own item (25); `cptdp_move_comments_after_videos()` moves it to 34.
+- **Interests view.** The main section shows Submitted (a relative phrase such as "7 hours ago", with the full date and time in a tooltip on hover or tap), Name, Email, Service, Message (or "No message"), and Requested Time in the admin's zone. Details (closed by default) shows the visitor's entry as "Requested Time (visitor's time zone)", Spam check, Email notification and IP address.
+
 ## Out of scope
 - **Marking dates unavailable is a separate, later ticket (DPH-031), confirmed by the user.** Nothing here marks a day as booked, fully booked, struck-through, striped or "unavailable" for any reason other than being in the past (or beyond the 365-day window), and there is no booking or availability data of any kind. Every future day is simply available with the same 16 times.
 - **DPH-031 Availability management** (booked and unavailable day styles, Dave's own calendar). The legend shows only "Available" and "Selected". The slot source is one PHP function (`cptdp_contact_time_slots()`) validated by the server, so DPH-031 later swaps that one function.
@@ -4405,37 +4418,33 @@ Phone (390x844, touch emulation):
 ## Phase F. AGENTS.md
 Add to the **Overview**: *"The **Interests** screen (`includes/post-types/interest.php`, `interest-admin.php`, plugin 0.34.0, DPB-017): CPT `interest` (not public, no REST, no Add New, read-only view, menu position 31, lock icon, badge of unopened items) holds the Home Contact submissions (title = name, content = message, meta `cptdp_email`, `cptdp_ip`, `cptdp_slot_utc` (the requested time in UTC, ISO 8601 with `Z`), `cptdp_visitor_tz`, `cptdp_services`, `cptdp_spam_check`, `cptdp_mail_sent`, `cptdp_seen`; Trash is enabled); the custom status `potential-spam` hides a submission from All and the badge and gives it its own tab with Not spam. `cptdp_akismet_check()` asks Akismet (REST call, key from `WPCOM_API_KEY` or the Akismet plugin's `wordpress_api_key`, filter `cptdp_akismet_key`, fails open) before a submission is saved; the visitor's IP is stored on the Interest, the browser and referrer go only to Akismet. The **contact request** endpoint (`includes/settings/contact-request.php`): `POST cptdp/v1/contact-request` (public; honeypot `website`, 10 requests/hour/client via transient, filters `cptdp_contact_rate_limit` and `cptdp_contact_client_ip`, helper `cptdp_contact_client_ip()`) validates, rate-limits, checks with Akismet, saves an Interest (`publish` or `potential-spam`) and emails the Settings → Contact address (Reply-To the prospect) unless it is spam. `cptdp_contact_time_slots()` (16 half-hour slots 09:00 to 16:30, filter `cptdp_contact_time_slots`), `cptdp_contact_window()` (tomorrow to +365 days in the site zone), `cptdp_contact_service_options()` (top-level Services, then `other`), `cptdp_contact_utc_offsets()` (the site zone's UTC offsets over the window, for the page) and `cptdp_contact_config()` are the single source for the endpoint and the theme (DPH-031 replaces the first two)."* Everything stored is UTC (requested time `cptdp_slot_utc`, received time `post_date_gmt`); the Interests list and view show times in the admin's browser zone through `assets/admin-interest.js` (`<time datetime="…Z" data-cptdp-local>`), and the visitor sees Dave's times plus their own zone (`time.js`). Add under **Theme architecture** a `blocks/contact/` bullet: dynamic block `devportfolio/contact` (DPH-025 to DPH-028), placed last in `front-page.html`, section `#contact`, files (`render.php` markup and JSON payload, `calendar.js`, `steps.js` and `time.js` pure with `node --test`, `picker.js` shared by the card and the phone modal, `view.js` state in memory only, `style.css`), the 800px query (`MOBILE_QUERY` equals the CSS), the phone modal (`createSheetHistory` created while the module runs, a draft committed by "Confirm date & time"), `devportfolio_contact_strings()`/`devportfolio_contact_config()` in `functions.php`, and the test files. Update the test totals once the gates are run, add `tests/test-contact-block.php` to the theme test list and `tests/post-types/test-interest.php`, `tests/settings/test-contact-request.php` to the plugin list.
 
-## Conventional commits
-Branch: `feat/DPH-025-026-027-028-Contact-Scheduler` (from `main`). Stage explicit paths only (untracked plan files of other tickets sit in the tree). Every commit leaves the suites green.
+## Conventional commits (as built)
 
-1. `feat(custom-post-types-dp): add the Interest post type and Akismet check`
-   Files: `wp-content/plugins/custom-post-types-dp/includes/post-types/interest.php`. Body: spam is saved hidden, never published first; fails open. Footer: `Refs: DPB-017, DPH-027`
-2. `feat(custom-post-types-dp): add the read-only Interests screens`
-   Files: `wp-content/plugins/custom-post-types-dp/includes/post-types/interest-admin.php`, `wp-content/plugins/custom-post-types-dp/assets/admin-interest.js`. Body: times are shown in the viewer's own zone. Footer: `Refs: DPB-017, DPH-027`
-3. `test(custom-post-types-dp): cover the Interest post type and screens`
-   Files: `wp-content/plugins/custom-post-types-dp/tests/post-types/test-interest.php`. Footer: `Refs: DPB-017, DPH-027`
-4. `feat(custom-post-types-dp): add the contact request endpoint`
-   Files: `wp-content/plugins/custom-post-types-dp/includes/settings/contact-request.php`. Body: why the route is public and what protects it. Footer: `Refs: DPH-027`
-5. `test(custom-post-types-dp): cover the contact request endpoint`
-   Files: `wp-content/plugins/custom-post-types-dp/tests/settings/test-contact-request.php`. Footer: `Refs: DPH-027`
-6. `chore(custom-post-types-dp): bump version to 0.34.0`
-   Files: `wp-content/plugins/custom-post-types-dp/custom-post-types-dp.php`. Footer: `Refs: DPB-017, DPH-027`
-7. `feat(theme): add the contact calendar, step and time modules`
-   Files: `wp-content/themes/devportfolio/blocks/contact/calendar.js`, `…/steps.js`, `…/time.js`. Footer: `Refs: DPH-025, DPH-026, DPH-027`
-8. `test(theme): cover the contact calendar, step and time modules`
-   Files: `wp-content/themes/devportfolio/blocks/contact/tests/calendar.test.mjs`, `…/steps.test.mjs`, `…/time.test.mjs`. Footer: `Refs: DPH-025, DPH-026, DPH-027`
-9. `feat(theme): add the Home contact scheduler block`
-   Files: `blocks/contact/block.json`, `render.php`, `picker.js`, `view.js`, `style.css`, `functions.php`, `templates/front-page.html` (all under `wp-content/themes/devportfolio/`). Footer: `Refs: DPH-025, DPH-026, DPH-027, DPH-028`
-10. `test(theme): cover the contact block and the Home template`
-    Files: `wp-content/themes/devportfolio/tests/test-contact-block.php`, `wp-content/themes/devportfolio/tests/test-home-template.php`. Footer: `Refs: DPH-025, DPH-026, DPH-027, DPH-028`
-11. `docs(agents): document the contact scheduler and Interests`
-    Files: `AGENTS.md`. Footer: `Refs: DPB-017, DPH-025, DPH-026, DPH-027, DPH-028`
-12. `docs(plans): add DPH-025-026-027-028 plan`
-    Files: `.claude/plans/home/DPH-025-026-027-028-Home-Contact-Scheduler.md`, `.claude/plans/home/Home-User-Stories-Revised.csv`. Footer: `Refs: DPH-025, DPH-026, DPH-027, DPH-028`
+Branch `feat/DPH-025-026-027-028-Contact-Scheduler` from `main`. Commits are in order, oldest first. Each one was added by staging its own files by path; the suites were run on the final tree (plugin 1035 tests, 12 skipped; theme 734 tests; the nine contact and block Node suites all pass). Co-author on every commit: `Claude Haiku 5.5`.
 
-Every agent commit ends with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+Plugin (`custom-post-types-dp`):
+1. `feat(custom-post-types-dp): add the Interest post type and Akismet check`. Files: `includes/post-types/interest.php`. Refs: DPB-017, DPH-027.
+2. `feat(custom-post-types-dp): add the read-only Interests screens`. Files: `includes/post-types/interest-admin.php`, `assets/admin-interest.js`. Refs: DPB-017, DPH-027.
+3. `test(custom-post-types-dp): cover the Interest post type and screens`. Files: `tests/post-types/test-interest.php`. Refs: DPB-017, DPH-027.
+4. `feat(custom-post-types-dp): let Dave choose the booking times`. Files: `includes/settings/contact.php`. Refs: DPH-025, DPH-026, DPH-027. (Not in the original list: the times are a setting.)
+5. `feat(custom-post-types-dp): add the contact request endpoint`. Files: `includes/settings/contact-request.php`, `tests/documents/test-page-rest.php`, `tests/collaterals/test-collateral-pages.php` (the public-route exemption). Refs: DPH-027.
+6. `test(custom-post-types-dp): cover the contact request endpoint and booking times`. Files: `tests/settings/test-contact-request.php`, `tests/settings/test-contact-times.php`. Refs: DPH-027.
+7. `chore(custom-post-types-dp): bump version to 0.34.0`. Files: `custom-post-types-dp.php`. Refs: DPB-017, DPH-027.
+8. `feat(custom-post-types-dp): order the admin sidebar`. Files: `includes/post-types/menu-order.php`, `tests/post-types/test-menu-order.php`, the menu positions in `includes/post-types/{collateral,document,interest,service,software-tool,statistic,video}.php` and their tests. Refs: DPB-017, DPH-027. (Not in the original list: whole-number positions, Comments moved after Videos.)
 
-**PR title:** `feat(theme): add the Home contact scheduler and Interests` (63 characters). Body from `.github/pull_request_template.md` (tick "New feature"): Description (the four stories, the decisions above, the privacy line "submissions, including the submitter's IP address, are stored as Interests in the site database and sent to Akismet for a spam check; the browser and referrer are not stored; Trash is enabled"), Implementation (plugin endpoint and shared slot source, theme block, phone modal), How to Test (Phase E), the Open decisions, and the known gap (hero and nav "Book a call" buttons do not exist yet; they only need `href="/#contact"`). End with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+Theme (`devportfolio`):
+9. `feat(theme): add the contact calendar, step and time modules`. Files: `blocks/contact/calendar.js`, `steps.js`, `time.js`. Refs: DPH-025, DPH-026, DPH-027.
+10. `test(theme): cover the contact calendar, step and time modules`. Files: `blocks/contact/tests/calendar.test.mjs`, `steps.test.mjs`, `time.test.mjs`. Refs: DPH-025, DPH-026, DPH-027.
+11. `feat(theme): add the Home contact scheduler block`. Files: `blocks/contact/block.json`, `render.php`, `picker.js`, `view.js`, `style.css`, `functions.php`, `templates/front-page.html`. Refs: DPH-025, DPH-026, DPH-027, DPH-028.
+12. `test(theme): cover the contact block and the Home template`. Files: `tests/test-contact-block.php`, `tests/test-home-template.php`. Refs: DPH-025, DPH-026, DPH-027, DPH-028.
+
+Docs and plan:
+13. `docs(agents): document the contact scheduler and Interests`. Files: `AGENTS.md`. Refs: DPB-017, DPH-025 to DPH-028.
+14. `docs(agents): record the admin sidebar order`. Files: `AGENTS.md`. Refs: DPB-017, DPH-027.
+15. `docs(plans): add DPH-025-026-027-028 plan`. Files: `.claude/plans/home/DPH-025-026-027-028-Home-Contact-Scheduler.md`, `.claude/plans/home/Home-User-Stories-Revised.csv`. Refs: DPH-025 to DPH-028.
+16. `docs(plans): record the as-built decisions in the DPH-025 plan`. Files: `.claude/plans/home/DPH-025-026-027-028-Home-Contact-Scheduler.md`. Refs: DPH-025 to DPH-028.
+
+**PR title:** `feat(theme): add the Home contact scheduler and Interests` (63 characters). The PR description is at `Desktop/DPH-025-026-027-028-PR-Description.md`, with the screenshots beside it.
 
 ## Risks to watch
 - `REMOTE_ADDR` behind a proxy makes the rate limit global (Open decision 3).
