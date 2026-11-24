@@ -65,15 +65,18 @@ ddev exec --dir=/var/www/html/wp-content/plugins/custom-post-types-dp vendor/bin
 # theme suite (runner is the plugin's PHPUnit; the theme has no Composer deps of its own)
 ddev exec --dir=/var/www/html/wp-content/themes/devportfolio ../../plugins/custom-post-types-dp/vendor/bin/phpunit
 # filters: --filter Devportfolio_Test_Navigation | --group theme | --testdox
+
+# every node suite (one line per block)
+ddev exec --dir=/var/www/html/wp-content/themes/devportfolio 'for d in blocks/*/tests; do set -- $d/*.test.mjs; [ -e "$1" ] || continue; printf "%s " "${d%/tests}"; (cd "${d%/tests}" && node --test --test-reporter=tap tests/*.test.mjs 2>&1 | grep -E "^# (tests|fail)" | tr "\n" " "); echo; done'
 ```
 
-Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 1024 tests (12 skipped), theme 787 tests, contact JS 23 tests, Documents modal JS 17 tests, video modal JS 44 tests, shared JS 179 tests, collateral modal JS 24 tests, collateral grid JS 18 tests, video grid JS 15 tests and Selected work JS 14 tests (`node --test`), all passing (the two earlier `Devportfolio_Test_Navigation` Services-link failures are fixed, so there are no known failures).
+Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 1084 tests (12 skipped), theme 787 tests, contact JS 20 tests, Documents modal JS 17 tests, video modal JS 49 tests, shared JS 179 tests, collateral modal JS 24 tests, collateral grid JS 18 tests, video grid JS 17 tests, testimonials JS 5 tests and Selected work JS 14 tests (`node --test`), all passing (the two earlier `Devportfolio_Test_Navigation` Services-link failures are fixed, so there are no known failures).
 
 No linter or CI configured.
 
 ## What is tracked vs ignored
 
-`.gitignore` is allowlist-style. Tracked: `.ddev/config.yaml`, `.github/pull_request_template.md`, `.claude/plans/` (DPB-NNN implementation plans per ticket), `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `readme.html`, `wp-content/index.php`, `wp-content/themes/twentytwentyfive/`, `wp-content/themes/devportfolio/`, and `wp-content/plugins/custom-post-types-dp/`.
+`.gitignore` ignores WordPress core, generated content, dependencies and every plugin and theme except the allowlisted ones; anything else (a new root file such as `.editorconfig`, the `docs/` folder) is tracked by default. Tracked: `.ddev/config.yaml`, `.github/pull_request_template.md`, `.claude/plans/` (DPB-NNN implementation plans per ticket), `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `readme.html`, `wp-content/index.php`, `wp-content/themes/twentytwentyfive/`, `wp-content/themes/devportfolio/`, and `wp-content/plugins/custom-post-types-dp/`.
 
 Ignored (do **not** edit expecting it to persist, do not commit):
 - WP core: `wp-admin/`, `wp-includes/`, root `wp-*.php` (including `wp-config.php`), `xmlrpc.php`
@@ -95,6 +98,8 @@ To track a new custom theme or plugin, add a `!` allowlist entry in `.gitignore`
 - Text domain: `devportfolio`; function prefix `devportfolio_`; any new pattern slug prefixed `devportfolio/`. Wrap user-facing strings in `esc_html__()` / `esc_html_x()` etc.
 - Don't modify WP core files. Customise via the `devportfolio` theme or plugin. `twentytwentyfive` is reference only; do not edit it.
 - Never commit secrets, DB dumps, or `wp-config.php`.
+- `.editorconfig` at the repo root sets tabs, LF and a final newline (spaces for YAML; vendored files are left alone). Apply it to files you touch; never reformat untouched files.
+- Ship a feature by updating the matching `docs/agents/*.md` file (see Where to look). Edit AGENTS.md itself only when a convention, command or the table changes.
 
 ## Git
 
