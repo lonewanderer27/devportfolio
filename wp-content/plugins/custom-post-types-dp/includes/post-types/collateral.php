@@ -478,6 +478,7 @@ function cptdp_collateral_enqueue_admin( string $hook ): void {
 	}
 
 	wp_enqueue_media();
+	wp_enqueue_script( 'cptdp-admin-statistics', CPTDP_URL . 'assets/admin-statistics.js', array( 'jquery' ), CPTDP_VERSION, true );
 	wp_enqueue_script(
 		'cptdp-admin-collateral',
 		CPTDP_URL . 'assets/admin-collateral.js',

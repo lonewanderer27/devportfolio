@@ -511,6 +511,7 @@ function cptdp_video_enqueue_admin( string $hook ): void {
 	}
 
 	wp_enqueue_media();
+	wp_enqueue_script( 'cptdp-admin-statistics', CPTDP_URL . 'assets/admin-statistics.js', array( 'jquery' ), CPTDP_VERSION, true );
 
 	// DPV-041: the preview clip is cut in the browser. Only this screen loads the library.
 	wp_enqueue_script( 'cptdp-mediabunny', CPTDP_URL . 'assets/vendor/mediabunny/mediabunny.min.js', array(), '1.66.0', true );
