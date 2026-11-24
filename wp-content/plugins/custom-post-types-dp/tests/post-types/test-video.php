@@ -17,7 +17,7 @@ class CPTDP_Test_Video extends CPTDP_Media_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'videos',
-			'menu_position' => 22,
+			'menu_position' => 33,
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'video_category', 'aspect_ratio' ),

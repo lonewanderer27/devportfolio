@@ -89,4 +89,22 @@ class Devportfolio_Test_Home_Template extends WP_UnitTestCase {
 			$last = $pos;
 		}
 	}
+
+	public function test_contact_closes_the_page_after_the_software_tools(): void {
+		$tpl     = $this->template();
+		$needles = array(
+			'<!-- wp:devportfolio/software-tools /-->',
+			'<!-- wp:devportfolio/contact /-->',
+			'</main>',
+			'<!-- wp:template-part {"slug":"footer"',
+		);
+
+		$last = -1;
+		foreach ( $needles as $needle ) {
+			$pos = strpos( $tpl, $needle );
+			$this->assertNotFalse( $pos, "{$needle} missing." );
+			$this->assertGreaterThan( $last, $pos, "{$needle} is out of order." );
+			$last = $pos;
+		}
+	}
 }

@@ -46,7 +46,7 @@ function cptdp_register_software_tool(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 24,
+			'menu_position' => 30,
 			'menu_icon'     => 'dashicons-admin-tools',
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),

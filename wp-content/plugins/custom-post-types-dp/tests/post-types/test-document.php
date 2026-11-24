@@ -17,7 +17,7 @@ class CPTDP_Test_Document extends CPTDP_Media_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'documents',
-			'menu_position' => 25,
+			'menu_position' => 31,
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'document_category' ),

@@ -449,7 +449,8 @@ class CPTDP_Test_Collateral_Pages extends CPTDP_Pages_Test_Case {
 
 	public function test_no_route_is_public(): void {
 		foreach ( $this->server->get_routes( 'cptdp/v1' ) as $route => $handlers ) {
-			if ( '/cptdp/v1' === $route ) {
+			// The contact request (DPH-027) is the one public route by design; test-contact-request.php covers it.
+			if ( '/cptdp/v1' === $route || '/cptdp/v1/contact-request' === $route ) {
 				continue;
 			}
 

@@ -49,7 +49,7 @@ function cptdp_register_video(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 22,
+			'menu_position' => 33,
 			'menu_icon'     => 'dashicons-video-alt3',
 			'hierarchical'  => false,
 			// custom-fields exposes registered meta in REST; its meta box is removed below.

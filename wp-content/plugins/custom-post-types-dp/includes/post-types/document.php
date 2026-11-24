@@ -45,7 +45,7 @@ function cptdp_register_document(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 25,
+			'menu_position' => 31,
 			'menu_icon'     => 'dashicons-media-document',
 			'hierarchical'  => false,
 			// custom-fields exposes registered meta in REST; its meta box is removed below.

@@ -17,7 +17,7 @@ class CPTDP_Test_Statistic extends CPTDP_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'statistics',
-			'menu_position' => 21,
+			'menu_position' => 22,
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'page-attributes' ),
 			'taxonomies'    => array(),
