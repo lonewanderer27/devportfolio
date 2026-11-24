@@ -300,14 +300,14 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	// --- CSS --------------------------------------------------------------------------
 
 	public function test_css_stage_and_book_layout(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*display: flex[^}]*overflow: hidden#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__stage[^{]*\{[^}]*display: grid[^}]*place-items: center[^}]*min-width: 0#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__book[^{]*\{\s*position: relative#', $css );
 	}
 
 	public function test_the_modal_opens_without_changing_size(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertSame( 1, preg_match( '#@keyframes documents-modal-pop\s*\{(.*?)\n\}#s', $css, $m ) );
 		$this->assertStringNotContainsString( 'scale', $m[1], 'A scale in the open animation makes the modal grow a few pixels.' );
 
@@ -352,14 +352,14 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_css_has_a_transparent_selectable_text_layer(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__text[^{]*\{[^}]*position: absolute[^}]*inset: 0#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__text :is\(span, br\)[^{]*\{[^}]*position: absolute[^}]*color: transparent[^}]*white-space: pre#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__book--selectable[^{]*\{[^}]*user-select: text#s', $css );
 	}
 
 	public function test_css_pages_are_white_on_the_grey_stage(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__page[^{]*\{[^}]*background: \#fff#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__page[^{]*\{[^}]*box-shadow#s', $css );
 		// The grey, dotted body is the existing stage background.
@@ -368,7 +368,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_css_clips_the_empty_bottom_strip_of_cropped_stored_images(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__book--cropped \.documents-modal__sheet[^{]*\{[^}]*display: block[^}]*overflow: hidden#s', $css );
 		$this->assertSame( 1, preg_match( '#\.documents-modal__book--cropped \.documents-modal__sheet img\s*\{([^}]*)\}#', $css, $m ) );
 		$this->assertStringContainsString( 'height: calc(100% / (1 - var(--book-crop, 0)))', $m[1] );
@@ -388,7 +388,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_css_page_number_sits_at_the_bottom_centre_of_every_page(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertSame( 1, preg_match( '#\.documents-modal__pn[^{]*\{([^}]*)\}#', $css, $m ) );
 		$this->assertStringContainsString( 'position: absolute', $m[1] );
 		$this->assertMatchesRegularExpression( '#bottom: [\d.]+%#', $m[1] );
@@ -398,14 +398,14 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_css_fold_shades_the_spine_edge_of_each_page_in_a_spread(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__page--left::after\s*\{[^}]*right: 0[^}]*linear-gradient\(to right#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__page--right::after\s*\{[^}]*left: 0[^}]*linear-gradient\(to left#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__page--left::after,\s*\.documents-modal__page--right::after\s*\{[^}]*pointer-events: none#s', $css );
 	}
 
 	public function test_css_status_message_and_reduced_motion(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__state[^{]*\{[^}]*position: absolute[^}]*inset: 0[^}]*pointer-events: none#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__state\[data-kind="unavailable"\] \.documents-modal__spinner[^{]*\{\s*display: none#', $css );
 		$this->assertMatchesRegularExpression( '#@media \(prefers-reduced-motion: reduce\)\s*\{.*\.documents-modal__spinner[^{]*\{\s*animation: none#s', $css );
@@ -527,7 +527,7 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	public function test_a_broken_stored_image_is_marked_and_a_broken_first_spread_falls_back(): void {
 		$js  = $this->read( 'blocks/shared/page-source.js' );
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( "pageEl.classList.add( `\${ prefix }__page--broken` )", $js );
 		$this->assertStringContainsString( 'documents-modal__page--broken', $css );
 		// The second page of a spread is loaded before the book is shown, like the first.

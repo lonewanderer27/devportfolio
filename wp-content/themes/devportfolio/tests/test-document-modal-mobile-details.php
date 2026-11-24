@@ -41,7 +41,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 
 	/** The CSS of the Details sheet, from its block comment to the sideways Pages rules. */
 	private function details_css(): string {
-		$css   = $this->read( 'blocks/document-modal/style.css' );
+		$css   = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$start = strpos( $css, 'Mobile Details sheet (DPD-023)' );
 		$this->assertNotFalse( $start, 'The Details sheet CSS block is missing.' );
 		return substr( $css, (int) $start );
@@ -179,7 +179,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 			$this->assertStringNotContainsString( $gone, $viewer, $gone );
 		}
 		$this->assertStringNotContainsString( 'toggleDetails', $this->read( 'blocks/shared/mobile.js' ) );
-		$this->assertStringNotContainsString( 'documents-mobile__details-panel', $this->read( 'blocks/document-modal/style.css' ) );
+		$this->assertStringNotContainsString( 'documents-mobile__details-panel', ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) ) );
 	}
 
 	/* ---- Styles ----------------------------------------------------- */
@@ -204,7 +204,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Details extends WP_UnitTestCase {
 	}
 
 	public function test_held_sideways_the_sheet_has_two_columns_without_a_new_query(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '/@media \(pointer: coarse\) and \(orientation: landscape\) and \(max-height: 520px\) \{.*?\.documents-mobile__sheet--details\s*\{[^}]*display:\s*grid[^}]*grid-template-areas/s', $css );
 		$this->assertMatchesRegularExpression( '/\.documents-mobile__sheet--details \.documents-mobile__sheet-body\s*\{[^}]*display:\s*contents/', $css );
 	}

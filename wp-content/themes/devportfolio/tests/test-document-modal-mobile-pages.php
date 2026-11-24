@@ -41,7 +41,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Pages extends WP_UnitTestCase {
 
 	/** The CSS from the Pages sheet block to the end of the file. */
 	private function sheet_css(): string {
-		$css   = $this->read( 'blocks/document-modal/style.css' );
+		$css   = $this->read( 'blocks/shared/viewer.css' ); // The whole Pages sheet block moved there (DPB-NNN F2).
 		$start = strpos( $css, 'Mobile Pages sheet (DPD-020)' );
 		$this->assertNotFalse( $start, 'The Pages sheet CSS block is missing.' );
 		return substr( $css, (int) $start );

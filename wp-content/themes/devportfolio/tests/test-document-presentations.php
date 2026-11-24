@@ -474,7 +474,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_css_for_the_native_viewer(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		$this->assertMatchesRegularExpression( '#\.documents-modal__native[^{]*\{[^}]*display: flex[^}]*flex-direction: column[^}]*height: 100%#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__native-canvas\s*\{[^}]*display: block[^}]*max-width: 100%[^}]*background: \#fff#s', $css );
@@ -488,7 +488,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	 * inside the stage in the body's padding.
 	 */
 	public function test_a_zoomed_slide_grows_on_both_axes_and_scrolls(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$js  = $this->read( 'blocks/shared/viewer.js' );
 
 		$this->assertMatchesRegularExpression( '#\.documents-modal__native--zoomed,[^{]*\{[^}]*justify-content: flex-start[^}]*overflow: auto#s', $css );
@@ -510,7 +510,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	 * so the first zoom (which stops the stage being their containing block) does not move them.
 	 */
 	public function test_the_zoom_buttons_sit_under_the_next_arrow_at_its_width(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$js  = $this->read( 'blocks/shared/viewer.js' );
 
 		$this->assertStringContainsString( '( stage.closest( `.${ prefix }__body` ) || stage ).appendChild( zoomFab )', $js );

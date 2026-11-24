@@ -92,7 +92,7 @@ class Devportfolio_Test_Document_Modal_Mobile extends WP_UnitTestCase {
 	}
 
 	public function test_mobile_css_is_full_screen_and_paired_with_desktop_breakpoint(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( 'width: 100%;', $css );
 		$this->assertStringContainsString( 'height: 100dvh;', $css );
 		$this->assertStringContainsString( 'max-width: none;', $css );

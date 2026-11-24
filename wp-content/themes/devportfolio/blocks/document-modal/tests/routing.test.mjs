@@ -28,7 +28,7 @@ test( 'exactly one dialog is right for every screen', () => {
 } );
 
 test( 'the stylesheet repeats the same queries, so CSS and script cannot disagree', () => {
-	const css = readFileSync( new URL( '../style.css', import.meta.url ), 'utf8' );
+	const css = readFileSync( new URL( '../../shared/viewer.css', import.meta.url ), 'utf8' );
 	assert.ok( css.includes( `@media (min-width: 701px) and (not (${ SIDEWAYS_QUERY }))` ), 'mobile dialog hidden only when wide and not sideways' );
 	assert.ok( css.includes( `@media (max-width: 700px), ${ SIDEWAYS_QUERY }` ), 'desktop dialog hidden when narrow or sideways' );
 	assert.equal( WIDE_QUERY, '(min-width: 701px)' );

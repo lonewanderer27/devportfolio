@@ -161,7 +161,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_the_grid_keeps_clear_of_the_floating_buttons_in_portrait_and_landscape(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		// Own scrolling: not the frame's touch-action: none; the dialog does not scroll behind it.
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__scroll\s*\{[^}]*touch-action:\s*pan-x pan-y pinch-zoom#', $css );
@@ -210,7 +210,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 
 	public function test_the_word_scroller_zoom_buttons_call_the_library_and_stop_at_its_limits(): void {
 		$js  = $this->read( 'blocks/shared/mobile-viewer.js' );
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		$this->assertStringContainsString( "stepBy( 'zoomIn' )", $js );
 		$this->assertStringContainsString( "stepBy( 'zoomOut' )", $js );
@@ -221,7 +221,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_held_sideways_the_word_scroller_fills_the_screen_but_the_grid_keeps_clear_of_the_buttons(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		// A spreadsheet grid starts below the floating Close and Download buttons (its tab bar sits at the bottom).
 		$this->assertMatchesRegularExpression( '#orientation: landscape\) and \(max-height: 520px\)\s*\{\s*(?:\.collaterals-mobile__scroll,\s*)?\.documents-mobile__scroll\s*\{[^}]*top:\s*calc\(\s*max\(12px, env\(safe-area-inset-top, 0px\)\) \+ 38px \+ 8px\s*\)#', $css );
@@ -240,7 +240,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'if ( gesture === \'drag\' && ! native )', $js, 'The canvas does not follow the finger.' );
 		$this->assertStringNotContainsString( 'innerHTML', $js );
 
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__native\s*\{[^}]*user-select:\s*text#', $css, 'Text on the slide can be selected.' );
 	}
 
@@ -258,7 +258,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		foreach ( array( 'zoomIn', 'zoomOut', 'zoomControls' ) as $key ) {
 			$this->assertNotSame( '', $strings[ $key ], $key );
 		}
-		$this->assertMatchesRegularExpression( '#\.documents-mobile__zoomfabs\s*\{[^}]*left:#', $this->read( 'blocks/document-modal/style.css' ) );
+		$this->assertMatchesRegularExpression( '#\.documents-mobile__zoomfabs\s*\{[^}]*left:#', ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) ) );
 	}
 
 	public function test_the_crop_and_the_text_layer_are_honoured(): void {
@@ -337,7 +337,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_css_has_the_mobile_body_rules(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__frame\s*\{[^}]*touch-action: none#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__fabs\.is-away\s*\{[^}]*opacity: 0#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__footer\[hidden\],\s*\.documents-mobile__bar\[hidden\][^{]*\{[^}]*display: none#s', $css, 'hidden must beat display: grid/block.' );
@@ -366,7 +366,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'fabs.append( pagesFab, fab )', $js, 'Pages on top of details.' );
 		$this->assertStringContainsString( 'ui.fab.hidden = ! chrome.info', $js );
 
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#@media \(min-width: 701px\) and \(not \(\(pointer: coarse\) and \(orientation: landscape\)#', $css, 'The mobile dialog is not hidden when sideways.' );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__footer\s*\{\s*display: none#', $css );
 	}
@@ -386,7 +386,7 @@ class Devportfolio_Test_Document_Modal_Mobile_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_landscape_has_no_header_and_the_round_buttons_line_up(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__header\s*\{\s*display: contents#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__close\s*\{\s*left: max\(12px#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-mobile__download\s*\{\s*right: max\(12px#', $css );

@@ -350,6 +350,10 @@ class Devportfolio_Test_Design_System extends WP_UnitTestCase {
 	public function test_blocks_use_the_shared_glass_and_edge_tokens_with_a_fallback(): void {
 		foreach ( array( 'document-categories', 'document-modal' ) as $block ) {
 			$css = $this->read( "blocks/{$block}/style.css" );
+			if ( 'document-modal' === $block ) {
+				// The modal's blur moved with the shared rules (DPB-NNN F2).
+				$css .= $this->read( 'blocks/shared/viewer.css' );
+			}
 
 			$this->assertStringContainsString( 'var(--wp--custom--glass--filter, blur(20px) saturate(180%))', $css, "{$block} must use the shared blur." );
 			$this->assertStringNotContainsString( 'backdrop-filter: blur(20px) saturate(180%)', $css, "{$block} still hard-codes the blur." );

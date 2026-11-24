@@ -352,7 +352,7 @@ class Devportfolio_Test_Video_Modal_Mobile extends WP_UnitTestCase {
 	}
 
 	public function test_sheet_shell_css_lists_the_videos_mobile_selectors(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		$this->assertStringContainsString( '.videos-mobile__sheet', $css );
 		$this->assertStringContainsString( '.videos-mobile__dim', $css );

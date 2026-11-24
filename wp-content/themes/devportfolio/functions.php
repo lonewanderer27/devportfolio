@@ -53,6 +53,14 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 	 * @since 0.2.0
 	 */
 	function devportfolio_register_blocks() {
+		// Shared viewer rules (DPB-NNN F2): blocks/document-modal/block.json lists this handle first in its `style`.
+		wp_register_style(
+			'devportfolio-viewer',
+			get_theme_file_uri( 'blocks/shared/viewer.css' ),
+			array(),
+			(string) filemtime( __DIR__ . '/blocks/shared/viewer.css' )
+		);
+
 		register_block_type( __DIR__ . '/blocks/document-categories' );
 		register_block_type( __DIR__ . '/blocks/document-book' );
 		register_block_type( __DIR__ . '/blocks/document-modal' );
@@ -97,14 +105,15 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 			(string) filemtime( __DIR__ . '/assets/css/page.css' )
 		);
 
-		// The Collaterals modal draws its book with the Documents viewer rules (its selectors are listed next to the
-		// Documents ones in blocks/document-modal/style.css, DPC-012 D5). The Documents modal already loads that file.
+		// The Collaterals and Videos modals draw with the shared viewer rules (blocks/shared/viewer.css, DPB-NNN F2;
+		// before, they were part of blocks/document-modal/style.css, DPC-012 D5). Enqueued here, late, so the archives
+		// keep the cascade order they had; the Documents modal lists the same handle in its block.json `style`.
 		if ( is_post_type_archive( array( 'collateral', 'video' ) ) ) {
 			wp_enqueue_style(
 				'devportfolio-viewer',
-				get_theme_file_uri( 'blocks/document-modal/style.css' ),
+				get_theme_file_uri( 'blocks/shared/viewer.css' ),
 				array(),
-				(string) filemtime( __DIR__ . '/blocks/document-modal/style.css' )
+				(string) filemtime( __DIR__ . '/blocks/shared/viewer.css' )
 			);
 		}
 	}
