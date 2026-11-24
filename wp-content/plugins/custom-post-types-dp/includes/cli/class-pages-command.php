@@ -322,6 +322,34 @@ class CPTDP_Pages_Command {
 	}
 
 	/**
+	 * Delete LibreOffice temporary folders older than a day (a crashed conversion leaves them; WP-Cron does this
+	 * daily, DPB-NNN F3).
+	 *
+	 * [--dry-run]
+	 * : List the folders, delete nothing.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp cptdp pages sweep --dry-run
+	 *
+	 * @param string[]             $args       Positional args (none).
+	 * @param array<string, mixed> $assoc_args Flags.
+	 */
+	public function sweep( array $args, array $assoc_args ): void {
+		$folders = CPTDP_Pptx_Converter::stray_folders();
+
+		if ( WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false ) ) {
+			foreach ( $folders as $dir ) {
+				WP_CLI::log( $dir );
+			}
+			WP_CLI::success( sprintf( '%d folder(s) would be removed.', count( $folders ) ) );
+			return;
+		}
+
+		WP_CLI::success( sprintf( 'Removed %d folder(s).', cptdp_sweep_temp_folders() ) );
+	}
+
+	/**
 	 * A crop as a percentage for the tables.
 	 *
 	 * @param float $crop Crop 0..1.

@@ -102,7 +102,7 @@ class CPTDP_Test_Loader extends CPTDP_Test_Case {
 		$basename = plugin_basename( CPTDP_PATH . 'custom-post-types-dp.php' );
 
 		$this->assertNotFalse( has_action( 'activate_' . $basename, 'cptdp_activate' ) );
-		$this->assertNotFalse( has_action( 'deactivate_' . $basename, 'flush_rewrite_rules' ) );
+		$this->assertNotFalse( has_action( 'deactivate_' . $basename, 'cptdp_deactivate' ) );
 	}
 
 	public function test_activation_registers_types_and_flushes_rewrite_rules(): void {

@@ -45,4 +45,12 @@ function cptdp_activate(): void {
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cptdp_activate' );
-register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+
+/**
+ * Remove the plugin's recurring cron event, then flush rewrite rules.
+ */
+function cptdp_deactivate(): void {
+	cptdp_unschedule_temp_sweep();
+	flush_rewrite_rules();
+}
+register_deactivation_hook( __FILE__, 'cptdp_deactivate' );
