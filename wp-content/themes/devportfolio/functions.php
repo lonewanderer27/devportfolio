@@ -69,9 +69,142 @@ if ( ! function_exists( 'devportfolio_register_blocks' ) ) :
 		register_block_type( __DIR__ . '/blocks/testimonials' );
 		register_block_type( __DIR__ . '/blocks/software-tools' );
 		register_block_type( __DIR__ . '/blocks/contact' );
+		register_block_type( __DIR__ . '/blocks/hero' );
 	}
 endif;
 add_action( 'init', 'devportfolio_register_blocks' );
+
+if ( ! function_exists( 'devportfolio_hero_roles' ) ) :
+	/**
+	 * The Home hero's roles (DPH-003): the main (highlighted) role and the others, from the Job Role post type.
+	 *
+	 * No highlighted role: the first published role by order is the main one. No published role: both are empty.
+	 *
+	 * @since 0.35.0
+	 *
+	 * @return array{main: string, others: string[]}
+	 */
+	function devportfolio_hero_roles() {
+		$ids = devportfolio_published_ids(
+			'job_role',
+			array(
+				'orderby' => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+				),
+			)
+		);
+
+		if ( empty( $ids ) ) {
+			return array(
+				'main'   => '',
+				'others' => array(),
+			);
+		}
+
+		$main_id = (int) $ids[0];
+		foreach ( $ids as $id ) {
+			if ( get_post_meta( $id, 'cptdp_highlight', true ) ) {
+				$main_id = (int) $id;
+				break;
+			}
+		}
+
+		$others = array();
+		foreach ( $ids as $id ) {
+			if ( (int) $id !== $main_id ) {
+				$others[] = get_the_title( $id );
+			}
+		}
+
+		return array(
+			'main'   => get_the_title( $main_id ),
+			'others' => $others,
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_hero_name_parts' ) ) :
+	/**
+	 * The site title split for the hero (DPH-001): the first word is outlined, the rest is solid.
+	 *
+	 * @since 0.35.0
+	 *
+	 * @return array{first: string, rest: string}
+	 */
+	/**
+	 * The hero title (DPH-001): the Hero title setting in Settings > Contact, else the site title when that is blank.
+	 *
+	 * @since 0.35.0
+	 */
+	function devportfolio_hero_title() {
+		$title = function_exists( 'cptdp_get_contact' ) ? trim( (string) cptdp_get_contact( 'hero_title' ) ) : '';
+
+		return '' !== $title ? $title : trim( (string) get_bloginfo( 'name' ) );
+	}
+
+	function devportfolio_hero_name_parts() {
+		$parts = preg_split( '/\s+/', devportfolio_hero_title(), 2 );
+
+		return array(
+			'first' => isset( $parts[0] ) ? (string) $parts[0] : '',
+			'rest'  => isset( $parts[1] ) ? (string) $parts[1] : '',
+		);
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_hero_portrait_id' ) ) :
+	/**
+	 * The portrait's attachment ID from Settings > Contact, or 0 when none is set or the file is gone.
+	 *
+	 * @since 0.35.0
+	 */
+	function devportfolio_hero_portrait_id() {
+		$id = function_exists( 'cptdp_get_contact' ) ? (int) cptdp_get_contact( 'portrait_id' ) : 0;
+
+		return ( $id && wp_get_attachment_image_url( $id, 'large' ) ) ? $id : 0;
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_hero_portrait_sizes' ) ) :
+	/**
+	 * The `sizes` attribute of the portrait: about 42% of the width on desktop (370px at most), 56% on phones.
+	 * The <img> and the preload link both use it, so they always pick the same file.
+	 *
+	 * @since 0.35.0
+	 */
+	function devportfolio_hero_portrait_sizes() {
+		return '(max-width: 900px) 56vw, min(370px, 42vw)';
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_hero_preload_portrait' ) ) :
+	/**
+	 * Preload the portrait on the front page: it is the only image above the fold (DPH-001).
+	 *
+	 * @since 0.35.0
+	 */
+	function devportfolio_hero_preload_portrait() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+
+		$id = devportfolio_hero_portrait_id();
+		if ( ! $id ) {
+			return;
+		}
+
+		$srcset = wp_get_attachment_image_srcset( $id, 'large' );
+
+		printf(
+			'<link rel="preload" as="image" href="%1$s"%2$s imagesizes="%3$s" fetchpriority="high">' . "\n",
+			esc_url( (string) wp_get_attachment_image_url( $id, 'large' ) ),
+			$srcset ? ' imagesrcset="' . esc_attr( $srcset ) . '"' : '', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here.
+			esc_attr( devportfolio_hero_portrait_sizes() )
+		);
+	}
+endif;
+add_action( 'wp_head', 'devportfolio_hero_preload_portrait', 2 );
 
 if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 	/**

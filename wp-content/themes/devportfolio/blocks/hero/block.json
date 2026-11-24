@@ -1,0 +1,13 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "devportfolio/hero",
+	"title": "Hero",
+	"category": "widgets",
+	"description": "The Home page hero: the big name, the portrait, the role, the call to action and the contact links.",
+	"textdomain": "devportfolio",
+	"supports": { "html": false },
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}

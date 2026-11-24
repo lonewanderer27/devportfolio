@@ -1,22 +1,24 @@
 Story ID,Feature,Sub-Feature,User Story,Priority,Type,Pre-requisites,Acceptance Criteria,Passed
-DPH-001,Homepage,Hero - Name & Portrait,"As a visitor, I want to see the large name ""DAVE PORTFOLIO"" with a cut-out portrait of Dave overlapping its lower half, so that I know straight away whose portfolio this is.",Medium,User Story,N/A,"1.) The name is real text (not an image) on one line: ""DAVE"" outlined (2.5px stroke) and ""PORTFOLIO"" solid. It scales with the screen width.
-2.) The portrait is a greyscale, head-and-shoulders cut-out, centred (about 40% of the width on desktop), anchored to the bottom edge of the hero and overlapping the lower half of the name. The face is never covered or cropped.
+DPH-001,Homepage,Hero - Name & Portrait,"As a visitor, I want to see the large name ""DAVID JOHN"" (the Hero title in Settings > Contact) with a cut-out portrait of Dave overlapping its lower half, so that I know straight away whose portfolio this is.",Medium,User Story,N/A,"1.) The name is real text (not an image) on one line: the first word outlined (2.5px stroke), the rest solid. It scales with the screen width, and the portrait stays the same size whatever the length of the title. The title is the Hero title in Settings > Contact (default ""David John""); if it is left blank the site title is used.
+2.) The portrait is a greyscale, head-and-shoulders cut-out, centred, 46% of the width of the hero column, with its head starting at the middle of the letters so that it overlaps the name. Its bottom edge is not faded out. The face is never covered or cropped.
 3.) The portrait has alt text and is the only image above the fold (compressed and preloaded).
-4.) On phones (900px and below) the big name is hidden; the nav title reads ""Dave Portfolio"" and the portrait is about 55% of the width, shifted slightly right.",
+4.) On phones (620px and below) the big name is hidden (it stays readable by screen readers), and the portrait is at most 210px wide, centred above the role. Tablets (621px to 1024px) keep the desktop layout at half the screen height.
+5.) The portrait is uploaded in Settings > Contact (PNG or WebP).
+6.) On desktop and tablets the portrait rises and the name drops in on the first visit, then the bottom-left group and the links fade in. Nothing moves for visitors who ask for reduced motion.",
 DPH-002,Homepage,Navbar,"As a visitor, I want a navigation bar at the top of every page with Home highlighted, so that I can move between the sections of the site.",Medium,User Story,N/A,"1.) From 1024px the title Dave Portfolio sits on the left, the links are centred in this order: Home, Services, Documents, Videos, Collaterals, Testimonials, Contact, and Contact is an outlined pill on the right. Between 901px and 1023px the links are centred with no title.
 2.) Home is shown as the active link on the Home page. Testimonials and Contact never show as active (they are anchors on Home).
 3.) Documents, Videos, Collaterals and Services open their pages. Testimonials and Contact scroll to their sections on Home.
 4.) At 900px and below the links collapse into a menu icon, and the title ""Dave Portfolio"" appears on the left.
 5.) Every link has a tap area of at least 44 x 44px.",
-DPH-003,Homepage,Hero - Role & Call to Action,"As a visitor, I want to see Dave's role, his specialities (the top-level Services) and a main button in the hero, so that I understand what he offers and can start working with him.",Medium,User Story,N/A,"1.) ""Virtual Assistant"" is shown in bold (21px). Below it is one line in small caps listing the titles of the top-level (parent) Services, in their Services order and separated by dots. Child services are not listed. Editing the Services in wp-admin changes this line.
+DPH-003,Homepage,Hero - Role & Call to Action,"As a visitor, I want to see Dave's role, his specialities (the Job Roles) and a main button in the hero, so that I understand what he offers and can start working with him.",Medium,User Story,N/A,"1.) ""Virtual Assistant"" (the highlighted Job Role) is shown in bold (21px). Below it is one line in small caps listing the other Job Roles in their order, separated by dots. Editing the Job Roles in wp-admin changes this line.
 2.) Below that is a single filled (black) button, ""Let's work together ↗"". It is the only filled button in the hero.
 3.) Clicking the button scrolls to the Contact section on the same page (it does not open a new page).
-4.) ""Scroll down ↓"" is shown as small grey text at the bottom left of the hero.
-5.) On phones the roles line and the scroll hint are hidden. The role and a full-width button sit under the portrait, centred.",
+4.) ""Scroll down ↓"" is shown as small grey text at the bottom left of the hero, with the rest of the bottom-left group. Its arrow moves down, up and down. Once the visitor scrolls, the hint disappears for the rest of the visit; a refresh shows it again.
+5.) On phones (620px and below) the scroll hint is hidden. The role, the roles line and a full-width button sit under the portrait, centred.",
 DPH-004,Homepage,Hero - External Links,"As a visitor, I want quick links to Dave's LinkedIn, WhatsApp and email in the hero, so that I can contact him straight away.",Medium,User Story,N/A,"1.) Three outlined pills are shown in the hero: ""in LinkedIn"", ""WhatsApp"" and ""Email me"".
 2.) LinkedIn and WhatsApp open in a new tab. ""Email me"" opens the visitor's email app addressed to Dave.
 3.) The links come from Settings > Contact (LinkedIn URL, WhatsApp URL, email), so Dave edits them in wp-admin. A link with no value is not shown.
-4.) The pills are hidden on phones and appear in the footer instead.",
+4.) The pills are hidden on phones (620px and below); the footer lists the same links at every width.",
 DPH-005,Homepage,Stats Strip,"As a visitor, I want to see Dave's key numbers just under the hero, so that I get quick proof of his experience.",Medium,User Story,Dave supplies the real figures,"1.) Three numbers sit side by side under the hero, separated by thin dividers, in a light weight: ""+5 yrs Experience"", ""+40 Happy clients"", ""24 hr Typical reply time"".
 2.) The values and labels are managed in wp-admin (Statistics) so Dave can change them without a developer.
 3.) The numbers do nothing when clicked.
