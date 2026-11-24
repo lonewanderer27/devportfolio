@@ -17,7 +17,7 @@ class CPTDP_Test_Software_Tool extends CPTDP_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'software-tools',
-			'menu_position' => 24,
+			'menu_position' => 30,
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
 			'taxonomies'    => array(),

@@ -28,7 +28,7 @@ function cptdp_register_interest(): void {
 			'show_ui'             => true,
 			'show_in_menu'        => true,
 			'show_in_rest'        => false,
-			'menu_position'       => 31,
+			'menu_position'       => 21, // Right after Pages (20), before Statistics (22).
 			'menu_icon'           => 'dashicons-lock',
 			'supports'            => false,
 			'capability_type'     => 'post',

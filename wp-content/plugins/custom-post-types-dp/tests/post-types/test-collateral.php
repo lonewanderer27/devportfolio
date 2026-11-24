@@ -17,7 +17,7 @@ class CPTDP_Test_Collateral extends CPTDP_Media_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'collaterals',
-			'menu_position' => 27,
+			'menu_position' => 32,
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields' ),
 			'taxonomies'    => array( 'collateral_category' ),

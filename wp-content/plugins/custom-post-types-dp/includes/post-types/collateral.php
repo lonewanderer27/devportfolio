@@ -45,7 +45,7 @@ function cptdp_register_collateral(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 27,
+			'menu_position' => 32,
 			'menu_icon'     => 'dashicons-portfolio',
 			'hierarchical'  => false,
 			// custom-fields exposes registered meta in REST; its meta box is removed below.

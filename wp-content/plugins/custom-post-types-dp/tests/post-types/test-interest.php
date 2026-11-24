@@ -63,7 +63,7 @@ class CPTDP_Test_Interest extends CPTDP_Test_Case {
 		$this->assertSame( 'do_not_allow', $type->cap->create_posts );
 		$this->assertFalse( post_type_supports( 'interest', 'title' ) );
 		$this->assertFalse( post_type_supports( 'interest', 'editor' ) );
-		$this->assertSame( 31, $type->menu_position );
+		$this->assertSame( 21, $type->menu_position );
 	}
 
 	public function test_potential_spam_is_hidden_from_all_but_has_its_own_tab(): void {

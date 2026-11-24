@@ -40,7 +40,7 @@ function cptdp_register_service(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 20,
+			'menu_position' => 23, // After Statistics (22), before Testimonials (29).
 			'menu_icon'     => 'dashicons-hammer',
 			'hierarchical'  => true,
 			'supports'      => array( 'title', 'editor', 'page-attributes' ),

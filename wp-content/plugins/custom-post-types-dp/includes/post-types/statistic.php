@@ -39,7 +39,7 @@ function cptdp_register_statistic(): void {
 			'public'        => true,
 			'show_ui'       => true,
 			'show_in_menu'  => true,
-			'menu_position' => 21,
+			'menu_position' => 22,
 			'menu_icon'     => 'dashicons-chart-bar',
 			'hierarchical'  => false,
 			'supports'      => array( 'title', 'editor', 'page-attributes' ),

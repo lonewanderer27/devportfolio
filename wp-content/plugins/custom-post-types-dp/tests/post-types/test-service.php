@@ -17,7 +17,7 @@ class CPTDP_Test_Service extends CPTDP_CPT_Test_Case {
 	protected function expected(): array {
 		return array(
 			'slug'          => 'services',
-			'menu_position' => 20,
+			'menu_position' => 23,
 			'hierarchical'  => true,
 			'supports'      => array( 'title', 'editor', 'page-attributes' ),
 			'taxonomies'    => array(),
