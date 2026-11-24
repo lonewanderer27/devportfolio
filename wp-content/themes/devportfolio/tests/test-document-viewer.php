@@ -587,6 +587,6 @@ class Devportfolio_Test_Document_Viewer extends WP_UnitTestCase {
 
 	public function test_block_json_still_loads_the_view_as_a_module(): void {
 		$block = json_decode( $this->read( 'blocks/document-modal/block.json' ), true );
-		$this->assertSame( 'file:./view.js', $block['viewScriptModule'] );
+		$this->assertSame( 'file:./boot.js', $block['viewScriptModule'] );
 	}
 }

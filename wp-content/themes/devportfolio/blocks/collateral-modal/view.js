@@ -20,6 +20,7 @@ import { createMobileModal } from '../shared/mobile.js';
 import { applyDownload, guardDisabledDownload } from '../shared/download.js';
 import { nextTwo } from './next.js';
 import { linkFor, copyText } from './copy-link.js';
+import { historyEvents } from '../shared/history-events.js';
 
 const root = document.querySelector( '.collaterals-modal-root' );
 const dialog = root ? root.querySelector( '.collaterals-modal' ) : null;
@@ -466,7 +467,7 @@ if ( dialog && mobileDialog && dataEl ) {
 	// phase at module top level and stopping the event whenever it acts: the Interactivity Router answers every
 	// popstate and reloads the page for a URL it has not cached (see document-modal/view.js). A sheet's own entry
 	// (shared/sheet-back.js) has the same URL; the sheet listener runs first and this one leaves it alone.
-	window.addEventListener(
+	historyEvents.addEventListener(
 		'popstate',
 		( event ) => {
 			if ( skipNextPop ) {

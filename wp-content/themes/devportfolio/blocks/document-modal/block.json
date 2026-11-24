@@ -11,5 +11,5 @@
 	},
 	"render": "file:./render.php",
 	"style": [ "devportfolio-viewer", "file:./style.css" ],
-	"viewScriptModule": "file:./view.js"
+	"viewScriptModule": "file:./boot.js"
 }

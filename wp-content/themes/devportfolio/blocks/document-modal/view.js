@@ -18,6 +18,7 @@ import { createMobileModal } from '../shared/mobile.js';
 import { createRouting } from '../shared/routing.js';
 import { bindOpen } from '../shared/modal-trigger.js';
 import { applyDownload, guardDisabledDownload } from '../shared/download.js';
+import { historyEvents } from '../shared/history-events.js';
 
 const root = document.querySelector( '.documents-modal-root' );
 const dialog = root ? root.querySelector( '.documents-modal' ) : null;
@@ -254,7 +255,7 @@ if ( dialog && dataEl ) {
 	// Navigation block) answers every popstate and reloads the page for a URL it has not cached (here
 	// `?document_slug=...`), which flashed the page on Forward. A move that is not the modal's (a category change,
 	// or the modal already in the state the URL describes) still reaches the other listeners.
-	window.addEventListener( 'popstate', ( event ) => {
+	historyEvents.addEventListener( 'popstate', ( event ) => {
 		if ( skipNextPop ) {
 			skipNextPop = false;
 			if ( slugFromUrl( window.location.href ) && ! isOpen() ) {

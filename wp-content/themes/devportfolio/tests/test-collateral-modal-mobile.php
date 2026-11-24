@@ -236,10 +236,10 @@ class Devportfolio_Test_Collateral_Modal_Mobile extends WP_UnitTestCase {
 
 	public function test_back_closes_only_a_sheet_and_the_popstate_listener_is_registered_at_script_run(): void {
 		$view = $this->read( 'blocks/collateral-modal/view.js' );
-		$this->assertStringContainsString( "window.addEventListener(\n\t\t'popstate',", $view );
+		$this->assertStringContainsString( "historyEvents.addEventListener(\n\t\t'popstate',", $view );
 		$this->assertLessThan(
 			strpos( $view, 'routing.onChange( swapDialogs );' ),
-			strpos( $view, "window.addEventListener(\n\t\t'popstate'" ),
+			strpos( $view, "historyEvents.addEventListener(\n\t\t'popstate'" ),
 			'The listener is registered while the script runs, not inside a lazy import.'
 		);
 		$this->assertStringContainsString( 'hasSheetState( event.state )', $view, 'Forward onto a sheet entry does nothing.' );
