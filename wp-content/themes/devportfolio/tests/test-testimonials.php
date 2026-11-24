@@ -98,7 +98,7 @@ class Devportfolio_Test_Testimonials extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'id="testimonials"', $html );
-		$this->assertStringContainsString( '<h2 id="testimonials-heading" class="testimonials__heading">What clients say</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="testimonials-heading" class="testimonials__heading home-reveal">What clients say</h2>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="testimonials-heading"', $html );
 	}
 

@@ -43,7 +43,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'work' )
 ?>
 <div <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
 
-	<article class="work-card work-card--documents">
+	<article class="work-card work-card--documents home-reveal">
 		<?php
 		echo devportfolio_work_card_text( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper.
 			_x( 'Documents', 'selected work card', 'devportfolio' ),
@@ -73,7 +73,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'work' )
 		<?php endif; ?>
 	</article>
 
-	<article class="work-card work-card--videos">
+	<article class="work-card work-card--videos home-reveal">
 		<?php
 		echo devportfolio_work_card_text( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper.
 			_x( 'Videos', 'selected work card', 'devportfolio' ),
@@ -124,7 +124,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'work' )
 		<?php endif; ?>
 	</article>
 
-	<article class="work-card work-card--collaterals">
+	<article class="work-card work-card--collaterals home-reveal">
 		<?php
 		echo devportfolio_work_card_text( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the helper.
 			_x( 'Brand collaterals', 'selected work card', 'devportfolio' ),

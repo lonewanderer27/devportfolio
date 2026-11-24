@@ -49,9 +49,9 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 );
 ?>
 <section <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?> aria-labelledby="testimonials-heading">
-	<h2 id="testimonials-heading" class="testimonials__heading"><?php echo esc_html_x( 'What clients say', 'Home testimonials heading', 'devportfolio' ); ?></h2>
+	<h2 id="testimonials-heading" class="testimonials__heading home-reveal"><?php echo esc_html_x( 'What clients say', 'Home testimonials heading', 'devportfolio' ); ?></h2>
 
-	<div class="testimonials__stage" data-testimonials-stage aria-live="off">
+	<div class="testimonials__stage home-reveal" data-testimonials-stage aria-live="off">
 		<?php foreach ( $devportfolio_quotes as $devportfolio_i => $devportfolio_q ) : ?>
 			<figure class="testimonials__slide<?php echo 0 === $devportfolio_i ? ' is-active' : ''; ?>" data-testimonials-slide>
 				<blockquote class="testimonials__quote"><p><?php echo esc_html( $devportfolio_q['quote'] ); ?></p></blockquote>
@@ -66,7 +66,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 	</div>
 
 	<?php if ( $devportfolio_count > 1 ) : ?>
-		<div class="testimonials__dots" role="group" aria-label="<?php esc_attr_e( 'Choose a testimonial', 'devportfolio' ); ?>" data-testimonials-dots hidden>
+		<div class="testimonials__dots home-reveal" role="group" aria-label="<?php esc_attr_e( 'Choose a testimonial', 'devportfolio' ); ?>" data-testimonials-dots hidden>
 			<?php for ( $devportfolio_i = 0; $devportfolio_i < $devportfolio_count; $devportfolio_i++ ) : ?>
 				<button type="button" class="testimonials__dot"<?php echo 0 === $devportfolio_i ? ' aria-current="true"' : ''; ?> aria-label="<?php echo esc_attr( sprintf( /* translators: 1: position, 2: total */ __( 'Show testimonial %1$d of %2$d', 'devportfolio' ), $devportfolio_i + 1, $devportfolio_count ) ); ?>"></button>
 			<?php endfor; ?>

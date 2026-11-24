@@ -43,6 +43,6 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'stats-s
 ?>
 <ul <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
 	<?php foreach ( $devportfolio_stats as $devportfolio_stat ) : ?>
-		<li class="stats-strip__item"><b class="stats-strip__value"><?php echo esc_html( $devportfolio_stat['value'] ); ?></b><span class="stats-strip__label"><?php echo esc_html( $devportfolio_stat['label'] ); ?></span></li>
+		<li class="stats-strip__item home-reveal"><b class="stats-strip__value"><?php echo esc_html( $devportfolio_stat['value'] ); ?></b><span class="stats-strip__label"><?php echo esc_html( $devportfolio_stat['label'] ); ?></span></li>
 	<?php endforeach; ?>
 </ul>

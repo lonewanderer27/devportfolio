@@ -26,7 +26,7 @@ if ( empty( $devportfolio_ids ) ) {
 	return;
 }
 
-$devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'software-tools' ) );
+$devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'software-tools home-reveal' ) );
 ?>
 <ul <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?> data-software-tools>
 	<?php

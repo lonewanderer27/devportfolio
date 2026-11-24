@@ -39,7 +39,7 @@ if ( ! empty( $devportfolio_contact['email'] ) ) {
 	);
 }
 
-$devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'site-footer' ) );
+$devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'site-footer home-reveal' ) );
 ?>
 <div <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?>>
 	<p class="site-footer__copy"><?php echo esc_html( sprintf( '© %1$s %2$s', wp_date( 'Y' ), get_bloginfo( 'name' ) ) ); ?></p>
