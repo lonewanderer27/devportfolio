@@ -25,6 +25,12 @@
 			"glass": {
 				"tint": "rgb(255 255 255 / 0.8)",
 				"filter": "blur(20px) saturate(180%)"
+			},
+			"motion": {
+				"ease": "cubic-bezier(.2, .8, .2, 1)",
+				"reveal-duration": "520ms",
+				"reveal-distance": "14px",
+				"reveal-stagger": "80ms"
 			}
 		},
 		"color": {

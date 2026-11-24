@@ -1,0 +1,41 @@
+/*
+ * Home sections: opening animation (DPH-032).
+ *
+ * Every element with the class `home-reveal` fades in and rises a few pixels, once, the first time it scrolls into
+ * view. assets/js/home-reveal.js (printed inline in the head, front page only) adds `has-home-reveal` to <html>,
+ * then `is-revealing` and finally `is-revealed` to each element. Nothing here applies without that class, so with
+ * no JavaScript, no IntersectionObserver, reduced motion, in print or after a cross-document view transition every
+ * element shows at its final place.
+ *
+ * Only opacity and translate change: the layout never moves, so anchor links land where they should and no layout
+ * shift is recorded. The translate property is separate from an element's own transforms, so hover lifts keep
+ * working. Never put `home-reveal` on a wrapper that holds a dialog, a fixed or sticky element or a backdrop blur:
+ * opacity and translate on an ancestor change how those are drawn. An element with focus inside is never hidden.
+ * The phone contact card (`.contact.is-modal > .contact__card`, a fixed modal with its own animation) is left alone.
+ *
+ * Tokens: theme.json settings.custom.motion (ease, reveal-duration, reveal-distance, reveal-stagger).
+ * The hero has its own entrance (blocks/hero/style.css) and carries no `home-reveal`.
+ */
+
+@media screen and (prefers-reduced-motion: no-preference) {
+	.has-home-reveal .home-reveal:not(.is-revealing):not(.is-revealed):not(:focus-within):not(.is-modal > *) {
+		opacity: 0;
+		translate: 0 var(--wp--custom--motion--reveal-distance, 14px);
+	}
+
+	.has-home-reveal .home-reveal.is-revealing:not(.is-modal > *) {
+		animation: home-reveal var(--wp--custom--motion--reveal-duration, 520ms) var(--wp--custom--motion--ease, cubic-bezier(.2, .8, .2, 1)) calc(var(--home-reveal-index, 0) * var(--wp--custom--motion--reveal-stagger, 80ms)) both;
+	}
+
+	@keyframes home-reveal {
+		from {
+			opacity: 0;
+			translate: 0 var(--wp--custom--motion--reveal-distance, 14px);
+		}
+
+		to {
+			opacity: 1;
+			translate: none;
+		}
+	}
+}
