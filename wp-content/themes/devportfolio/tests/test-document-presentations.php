@@ -377,7 +377,7 @@ class Devportfolio_Test_Document_Presentations extends WP_UnitTestCase {
 	}
 
 	public function test_no_third_party_address_is_hardcoded_in_the_scripts_or_markup(): void {
-		foreach ( array( 'blocks/shared/viewer.js', 'blocks/document-modal/view.js', 'blocks/shared/mode.js', 'blocks/document-modal/render.php', 'functions.php' ) as $file ) {
+		foreach ( array( 'blocks/shared/viewer.js', 'blocks/document-modal/view.js', 'blocks/shared/mode.js', 'blocks/document-modal/render.php', 'functions.php', 'inc/core.php', 'inc/documents.php', 'inc/collaterals.php', 'inc/videos.php', 'inc/viewer.php', 'inc/home.php' ) as $file ) {
 			$this->assertStringNotContainsString( 'officeapps', $this->read( $file ), $file );
 			$this->assertStringNotContainsString( 'googleapis', $this->read( $file ), $file );
 		}
