@@ -83,10 +83,10 @@ class CPTDP_Test_Collateral extends CPTDP_Media_CPT_Test_Case {
 		$other = self::factory()->post->create( array( 'post_type' => 'software_tool' ) );
 		$page  = self::factory()->post->create( array( 'post_type' => 'page' ) );
 
-		$this->assertSame( array(), cptdp_collateral_sanitize_software_tools( 'nope' ) );
+		$this->assertSame( array(), cptdp_media_sanitize_software_tools( 'nope' ) );
 		$this->assertSame(
 			array( $tool, $other ),
-			cptdp_collateral_sanitize_software_tools( array( $tool, (string) $tool, $page, 0, 999999, $other ) )
+			cptdp_media_sanitize_software_tools( array( $tool, (string) $tool, $page, 0, 999999, $other ) )
 		);
 	}
 
@@ -128,12 +128,12 @@ class CPTDP_Test_Collateral extends CPTDP_Media_CPT_Test_Case {
 
 		$this->assertStringContainsString(
 			'No software tools yet.',
-			$this->capture( fn() => cptdp_collateral_render_software_tools_box( get_post( $id ) ) )
+			$this->capture( fn() => cptdp_media_render_software_tools_box( get_post( $id ) ) )
 		);
 
 		$tool = self::factory()->post->create( array( 'post_type' => 'software_tool', 'post_title' => 'InDesign' ) );
 
-		$html = $this->capture( fn() => cptdp_collateral_render_software_tools_box( get_post( $id ) ) );
+		$html = $this->capture( fn() => cptdp_media_render_software_tools_box( get_post( $id ) ) );
 		$this->assertStringContainsString( 'InDesign', $html );
 		$this->assertStringContainsString( 'value="' . $tool . '"', $html );
 	}

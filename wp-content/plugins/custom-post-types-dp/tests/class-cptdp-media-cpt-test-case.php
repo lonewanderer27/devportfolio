@@ -63,12 +63,15 @@ abstract class CPTDP_Media_CPT_Test_Case extends CPTDP_CPT_Test_Case {
 	/**
 	 * Call a module function by suffix, e.g. `sanitize_url`.
 	 *
-	 * @param string $suffix Function name after `cptdp_{type}_`.
+	 * @param string $suffix Function name after `cptdp_{type}_` (or `cptdp_media_` for the shared helpers).
 	 * @param mixed  ...$args Arguments.
 	 * @return mixed
 	 */
 	protected function call( string $suffix, ...$args ) {
-		return call_user_func( 'cptdp_' . $this->post_type() . '_' . $suffix, ...$args );
+		$shared   = array( 'sanitize_url', 'sanitize_software_tools', 'sanitize_statistics', 'render_software_tools_box', 'render_statistics_box', 'render_highlight_box' );
+		$function = in_array( $suffix, $shared, true ) ? 'cptdp_media_' . $suffix : 'cptdp_' . $this->post_type() . '_' . $suffix;
+
+		return call_user_func( $function, ...$args );
 	}
 
 	/**
