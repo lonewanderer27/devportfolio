@@ -130,3 +130,8 @@ DPH-030,Homepage,Motion and Accessibility (all of Home),"As a visitor, I want th
 DPH-031,Homepage,Contact - Availability Management (Future),"As Dave, I want to control which days and times can be booked, so that prospects only pick times I am free.",Low,User Story,DPH-025. Not part of the current release,"1.) FUTURE: Dave can mark days as fully booked or unavailable and set the times offered, and the calendar shows them (booked days struck through and striped, unavailable days faded).
 2.) FUTURE: a time that has been requested is no longer offered to other prospects.
 3.) The source of availability (wp-admin or an external calendar) is decided when this is scheduled.",
+DPH-032,Homepage,Sections - Opening Animation,"As a visitor, I want each Home section after the hero to fade in gently as I reach it, so that the page feels alive without getting in my way.",Low,User Story,DPH-030,"1.) Each section below the hero (stats, What I do, Selected work, What clients say, Software tools, Contact, footer) fades in and rises about 14px over about half a second, once, the first time it scrolls into view. Items of a section that arrive together follow each other by a short step.
+2.) Sections already on screen when the page opens animate straight away. Scrolling back up never replays it.
+3.) Nothing moves with ""reduce motion"" on, without JavaScript, in print, or in an old browser: everything shows at its final place.
+4.) Anchor links (Services, Selected work, Testimonials, Contact) land exactly where they did before, and nothing on the page shifts.
+5.) Going Back from an archive to Home keeps the Selected work title morph.",
