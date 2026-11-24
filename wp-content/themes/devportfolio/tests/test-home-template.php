@@ -107,4 +107,16 @@ class Devportfolio_Test_Home_Template extends WP_UnitTestCase {
 			$last = $pos;
 		}
 	}
+
+	public function test_hero_comes_first_then_the_stats_strip(): void {
+		$tpl = $this->template();
+
+		$hero  = strpos( $tpl, '<!-- wp:devportfolio/hero /-->' );
+		$stats = strpos( $tpl, '<!-- wp:devportfolio/stats-strip /-->' );
+
+		$this->assertNotFalse( $hero, 'The hero block is in the Home template.' );
+		$this->assertNotFalse( $stats );
+		$this->assertLessThan( $stats, $hero );
+		$this->assertStringNotContainsString( 'goes here', $tpl, 'The placeholder comment is gone.' );
+	}
 }
