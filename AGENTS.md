@@ -38,6 +38,7 @@ ddev launch                          # open site
 ddev wp <cmd>                        # WP-CLI
 ddev snapshot / ddev export-db       # DB backups
 ddev wp theme activate devportfolio  # theme has no build step
+ddev composer --working-dir=wp-content/plugins/custom-post-types-dp lint:summary  # PHPCS report, never fails
 ```
 
 ### Seeders
@@ -72,7 +73,7 @@ ddev exec --dir=/var/www/html/wp-content/themes/devportfolio 'for d in blocks/*/
 
 Run both before a PR that touches the plugin or the theme: a plugin change (e.g. a CPT's archive slug) can break theme tests. `ddev composer ... test` also works for the plugin but hides PHPUnit's output on failure; prefer the `ddev exec` form. Expected totals today: plugin 1088 tests (12 skipped), theme 787 tests, contact JS 20 tests, Documents modal JS 17 tests, video modal JS 49 tests, shared JS 179 tests, collateral modal JS 24 tests, collateral grid JS 18 tests, video grid JS 17 tests, testimonials JS 5 tests and Selected work JS 14 tests (`node --test`), all passing (the two earlier `Devportfolio_Test_Navigation` Services-link failures are fixed, so there are no known failures).
 
-No linter or CI configured.
+PHPCS with WordPress Coding Standards is a report, never a gate: `ddev composer --working-dir=wp-content/plugins/custom-post-types-dp lint:summary` (counts) or `lint` (every finding), ruleset `wp-content/plugins/custom-post-types-dp/phpcs.xml.dist` (plugin and theme PHP, tests excluded). See `docs/agents/tests.md`. No ESLint, no CI.
 
 ## What is tracked vs ignored
 
