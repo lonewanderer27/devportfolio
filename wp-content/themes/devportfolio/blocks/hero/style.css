@@ -1,0 +1,324 @@
+/*
+ * The name and the portrait share one stage the width of the hero column, so the portrait is sized from the column
+ * and the length of the title never changes it. The name is centred inside the stage.
+ */
+/* First screen: the hero is the width of the content column, like the other home sections, and fills the window
+   height below the sticky header. */
+.hero {
+	position: relative;
+	margin-block: 0;
+	--hero-h: calc(100vh - var(--site-header-height, 0px));
+	--hero-h: calc(100dvh - var(--site-header-height, 0px));
+	height: var(--hero-h);
+	overflow: hidden;
+	background: var(--wp--preset--color--base);
+}
+
+/* The hero fills the first screen, so the block gap and the page's top padding above it would push its foot off
+   the screen. */
+.wp-site-blocks > main:has(> .hero) {
+	margin-block-start: 0;
+	padding-top: 0 !important; /* page.css trims the page padding to 16px !important on phones. */
+}
+
+/* Full-height box centred on the page; its width is the name's text width. */
+.hero__stage {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	font-size: min(12vw, 168px);
+}
+
+/* DPH-001: real text, one line, scales with the width. DAVE is outlined, the rest solid. */
+.hero__name {
+	margin: 0;
+	padding-top: 46px;
+	/* The name spans about 84% of the window (the UA's h1 2em is replaced); 1.6em caps it on very wide screens. */
+	font-size: 1em;
+	text-align: center;
+	font-weight: 900;
+	letter-spacing: -2px;
+	line-height: 1;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: var(--wp--preset--color--contrast);
+}
+
+.hero__name-first {
+	color: transparent;
+	-webkit-text-stroke: 2.5px var(--wp--preset--color--contrast);
+}
+
+/* The head starts at the foot of the letters and the body runs off the bottom edge. The top is measured in the
+   name's own font size (em, the same size as the name) so it moves with the name. The width is what makes a
+   head-and-shoulders cut-out reach the foot of the first screen (about 1.3 x the height left under the name),
+   kept between 46% and 90% of the name's width. Greyscale in CSS; the file keeps its colour. */
+.hero__portrait {
+	position: absolute;
+	left: 50%;
+	top: calc(46px + 0.5em);
+	z-index: 2;
+	width: 46%;
+	width: clamp(46%, (var(--hero-h) - 46px - 0.5em) * 1.3, 90%);
+	transform: translateX(-50%);
+}
+
+.hero__portrait-img {
+	display: block;
+	width: 100%;
+	height: auto;
+	object-fit: contain;
+	object-position: bottom center;
+	filter: grayscale(1);
+}
+
+/* DPH-003 */
+.hero__intro {
+	position: absolute;
+	left: 0;
+	bottom: 44px;
+	z-index: 3;
+	max-width: 290px;
+}
+
+.hero__role {
+	margin: 0 0 6px;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.hero__roles {
+	margin: 0 0 12px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	line-height: 1.5;
+	text-transform: uppercase;
+}
+
+.hero__cta {
+	display: inline-block;
+	padding: 10px 18px;
+	border: 1.5px solid var(--wp--preset--color--contrast);
+	border-radius: 999px;
+	background: var(--wp--preset--color--contrast);
+	color: var(--wp--preset--color--base);
+	font-size: 14px;
+	text-align: center;
+	text-decoration: none;
+}
+
+.hero__cta:hover {
+	background: var(--wp--preset--color--base);
+	color: var(--wp--preset--color--contrast);
+}
+
+/* DPH-004 */
+.hero__links {
+	position: absolute;
+	right: 0;
+	bottom: 44px;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.hero__pill {
+	display: inline-block;
+	padding: 8px 16px;
+	border: 1.5px solid var(--wp--preset--color--line);
+	border-radius: 20px;
+	background: var(--wp--preset--color--base);
+	color: var(--wp--preset--color--contrast);
+	font-size: 13px;
+	text-decoration: none;
+}
+
+.hero__pill:hover {
+	border-color: var(--wp--preset--color--contrast);
+}
+
+.hero__scroll {
+	position: absolute;
+	left: 0;
+	bottom: 16px;
+	z-index: 3;
+	margin: 0;
+	font-size: 12px;
+	color: var(--wp--preset--color--mid);
+}
+
+.hero__cta:focus-visible,
+.hero__pill:focus-visible {
+	outline: 2px solid var(--wp--preset--color--contrast);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	html:has(.hero) {
+		scroll-behavior: smooth;
+	}
+}
+
+/* Entrance on the first load, desktop and tablet only (phones keep their flow layout and no motion): the name comes
+   down from above, the portrait rises from below, then the two corners fade in. The portrait moves with `translate`,
+   so its `transform: translateX(-50%)` centring is untouched. With reduced motion nothing runs and everything shows
+   at its final state. */
+@media (min-width: 621px) and (prefers-reduced-motion: no-preference) {
+	.hero__name {
+		animation: hero-fade-down 0.9s cubic-bezier(.2, .7, .2, 1) 0s both;
+	}
+
+	.hero__portrait {
+		animation: hero-fade-up 1.1s cubic-bezier(.2, .7, .2, 1) 0.15s both;
+	}
+
+	.hero__intro,
+	.hero__links,
+	.hero__scroll {
+		animation: hero-fade-in 0.9s cubic-bezier(.2, .7, .2, 1) 0.45s both;
+	}
+
+	.hero__scroll-arrow {
+		display: inline-block;
+		animation: hero-arrow 1.6s ease-in-out 1.4s infinite;
+	}
+
+	@keyframes hero-fade-down {
+		from {
+			opacity: 0;
+			transform: translateY(-48px);
+		}
+
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes hero-fade-up {
+		from {
+			opacity: 0;
+			translate: 0 48px;
+		}
+
+		to {
+			opacity: 1;
+			translate: 0 0;
+		}
+	}
+
+	@keyframes hero-arrow {
+		0%, 100% { transform: translateY(0); }
+		25% { transform: translateY(6px); }
+		50% { transform: translateY(-4px); }
+		75% { transform: translateY(6px); }
+	}
+
+	@keyframes hero-fade-in {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
+	}
+}
+
+@media (max-width: 1100px) {
+	.hero__intro {
+		max-width: 240px;
+	}
+}
+
+/* Phones (620px and below), per the lo-fi wireframe's mobile layout (home-lofi-wireframe.html): one column in the
+   same order. Tablets keep the desktop layout at half the screen height. The name stays hidden visually (it is still the
+   h1 for screen readers), the portrait leads at most 210px wide, the role, the roles line and a full-width button sit
+   under it, and the pills, scroll hint and note are hidden (the footer lists the same links). */
+@media (min-width: 621px) and (max-width: 1024px) {
+	.hero {
+		--hero-h: 50vh;
+		--hero-h: 50dvh;
+	}
+}
+
+@media (max-width: 620px) {
+	.hero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		height: auto;
+		padding: 30px 0 26px;
+	}
+
+	.hero__stage {
+		position: relative;
+		top: auto;
+		bottom: auto;
+		left: auto;
+		transform: none;
+		width: 100%;
+	}
+
+	.hero__name {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.hero__portrait {
+		position: relative;
+		left: auto;
+		top: auto;
+		bottom: auto;
+		width: min(210px, 56%);
+		margin: 0 auto;
+		transform: none;
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+
+	.hero__intro {
+		position: relative;
+		left: auto;
+		bottom: auto;
+		width: 100%;
+		max-width: none;
+		padding: 12px 20px 0;
+		text-align: center;
+	}
+
+	.hero__role {
+		font-size: 24px;
+	}
+
+	.hero__roles {
+		display: block;
+		margin: 0 0 12px;
+		font-size: 10.5px;
+	}
+
+	.hero__cta {
+		display: block;
+		padding: 12px;
+	}
+
+	.hero__links,
+	.hero__scroll {
+		display: none;
+	}
+}
