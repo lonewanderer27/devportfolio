@@ -215,3 +215,41 @@ if ( ! function_exists( 'devportfolio_viewer_mobile_footer' ) ) :
 		);
 	}
 endif;
+
+if ( ! function_exists( 'devportfolio_deferred_style_handles' ) ) :
+	/**
+	 * Style handles only an open viewer dialog needs (DPB-NNN F1). They are printed as a preload, so they never
+	 * block the first paint; blocks/shared/lazy-modal.js waits for them before a dialog opens.
+	 *
+	 * @return string[]
+	 */
+	function devportfolio_deferred_style_handles() {
+		return array( 'devportfolio-viewer', 'devportfolio-document-modal-style-2', 'devportfolio-collateral-modal-style', 'devportfolio-video-modal-style' );
+	}
+endif;
+
+if ( ! function_exists( 'devportfolio_defer_viewer_style' ) ) :
+	/**
+	 * Prints a viewer stylesheet as `<link rel="preload" as="style">` that turns itself into a stylesheet once it
+	 * has loaded. Admin screens and REST requests (the editor) keep the plain stylesheet.
+	 *
+	 * @param string $tag    The `<link>` tag WordPress built.
+	 * @param string $handle Style handle.
+	 * @param string $href   Stylesheet URL.
+	 * @param string $media  Media attribute.
+	 * @return string
+	 */
+	function devportfolio_defer_viewer_style( $tag, $handle, $href, $media ) {
+		if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! in_array( $handle, devportfolio_deferred_style_handles(), true ) ) {
+			return $tag;
+		}
+
+		return sprintf(
+			"<link rel='preload' as='style' id='%s' href='%s' media='%s' onload=\"this.onload=null;this.rel='stylesheet'\" />\n",
+			esc_attr( $handle . '-css' ),
+			esc_url( $href ),
+			esc_attr( $media ? $media : 'all' )
+		);
+	}
+endif;
+add_filter( 'style_loader_tag', 'devportfolio_defer_viewer_style', 10, 4 );
