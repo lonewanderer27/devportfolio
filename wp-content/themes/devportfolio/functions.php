@@ -103,6 +103,24 @@ if ( ! function_exists( 'devportfolio_enqueue_page_styles' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_page_styles' );
 
+if ( ! function_exists( 'devportfolio_enqueue_nav_spy' ) ) :
+	/**
+	 * Home only: moves the active main navigation item as sections scroll into view.
+	 */
+	function devportfolio_enqueue_nav_spy() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+		wp_enqueue_script_module(
+			'devportfolio-nav-spy',
+			get_theme_file_uri( 'assets/js/nav-spy.js' ),
+			array(),
+			(string) filemtime( __DIR__ . '/assets/js/nav-spy.js' )
+		);
+	}
+endif;
+add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_nav_spy' );
+
 if ( ! function_exists( 'devportfolio_modal_single_redirect_url' ) ) :
 	/**
 	 * URL for redirecting a published single of a modal post type to its archive deeplink (DPD-032, DPC-020).
