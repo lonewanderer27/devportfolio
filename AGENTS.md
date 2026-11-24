@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repo.
 
 ## Overview
 
-WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Active theme is `devportfolio` (`wp-content/themes/devportfolio/`), a standalone, greyscale block theme built from the lo-fi wireframes in `.claude/plans/` (originally forked from Twenty Twenty-Five 1.5, which stays installed but unused). The Documents page is the `document` archive template (`templates/archive-document.html`), not a Page: a Page slugged `documents` would be shadowed by the CPT archive rewrite.
+WordPress portfolio site (`devportfolio`) for Dave John Deluta. Local dev via DDEV. Active theme is `devportfolio` (`wp-content/themes/devportfolio/`), a standalone, greyscale block theme built from the lo-fi wireframes in `.claude/plans/` (originally forked from Twenty Twenty-Five 1.5, which is not tracked in this repo). The Documents page is the `document` archive template (`templates/archive-document.html`), not a Page: a Page slugged `documents` would be shadowed by the CPT archive rewrite.
 
 ## Where to look
 
@@ -76,13 +76,13 @@ No linter or CI configured.
 
 ## What is tracked vs ignored
 
-`.gitignore` ignores WordPress core, generated content, dependencies and every plugin and theme except the allowlisted ones; anything else (a new root file such as `.editorconfig`, the `docs/` folder) is tracked by default. Tracked: `.ddev/config.yaml`, `.github/pull_request_template.md`, `.claude/plans/` (DPB-NNN implementation plans per ticket), `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `readme.html`, `wp-content/index.php`, `wp-content/themes/twentytwentyfive/`, `wp-content/themes/devportfolio/`, and `wp-content/plugins/custom-post-types-dp/`.
+`.gitignore` ignores WordPress core, generated content, dependencies and every plugin and theme except the allowlisted ones; anything else (a new root file such as `.editorconfig`, the `docs/` folder) is tracked by default. Tracked: `.ddev/config.yaml`, `.github/pull_request_template.md`, `.claude/plans/` (DPB-NNN implementation plans per ticket), `README.md`, `AGENTS.md`, root `index.php`, `license.txt`, `readme.html`, `wp-content/index.php`, `wp-content/themes/devportfolio/`, and `wp-content/plugins/custom-post-types-dp/`.
 
 Ignored (do **not** edit expecting it to persist, do not commit):
 - WP core: `wp-admin/`, `wp-includes/`, root `wp-*.php` (including `wp-config.php`), `xmlrpc.php`
 - `wp-content/uploads|upgrade|cache|backups|backup-db`
 - All plugins except `wp-content/plugins/custom-post-types-dp/`
-- All themes except `twentytwentyfive` and `devportfolio`
+- All themes except `devportfolio` (WordPress's bundled themes, such as `twentytwentyfive`, may sit on disk untracked)
 - `vendor/` (root and `wp-content/plugins/custom-post-types-dp/vendor/`), `node_modules/`, `composer.lock`, `.phpunit.result.cache`, `style.min.css` in themes, `*.sql`, `.env*`, `*.log`
 
 To track a new custom theme or plugin, add a `!` allowlist entry in `.gitignore` first.
@@ -96,7 +96,7 @@ To track a new custom theme or plugin, add a `!` allowlist entry in `.gitignore`
 - Prefer editing `theme.json`, templates and parts over adding PHP/CSS.
 - Follow WordPress Coding Standards for PHP (tabs, Yoda conditions, escaping output with `esc_*`).
 - Text domain: `devportfolio`; function prefix `devportfolio_`; any new pattern slug prefixed `devportfolio/`. Wrap user-facing strings in `esc_html__()` / `esc_html_x()` etc.
-- Don't modify WP core files. Customise via the `devportfolio` theme or plugin. `twentytwentyfive` is reference only; do not edit it.
+- Don't modify WP core files. Customise via the `devportfolio` theme or plugin. WordPress's bundled themes (`twentytwentythree` to `twentytwentyfive`) are not tracked; do not edit them.
 - Never commit secrets, DB dumps, or `wp-config.php`.
 - `.editorconfig` at the repo root sets tabs, LF and a final newline (spaces for YAML; vendored files are left alone). Apply it to files you touch; never reformat untouched files.
 - Ship a feature by updating the matching `docs/agents/*.md` file (see Where to look). Edit AGENTS.md itself only when a convention, command or the table changes.
