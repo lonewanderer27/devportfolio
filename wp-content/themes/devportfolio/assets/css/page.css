@@ -12,6 +12,24 @@
 	overflow-x: clip;
 }
 
+/* Home "What I do" and "What clients say": the same full-width dot grid as the Documents shelf, behind the content. */
+.documents-page #services,
+.documents-page .testimonials {
+	position: relative;
+	isolation: isolate;
+}
+
+.documents-page #services::before,
+.documents-page .testimonials::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: 0 -100vw;
+	background-image: radial-gradient(rgb(0 0 0 / 0.1) 1px, transparent 1px);
+	background-size: 22px 22px;
+	pointer-events: none;
+}
+
 /*
  * Home "Selected work" and its archive: the card title and the archive title share a view-transition name, so the
  * title morphs when going Back from an archive to Home. Going forward, Chrome drops the title morph on a freshly
