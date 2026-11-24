@@ -262,18 +262,6 @@
 	border-radius: 8px;
 }
 
-.videos-modal__blank {
-	display: grid;
-	place-items: center;
-	height: 100%;
-	max-width: 100%;
-	aspect-ratio: var( --vm-ratio, 0.7071 );
-	font-weight: 800;
-	color: var( --vm-subtle );
-	background: var( --vm-surface );
-	border: 1px solid var( --vm-line );
-}
-
 .videos-modal__nextimg {
 	position: absolute;
 	inset: 0;
