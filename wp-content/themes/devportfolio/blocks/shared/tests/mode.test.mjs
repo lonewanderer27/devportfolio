@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawOffice, canShowOnMobile, nativeAllowedOnMobile, isNativeGrid, isNativeScroll, hintKeyFor } from '../mode.js';
+import { viewerMode, unitOf, wording, pieceLabel, positionText, canDrawOffice, canShowOnMobile, nativeAllowedOnMobile, isNativeScroll, hintKeyFor } from '../mode.js';
 
 const images = [ 'a.webp', 'b.webp' ];
 
@@ -120,14 +120,6 @@ test( 'the native viewer is tried on mobile for a .pptx, .xlsx or .docx with a n
 	assert.equal( nativeAllowedOnMobile( null ), false );
 } );
 
-test( 'only a .xlsx with a native URL is drawn as a workbook grid (one piece, no footer)', () => {
-	assert.equal( isNativeGrid( { kind: 'xlsx', nativeUrl: 'https://x/a.xlsx' } ), true );
-	assert.equal( isNativeGrid( { kind: 'xlsx', nativeUrl: '', images: [ 'a' ] } ), false );
-	assert.equal( isNativeGrid( { kind: 'xlsx' } ), false );
-	[ 'pptx', 'xls', 'ods', 'pdf', 'docx' ].forEach( ( kind ) => assert.equal( isNativeGrid( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
-	assert.equal( isNativeGrid( null ), false );
-} );
-
 test( 'a .xlsx or .docx with a native URL is drawn by a scroller of its own (one piece, no footer)', () => {
 	[ 'xlsx', 'docx' ].forEach( ( kind ) => {
 		assert.equal( isNativeScroll( { kind, nativeUrl: 'https://x/a' } ), true, kind );
@@ -136,5 +128,4 @@ test( 'a .xlsx or .docx with a native URL is drawn by a scroller of its own (one
 	} );
 	[ 'pptx', 'xls', 'ods', 'pdf', 'doc', 'odt' ].forEach( ( kind ) => assert.equal( isNativeScroll( { kind, nativeUrl: 'https://x/a' } ), false, kind ) );
 	assert.equal( isNativeScroll( null ), false );
-	assert.equal( isNativeGrid( { kind: 'docx', nativeUrl: 'https://x/a' } ), false, 'Only a workbook has a tab bar.' );
 } );

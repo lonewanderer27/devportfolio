@@ -86,13 +86,3 @@ export function withSheetState( state ) {
 export function hasSheetState( state ) {
 	return !! state && typeof state === 'object' && state[ SHEET_KEY ] === true;
 }
-
-/** The history state without the sheet marker (null when nothing else is left). */
-export function withoutSheetState( state ) {
-	if ( ! state || typeof state !== 'object' ) {
-		return null;
-	}
-	const rest = { ...state };
-	delete rest[ SHEET_KEY ];
-	return Object.keys( rest ).length ? rest : null;
-}

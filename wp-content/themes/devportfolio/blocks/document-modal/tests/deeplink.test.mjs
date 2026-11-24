@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugFromUrl, urlWithSlug, urlWithoutSlug, SHEET_KEY, withSheetState, hasSheetState, withoutSheetState } from '../../shared/deeplink.js';
+import { slugFromUrl, urlWithSlug, urlWithoutSlug, SHEET_KEY, withSheetState, hasSheetState } from '../../shared/deeplink.js';
 
 test( 'reads the slug, or an empty string', () => {
 	assert.equal( slugFromUrl( 'https://x.test/documents/?document_slug=q3-report' ), 'q3-report' );
@@ -45,9 +45,6 @@ test( 'the Pages sheet marks its history entry and keeps the other state', () =>
 
 test( 'the sheet marker can be added to an empty state and removed again', () => {
 	assert.deepEqual( withSheetState( null ), { [ SHEET_KEY ]: true } );
-	assert.deepEqual( withoutSheetState( withSheetState( { documentSlug: 'a' } ) ), { documentSlug: 'a' } );
-	assert.equal( withoutSheetState( withSheetState( null ) ), null );
-	assert.equal( withoutSheetState( undefined ), null );
 } );
 
 test( 'adding the sheet marker does not change the original state object', () => {
