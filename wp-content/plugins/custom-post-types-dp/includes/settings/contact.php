@@ -10,13 +10,15 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Default contact values.
  *
- * @return array<string,string>
+ * @return array<string,string|int>
  */
 function cptdp_contact_defaults(): array {
 	return array(
 		'email'        => '',
 		'whatsapp_url' => '',
 		'linkedin_url' => '',
+		'portrait_id'  => 0,
+		'hero_title'   => 'David John',
 	);
 }
 
@@ -60,13 +62,15 @@ function cptdp_contact_get_times(): array {
  *
  * Callers must escape on output (esc_url, esc_html, antispambot).
  *
- * @param string|null $key Optional single key: email, whatsapp_url, linkedin_url.
- * @return array<string,string>|string
+ * @param string|null $key Optional single key: email, whatsapp_url, linkedin_url, portrait_id.
+ * @return array<string,string|int>|string|int
  */
 function cptdp_get_contact( ?string $key = null ) {
 	$saved = get_option( 'cptdp_contact', array() );
 	$saved = is_array( $saved ) ? $saved : array();
 	$value = array_merge( cptdp_contact_defaults(), array_intersect_key( $saved, cptdp_contact_defaults() ) );
+
+	$value['portrait_id'] = (int) $value['portrait_id'];
 
 	if ( null === $key ) {
 		return $value;
@@ -93,6 +97,8 @@ function cptdp_contact_register_settings(): void {
 						'email'        => array( 'type' => 'string' ),
 						'whatsapp_url' => array( 'type' => 'string' ),
 						'linkedin_url' => array( 'type' => 'string' ),
+						'portrait_id'  => array( 'type' => 'integer' ),
+		'hero_title'   => array( 'type' => 'string' ),
 					),
 					'additionalProperties' => false,
 				),
@@ -125,8 +131,21 @@ function cptdp_contact_register_sections(): void {
 		'cptdp_contact_render_section',
 		'cptdp-contact'
 	);
+	add_settings_field(
+		'cptdp_contact_portrait_id',
+		esc_html__( 'Portrait', 'custom-post-types-dp' ),
+		'cptdp_contact_render_portrait',
+		'cptdp-contact',
+		'cptdp_contact_section',
+		array( 'label_for' => 'cptdp_contact_portrait_select' )
+	);
 
 	$fields = array(
+		'hero_title'   => array(
+			'label'       => esc_html__( 'Hero title', 'custom-post-types-dp' ),
+			'type'        => 'text',
+			'placeholder' => 'David John',
+		),
 		'email'        => array(
 			'label'       => esc_html__( 'Email', 'custom-post-types-dp' ),
 			'type'        => 'email',
@@ -201,6 +220,7 @@ function cptdp_contact_render_page(): void {
 	?>
 	<div class="wrap">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+		<p class="description"><?php esc_html_e( 'Homepage', 'custom-post-types-dp' ); ?></p>
 		<form method="post" action="options.php">
 			<?php
 			settings_fields( 'cptdp_contact' );
@@ -234,6 +254,57 @@ function cptdp_contact_render_field( array $args ): void {
 		esc_attr( $args['placeholder'] )
 	);
 }
+
+/**
+ * Render the portrait picker: preview, Choose and Remove buttons and the hidden attachment ID.
+ */
+function cptdp_contact_render_portrait(): void {
+	$id  = (int) cptdp_get_contact( 'portrait_id' );
+	$url = $id ? wp_get_attachment_image_url( $id, 'medium' ) : false;
+
+	printf( '<input type="hidden" id="cptdp_contact_portrait_id" name="cptdp_contact[portrait_id]" value="%d" />', (int) $id );
+	printf(
+		'<p><img id="cptdp-portrait-preview" src="%1$s" alt="" style="max-width:200px;height:auto;background:#eee;%2$s" /></p>',
+		esc_url( $url ? $url : '' ),
+		$url ? '' : 'display:none;'
+	);
+	printf(
+		'<button type="button" class="button" id="cptdp_contact_portrait_select">%1$s</button> <button type="button" class="button-link button-link-delete" id="cptdp-portrait-remove" %2$s>%3$s</button>',
+		esc_html__( 'Choose image', 'custom-post-types-dp' ),
+		$url ? '' : 'style="display:none"',
+		esc_html__( 'Remove', 'custom-post-types-dp' )
+	);
+	echo '<p class="description">' . esc_html__( 'The cut-out photo shown in the Home page hero. Use a PNG or WebP with a transparent background, about 1200px wide and under 500 KB. It is shown in greyscale. Set its Alternative Text in the Media Library.', 'custom-post-types-dp' ) . '</p>';
+}
+
+/**
+ * Load the media picker script on Settings > Contact only.
+ *
+ * @param string $hook Admin page hook suffix.
+ */
+function cptdp_contact_enqueue_admin( string $hook ): void {
+	if ( 'settings_page_cptdp-contact' !== $hook ) {
+		return;
+	}
+
+	wp_enqueue_media();
+	wp_enqueue_script(
+		'cptdp-admin-contact',
+		CPTDP_URL . 'assets/admin-contact.js',
+		array( 'jquery' ),
+		CPTDP_VERSION,
+		true
+	);
+	wp_localize_script(
+		'cptdp-admin-contact',
+		'cptdpContact',
+		array(
+			'selectTitle'  => esc_html__( 'Select portrait', 'custom-post-types-dp' ),
+			'selectButton' => esc_html__( 'Use this portrait', 'custom-post-types-dp' ),
+		)
+	);
+}
+add_action( 'admin_enqueue_scripts', 'cptdp_contact_enqueue_admin' );
 
 /**
  * Intro of the booking-times section.
@@ -313,6 +384,10 @@ function cptdp_contact_sanitize( $input ): array {
 		return $clean;
 	}
 
+	if ( isset( $input['hero_title'] ) && is_string( $input['hero_title'] ) ) {
+		$clean['hero_title'] = mb_substr( sanitize_text_field( $input['hero_title'] ), 0, 60 );
+	}
+
 	$email = isset( $input['email'] ) && is_string( $input['email'] ) ? trim( $input['email'] ) : '';
 	if ( '' !== $email ) {
 		$email = sanitize_email( $email );
@@ -350,6 +425,13 @@ function cptdp_contact_sanitize( $input ): array {
 		}
 		$clean[ $key ] = $url;
 	}
+
+	$portrait = isset( $input['portrait_id'] ) ? absint( $input['portrait_id'] ) : 0;
+	if ( $portrait && ( 'attachment' !== get_post_type( $portrait ) || ! in_array( get_post_mime_type( $portrait ), array( 'image/png', 'image/webp' ), true ) ) ) {
+		add_settings_error( 'cptdp_contact', 'cptdp_contact_portrait_id', esc_html__( 'Invalid portrait. Choose a PNG or WebP image from the Media Library.', 'custom-post-types-dp' ) );
+		$portrait = 0;
+	}
+	$clean['portrait_id'] = $portrait;
 
 	return $clean;
 }

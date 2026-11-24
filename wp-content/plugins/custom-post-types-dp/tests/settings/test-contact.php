@@ -29,6 +29,9 @@ class CPTDP_Test_Contact extends CPTDP_Test_Case {
 				'email'        => '',
 				'whatsapp_url' => '',
 				'linkedin_url' => '',
+				'portrait_id'  => 0,
+				'hero_title'   => 'David John',
+				'hero_title'   => 'David John',
 			),
 			cptdp_get_contact()
 		);
@@ -50,6 +53,9 @@ class CPTDP_Test_Contact extends CPTDP_Test_Case {
 				'email'        => 'me@example.com',
 				'whatsapp_url' => '',
 				'linkedin_url' => '',
+				'portrait_id'  => 0,
+				'hero_title'   => 'David John',
+				'hero_title'   => 'David John',
 			),
 			cptdp_get_contact()
 		);
@@ -82,6 +88,9 @@ class CPTDP_Test_Contact extends CPTDP_Test_Case {
 				'email'        => 'me@example.com',
 				'whatsapp_url' => 'https://wa.me/639171234567',
 				'linkedin_url' => 'https://www.linkedin.com/in/someone',
+				'portrait_id'  => 0,
+				'hero_title'   => 'David John',
+				'hero_title'   => 'David John',
 			),
 			$clean
 		);
@@ -244,6 +253,91 @@ class CPTDP_Test_Contact extends CPTDP_Test_Case {
 		$this->acting_as( 'editor' );
 
 		$this->assertSame( 403, $this->rest_settings( array( 'email' => 'a@b.co' ) )->get_status() );
+	}
+
+	public function test_hero_title_defaults_to_david_john(): void {
+		$this->assertSame( 'David John', cptdp_get_contact( 'hero_title' ) );
+	}
+
+	public function test_hero_title_is_trimmed_and_stripped_of_markup(): void {
+		$clean = cptdp_contact_sanitize( array( 'hero_title' => '  <b>Jane</b> Doe  ' ) );
+
+		$this->assertSame( 'Jane Doe', $clean['hero_title'] );
+	}
+
+	public function test_a_blank_hero_title_is_kept_blank_so_the_theme_falls_back(): void {
+		$this->assertSame( '', cptdp_contact_sanitize( array( 'hero_title' => '   ' ) )['hero_title'] );
+	}
+
+	public function test_a_missing_hero_title_keeps_the_default(): void {
+		$this->assertSame( 'David John', cptdp_contact_sanitize( array( 'email' => '' ) )['hero_title'] );
+	}
+
+	private function make_image( string $mime ): int {
+		return self::factory()->attachment->create(
+			array(
+				'post_mime_type' => $mime,
+				'post_title'     => 'portrait',
+			)
+		);
+	}
+
+	public function test_portrait_accepts_png_and_webp_attachments(): void {
+		foreach ( array( 'image/png', 'image/webp' ) as $mime ) {
+			$id    = $this->make_image( $mime );
+			$clean = cptdp_contact_sanitize( array( 'portrait_id' => (string) $id ) );
+
+			$this->assertSame( $id, $clean['portrait_id'], $mime );
+		}
+		$this->assertSame( array(), get_settings_errors( 'cptdp_contact' ) );
+	}
+
+	public function test_portrait_rejects_other_types_and_non_attachments(): void {
+		$jpeg = $this->make_image( 'image/jpeg' );
+		$post = self::factory()->post->create();
+
+		foreach ( array( $jpeg, $post, 999999 ) as $bad ) {
+			$GLOBALS['wp_settings_errors'] = array();
+			$clean                         = cptdp_contact_sanitize( array( 'portrait_id' => (string) $bad ) );
+
+			$this->assertSame( 0, $clean['portrait_id'], (string) $bad );
+			$this->assertNotEmpty( get_settings_errors( 'cptdp_contact' ), (string) $bad );
+		}
+	}
+
+	public function test_portrait_missing_or_zero_is_zero_without_an_error(): void {
+		$this->assertSame( 0, cptdp_contact_sanitize( array() )['portrait_id'] );
+		$this->assertSame( 0, cptdp_contact_sanitize( array( 'portrait_id' => '0' ) )['portrait_id'] );
+		$this->assertSame( array(), get_settings_errors( 'cptdp_contact' ) );
+	}
+
+	public function test_get_contact_returns_the_portrait_as_an_integer(): void {
+		update_option( 'cptdp_contact', array( 'portrait_id' => '42' ) );
+
+		$this->assertSame( 42, cptdp_get_contact( 'portrait_id' ) );
+	}
+
+	public function test_portrait_field_renders_the_picker_and_the_saved_id(): void {
+		$id = $this->make_image( 'image/png' );
+		update_option( 'cptdp_contact', array( 'portrait_id' => $id ) );
+
+		ob_start();
+		cptdp_contact_render_portrait();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="cptdp_contact[portrait_id]" value="' . $id . '"', $html );
+		$this->assertStringContainsString( 'id="cptdp_contact_portrait_select"', $html );
+		$this->assertStringContainsString( 'id="cptdp-portrait-remove"', $html );
+	}
+
+	public function test_the_picker_script_loads_on_the_contact_page_only(): void {
+		wp_dequeue_script( 'cptdp-admin-contact' );
+
+		cptdp_contact_enqueue_admin( 'edit.php' );
+		$this->assertFalse( wp_script_is( 'cptdp-admin-contact', 'enqueued' ) );
+
+		cptdp_contact_enqueue_admin( 'settings_page_cptdp-contact' );
+		$this->assertTrue( wp_script_is( 'cptdp-admin-contact', 'enqueued' ) );
 	}
 
 	/**
