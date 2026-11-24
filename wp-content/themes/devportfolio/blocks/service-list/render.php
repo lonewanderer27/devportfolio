@@ -43,7 +43,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'service
 			)
 		);
 		?>
-		<li class="service-list__row">
+		<li class="service-list__row home-reveal">
 			<span class="service-list__number"><?php echo esc_html( str_pad( (string) ( $devportfolio_index + 1 ), 2, '0', STR_PAD_LEFT ) ); ?></span>
 			<div class="service-list__body">
 				<h3 class="service-list__title"><?php echo esc_html( get_the_title( $devportfolio_id ) ); ?></h3>

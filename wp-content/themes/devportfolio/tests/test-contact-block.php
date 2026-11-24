@@ -62,7 +62,7 @@ class Devportfolio_Test_Contact_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'id="contact"', $html );
 		$this->assertStringContainsString( 'aria-labelledby="contact-heading"', $html );
 		$strings = devportfolio_contact_strings();
-		$this->assertStringContainsString( '<h2 id="contact-heading" class="contact__heading">' . esc_html( $strings['heading'] ) . '</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="contact-heading" class="contact__heading home-reveal">' . esc_html( $strings['heading'] ) . '</h2>', $html );
 		$this->assertStringContainsString( 'data-contact-open', $html );
 	}
 
@@ -130,7 +130,7 @@ class Devportfolio_Test_Contact_Block extends WP_UnitTestCase {
 		$this->assertSame( 'other', end( $payload['services'] )['id'] );
 		$strings = devportfolio_contact_strings();
 		$this->assertSame( $strings['heading'], $payload['strings']['heading'] );
-		$this->assertStringContainsString( '<p class="contact__lead">' . esc_html( $strings['lead'] ) . '</p>', $this->render() );
+		$this->assertStringContainsString( '<p class="contact__lead home-reveal">' . esc_html( $strings['lead'] ) . '</p>', $this->render() );
 	}
 
 	public function test_a_service_title_cannot_close_the_script_element(): void {

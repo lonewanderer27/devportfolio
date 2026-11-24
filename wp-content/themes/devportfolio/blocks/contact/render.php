@@ -34,12 +34,12 @@ $devportfolio_wrapper = get_block_wrapper_attributes(
 );
 ?>
 <section <?php echo $devportfolio_wrapper; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by core. ?> aria-labelledby="contact-heading" data-contact data-step="1">
-	<h2 id="contact-heading" class="contact__heading"><?php echo esc_html( $s['heading'] ); ?></h2>
-	<p class="contact__lead"><?php echo esc_html( $s['lead'] ); ?></p>
+	<h2 id="contact-heading" class="contact__heading home-reveal"><?php echo esc_html( $s['heading'] ); ?></h2>
+	<p class="contact__lead home-reveal"><?php echo esc_html( $s['lead'] ); ?></p>
 
-	<button type="button" class="contact__open" data-contact-open><?php echo esc_html( $s['open'] ); ?></button>
+	<button type="button" class="contact__open home-reveal" data-contact-open><?php echo esc_html( $s['open'] ); ?></button>
 
-	<div class="contact__card" data-contact-card>
+	<div class="contact__card home-reveal" data-contact-card>
 		<div class="contact__modal-head">
 			<button type="button" class="contact__close" data-contact-close aria-label="<?php echo esc_attr( $s['close'] ); ?>">
 				<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>

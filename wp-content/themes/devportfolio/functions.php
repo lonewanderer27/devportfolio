@@ -254,6 +254,56 @@ if ( ! function_exists( 'devportfolio_enqueue_nav_spy' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_nav_spy' );
 
+if ( ! function_exists( 'devportfolio_enqueue_home_motion' ) ) :
+	/**
+	 * Home only: the sections' opening animation styles (DPH-032).
+	 *
+	 * Every rule is scoped to `html.has-home-reveal`, which only the inline script adds.
+	 *
+	 * @since 0.36.0
+	 */
+	function devportfolio_enqueue_home_motion() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'devportfolio-home-motion',
+			get_theme_file_uri( 'assets/css/home-motion.css' ),
+			array(),
+			(string) filemtime( __DIR__ . '/assets/css/home-motion.css' )
+		);
+	}
+endif;
+add_action( 'wp_enqueue_scripts', 'devportfolio_enqueue_home_motion' );
+
+if ( ! function_exists( 'devportfolio_print_home_reveal_script' ) ) :
+	/**
+	 * Home only: prints the sections' opening animation script inline at the top of the head (DPH-032).
+	 *
+	 * Inline and first, so the class that hides the start state is on <html> before the first paint and a failed
+	 * request can never leave a section hidden. Without JavaScript nothing is hidden.
+	 *
+	 * @since 0.36.0
+	 */
+	function devportfolio_print_home_reveal_script() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+
+		$file = __DIR__ . '/assets/js/home-reveal.js';
+		if ( ! is_readable( $file ) ) {
+			return;
+		}
+
+		wp_print_inline_script_tag(
+			(string) file_get_contents( $file ), // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a local theme file.
+			array( 'id' => 'devportfolio-home-reveal' )
+		);
+	}
+endif;
+add_action( 'wp_head', 'devportfolio_print_home_reveal_script', 1 );
+
 if ( ! function_exists( 'devportfolio_modal_single_redirect_url' ) ) :
 	/**
 	 * URL for redirecting a published single of a modal post type to its archive deeplink (DPD-032, DPC-020).
