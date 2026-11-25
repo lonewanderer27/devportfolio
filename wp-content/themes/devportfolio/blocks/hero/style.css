@@ -322,3 +322,10 @@
 		display: none;
 	}
 }
+
+/* Laptop density tier (DPF-NNN): the name keeps about the share of the width it has on 2K (12vw filled 84% of a laptop window). */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.hero__stage {
+		font-size: min(9vw, 168px);
+	}
+}

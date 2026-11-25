@@ -66,3 +66,14 @@
 		display: none;
 	}
 }
+
+/* Laptop density tier (DPF-NNN). */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.service-list__row {
+		padding: 16px 8px;
+	}
+
+	.service-list__title {
+		font-size: 22px;
+	}
+}
