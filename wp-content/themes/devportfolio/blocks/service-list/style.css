@@ -62,8 +62,9 @@
 		padding: 16px 4px;
 	}
 
+	/* Phones list the sub-services too (DPF-NNN, replacing DPH-009 AC 15), a little closer to the benefit line. */
 	.service-list__tags {
-		display: none;
+		margin-top: 8px;
 	}
 }
 

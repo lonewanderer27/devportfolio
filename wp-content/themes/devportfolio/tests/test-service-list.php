@@ -201,7 +201,9 @@ class Devportfolio_Test_Service_List extends WP_UnitTestCase {
 
 		$this->assertNotFalse( $start );
 		$phone = substr( $css, (int) $start );
-		$this->assertMatchesRegularExpression( '/\.service-list__tags \{[^}]*display: none;/', $phone );
+		// The sub-services show on phones too (DPF-NNN); only the gap above them is tighter.
+		$this->assertMatchesRegularExpression( '/\.service-list__tags \{[^}]*margin-top: 8px;/', $phone );
+		$this->assertStringNotContainsString( 'display: none', $phone );
 	}
 
 	public function test_seeded_content_matches_the_stories(): void {
