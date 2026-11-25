@@ -99,9 +99,9 @@
 	text-transform: uppercase;
 }
 
-/* The roles read as one line separated by dots; phones put each on its own line (below). */
-.hero__roles span + span::before {
-	content: '· ';
+/* One role per line at every width. */
+.hero__roles span {
+	display: block;
 }
 
 .hero__cta {
@@ -316,14 +316,6 @@
 		margin: 0 0 12px;
 		font-size: 11px;
 		text-wrap: balance;
-	}
-
-	.hero__roles span {
-		display: block;
-	}
-
-	.hero__roles span + span::before {
-		content: none;
 	}
 
 	.hero__cta {
