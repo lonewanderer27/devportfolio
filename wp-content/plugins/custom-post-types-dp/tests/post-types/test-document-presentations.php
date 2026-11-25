@@ -92,17 +92,6 @@ class CPTDP_Test_Document_Presentations extends CPTDP_Pages_Test_Case {
 		$this->assertStringNotContainsString( 'cptdp-documents', $html );
 	}
 
-	public function test_the_picker_gets_a_warning_for_each_kind(): void {
-		$this->acting_as( 'administrator' );
-
-		$warnings = cptdp_pptx_warnings();
-
-		$this->assertSame( array( 'pptx', 'ppt', 'odp' ), array_keys( $warnings ) );
-		foreach ( $warnings as $html ) {
-			$this->assertStringContainsString( 'imperfect', $html );
-		}
-	}
-
 	public function test_the_document_file_box_renders_the_warning_only_for_a_presentation(): void {
 		$this->acting_as( 'administrator' );
 		$pptx = $this->make_document( $this->make_presentation_attachment( 'pptx' ) );

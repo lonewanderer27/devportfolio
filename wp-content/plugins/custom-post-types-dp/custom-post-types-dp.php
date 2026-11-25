@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Custom Post Types DP
  * Description:       Loads all portfolio modules when active: custom post types and site settings (e.g. Contact).
- * Version:           0.35.0
+ * Version:           0.36.0
  * Requires at least: 6.5
  * Requires PHP:      8.4
  * Author:            Ian James Puzon
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CPTDP_VERSION', '0.35.0' );
+define( 'CPTDP_VERSION', '0.36.0' );
 define( 'CPTDP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CPTDP_URL', plugin_dir_url( __FILE__ ) );
 
@@ -45,4 +45,12 @@ function cptdp_activate(): void {
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cptdp_activate' );
-register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+
+/**
+ * Remove the plugin's recurring cron event, then flush rewrite rules.
+ */
+function cptdp_deactivate(): void {
+	cptdp_unschedule_temp_sweep();
+	flush_rewrite_rules();
+}
+register_deactivation_hook( __FILE__, 'cptdp_deactivate' );

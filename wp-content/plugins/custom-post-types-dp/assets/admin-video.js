@@ -1,4 +1,4 @@
-/* Video edit screen: media picker and Post Statistics repeater. */
+/* Video edit screen: media picker (the Post Statistics repeater is admin-statistics.js). */
 ( function ( $ ) {
 	'use strict';
 
@@ -184,32 +184,5 @@
 			latest = { fileId: cptdpVideo.fileId, url: cptdpVideo.fileUrl };
 			startPreview();
 		}
-
-		// Post Statistics repeater.
-		var $rows = $( '#cptdp-stat-rows' );
-		var template = document.getElementById( 'cptdp-stat-template' );
-
-		function reindex() {
-			$rows.children( '.cptdp-stat-row' ).each( function ( index ) {
-				$( this ).find( 'input' ).each( function () {
-					this.name = this.name.replace( /cptdp_post_statistics\[[^\]]*\]/, 'cptdp_post_statistics[' + index + ']' );
-				} );
-			} );
-		}
-
-		$( '#cptdp-stat-add' ).on( 'click', function () {
-			var html = template.innerHTML;
-
-			$rows.append( html );
-			reindex();
-			$rows.children().last().find( 'input' ).first().trigger( 'focus' );
-		} );
-
-		$rows.on( 'click', '.cptdp-stat-remove', function () {
-			$( this ).closest( '.cptdp-stat-row' ).remove();
-			reindex();
-		} );
-
-		$( '#post' ).on( 'submit', reindex );
 	} );
 }( jQuery ) );

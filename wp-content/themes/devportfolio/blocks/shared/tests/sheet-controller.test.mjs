@@ -16,6 +16,7 @@ globalThis.window = {
 	},
 };
 const { createSheetController } = await import( '../sheet-controller.js' );
+const { historyEvents } = await import( '../history-events.js' );
 
 /** A sheet that behaves like the real ones: close( silent ) hides it, and only a visitor close calls onClose. */
 const fakeSheet = ( onClose ) => {
@@ -61,10 +62,10 @@ const setup = () => {
 };
 
 test( 'the history listener is registered when the controller is created', () => {
-	const before = calls.listeners.length;
+	const before = historyEvents.count();
 	setup();
-	assert.equal( calls.listeners.length, before + 1 );
-	assert.equal( calls.listeners[ calls.listeners.length - 1 ][ 0 ], 'popstate' );
+	assert.equal( historyEvents.count(), before + 1 );
+	assert.equal( calls.listeners.filter( ( l ) => l[ 0 ] === 'popstate' ).length, 1, 'one window listener carries every handler' );
 } );
 
 test( 'a sheet is built once, on its first open', async () => {

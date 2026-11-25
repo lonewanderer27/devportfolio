@@ -105,11 +105,11 @@ class CPTDP_Test_Video extends CPTDP_Media_CPT_Test_Case {
 		$other = self::factory()->post->create( array( 'post_type' => 'software_tool' ) );
 		$page  = self::factory()->post->create( array( 'post_type' => 'page' ) );
 
-		$this->assertSame( array(), cptdp_video_sanitize_software_tools( 'nope' ) );
-		$this->assertSame( array(), cptdp_video_sanitize_software_tools( array() ) );
+		$this->assertSame( array(), cptdp_media_sanitize_software_tools( 'nope' ) );
+		$this->assertSame( array(), cptdp_media_sanitize_software_tools( array() ) );
 		$this->assertSame(
 			array( $tool, $other ),
-			cptdp_video_sanitize_software_tools( array( $tool, (string) $tool, $page, 0, 999999, 'abc', $other ) )
+			cptdp_media_sanitize_software_tools( array( $tool, (string) $tool, $page, 0, 999999, 'abc', $other ) )
 		);
 	}
 
@@ -180,13 +180,13 @@ class CPTDP_Test_Video extends CPTDP_Media_CPT_Test_Case {
 	public function test_software_tools_box_lists_published_tools(): void {
 		$id = $this->make_post();
 
-		$empty = $this->capture( fn() => cptdp_video_render_software_tools_box( get_post( $id ) ) );
+		$empty = $this->capture( fn() => cptdp_media_render_software_tools_box( get_post( $id ) ) );
 		$this->assertStringContainsString( 'No software tools yet.', $empty );
 
 		$tool = self::factory()->post->create( array( 'post_type' => 'software_tool', 'post_title' => 'Premiere' ) );
 		update_post_meta( $id, 'cptdp_software_tools', array( $tool ) );
 
-		$html = $this->capture( fn() => cptdp_video_render_software_tools_box( get_post( $id ) ) );
+		$html = $this->capture( fn() => cptdp_media_render_software_tools_box( get_post( $id ) ) );
 		$this->assertStringContainsString( 'name="cptdp_software_tools[]"', $html );
 		$this->assertStringContainsString( 'Premiere', $html );
 		$this->assertMatchesRegularExpression( "/value=\"{$tool}\"\s+checked='checked'/", $html );

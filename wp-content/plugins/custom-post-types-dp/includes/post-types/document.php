@@ -189,15 +189,6 @@ function cptdp_document_admin_css(): void {
 add_action( 'admin_head-edit.php', 'cptdp_document_admin_css' );
 
 /**
- * Sanitize a URL: http(s) only, empty string when invalid.
- *
- * @param mixed $url Raw value.
- */
-function cptdp_document_sanitize_url( $url ): string {
-	return esc_url_raw( trim( (string) $url ), array( 'http', 'https' ) );
-}
-
-/**
  * Sanitize a document file attachment ID.
  *
  * Must be an existing attachment that is not a video or audio file. Documents
@@ -222,65 +213,6 @@ function cptdp_document_sanitize_file( $id ): int {
 	}
 
 	return $id;
-}
-
-/**
- * Sanitize Software Tools: unique IDs of existing `software_tool` posts.
- *
- * @param mixed $ids Raw value.
- * @return int[]
- */
-function cptdp_document_sanitize_software_tools( $ids ): array {
-	if ( ! is_array( $ids ) ) {
-		return array();
-	}
-
-	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
-
-	return array_values(
-		array_filter(
-			$ids,
-			static function ( int $id ): bool {
-				return 'software_tool' === get_post_type( $id );
-			}
-		)
-	);
-}
-
-/**
- * Sanitize Post Statistics: rows of `label` and `value` text.
- *
- * Drops non-array rows and rows with both fields empty, then reindexes.
- *
- * @param mixed $rows Raw value.
- * @return array<int, array{label: string, value: string}>
- */
-function cptdp_document_sanitize_statistics( $rows ): array {
-	if ( ! is_array( $rows ) ) {
-		return array();
-	}
-
-	$clean = array();
-
-	foreach ( $rows as $row ) {
-		if ( ! is_array( $row ) ) {
-			continue;
-		}
-
-		$label = isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '';
-		$value = isset( $row['value'] ) ? sanitize_text_field( (string) $row['value'] ) : '';
-
-		if ( '' === $label && '' === $value ) {
-			continue;
-		}
-
-		$clean[] = array(
-			'label' => $label,
-			'value' => $value,
-		);
-	}
-
-	return $clean;
 }
 
 /**
@@ -340,7 +272,7 @@ function cptdp_register_document_meta(): void {
 			'single'            => true,
 			'default'           => '',
 			'show_in_rest'      => true,
-			'sanitize_callback' => 'cptdp_document_sanitize_url',
+			'sanitize_callback' => 'cptdp_media_sanitize_url',
 			'auth_callback'     => $auth,
 		)
 	);
@@ -386,7 +318,7 @@ function cptdp_register_document_meta(): void {
 					'items' => array( 'type' => 'integer' ),
 				),
 			),
-			'sanitize_callback' => 'cptdp_document_sanitize_software_tools',
+			'sanitize_callback' => 'cptdp_media_sanitize_software_tools',
 			'auth_callback'     => $auth,
 		)
 	);
@@ -437,7 +369,7 @@ function cptdp_register_document_meta(): void {
 					),
 				),
 			),
-			'sanitize_callback' => 'cptdp_document_sanitize_statistics',
+			'sanitize_callback' => 'cptdp_media_sanitize_statistics',
 			'auth_callback'     => $auth,
 		)
 	);
@@ -462,7 +394,7 @@ function cptdp_document_add_meta_boxes(): void {
 	add_meta_box(
 		'cptdp_document_post_statistics',
 		esc_html__( 'Post Statistics', 'custom-post-types-dp' ),
-		'cptdp_document_render_statistics_box',
+		'cptdp_media_render_statistics_box',
 		'document',
 		'normal',
 		'default'
@@ -471,7 +403,7 @@ function cptdp_document_add_meta_boxes(): void {
 	add_meta_box(
 		'cptdp_document_software_tools',
 		esc_html__( 'Software Tools', 'custom-post-types-dp' ),
-		'cptdp_document_render_software_tools_box',
+		'cptdp_media_render_software_tools_box',
 		'document',
 		'side',
 		'default'
@@ -480,7 +412,7 @@ function cptdp_document_add_meta_boxes(): void {
 	add_meta_box(
 		'cptdp_document_highlight',
 		esc_html__( 'Highlight', 'custom-post-types-dp' ),
-		'cptdp_document_render_highlight_box',
+		'cptdp_media_render_highlight_box',
 		'document',
 		'side',
 		'default'
@@ -541,96 +473,6 @@ function cptdp_document_render_details_box( WP_Post $post ): void {
 }
 
 /**
- * Render the Software Tools meta box.
- *
- * @param WP_Post $post Post being edited.
- */
-function cptdp_document_render_software_tools_box( WP_Post $post ): void {
-	$selected = array_map( 'absint', (array) get_post_meta( $post->ID, 'cptdp_software_tools', true ) );
-	$tools    = get_posts(
-		array(
-			'post_type'      => 'software_tool',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'orderby'        => 'menu_order title',
-			'order'          => 'ASC',
-		)
-	);
-
-	if ( ! $tools ) {
-		printf(
-			'<p>%s <a href="%s">%s</a></p>',
-			esc_html__( 'No software tools yet.', 'custom-post-types-dp' ),
-			esc_url( admin_url( 'post-new.php?post_type=software_tool' ) ),
-			esc_html__( 'Add a Software Tool', 'custom-post-types-dp' )
-		);
-		return;
-	}
-
-	foreach ( $tools as $tool ) {
-		printf(
-			'<label style="display:block;margin-bottom:4px"><input type="checkbox" name="cptdp_software_tools[]" value="%1$d" %2$s> %3$s</label>',
-			(int) $tool->ID,
-			checked( in_array( $tool->ID, $selected, true ), true, false ),
-			esc_html( get_the_title( $tool ) )
-		);
-	}
-}
-
-/**
- * Render one Post Statistics row.
- *
- * @param string $index Row index, or a placeholder for the template row.
- * @param string $label Label.
- * @param string $value Value.
- */
-function cptdp_document_render_statistics_row( string $index, string $label, string $value ): void {
-	?>
-	<div class="cptdp-stat-row" style="display:flex;gap:8px;margin-bottom:8px">
-		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][label]" placeholder="<?php esc_attr_e( 'e.g. Downloads', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $label ); ?>">
-		<input type="text" class="regular-text" name="cptdp_post_statistics[<?php echo esc_attr( $index ); ?>][value]" placeholder="<?php esc_attr_e( 'e.g. 1.2K', 'custom-post-types-dp' ); ?>" value="<?php echo esc_attr( $value ); ?>">
-		<button type="button" class="button cptdp-stat-remove"><?php esc_html_e( 'Remove', 'custom-post-types-dp' ); ?></button>
-	</div>
-	<?php
-}
-
-/**
- * Render the Post Statistics meta box.
- *
- * @param WP_Post $post Post being edited.
- */
-function cptdp_document_render_statistics_box( WP_Post $post ): void {
-	$rows = cptdp_document_sanitize_statistics( get_post_meta( $post->ID, 'cptdp_post_statistics', true ) );
-	?>
-	<div id="cptdp-stat-rows">
-		<?php
-		foreach ( $rows as $i => $row ) {
-			cptdp_document_render_statistics_row( (string) $i, $row['label'], $row['value'] );
-		}
-		?>
-	</div>
-	<template id="cptdp-stat-template">
-		<?php cptdp_document_render_statistics_row( '__INDEX__', '', '' ); ?>
-	</template>
-	<p><button type="button" class="button" id="cptdp-stat-add"><?php esc_html_e( 'Add statistic', 'custom-post-types-dp' ); ?></button></p>
-	<?php
-}
-
-/**
- * Render the Highlight meta box.
- *
- * @param WP_Post $post Post being edited.
- */
-function cptdp_document_render_highlight_box( WP_Post $post ): void {
-	?>
-	<label>
-		<input type="checkbox" name="cptdp_highlight" value="1" <?php checked( (bool) get_post_meta( $post->ID, 'cptdp_highlight', true ) ); ?>>
-		<?php esc_html_e( 'Mark as highlight (Selected work)', 'custom-post-types-dp' ); ?>
-	</label>
-	<?php
-}
-
-/**
  * Save the Document meta.
  *
  * @param int $post_id Post ID.
@@ -652,7 +494,7 @@ function cptdp_document_save_meta( int $post_id ): void {
 	$file = isset( $_POST['cptdp_document_file'] ) ? cptdp_document_sanitize_file( wp_unslash( $_POST['cptdp_document_file'] ) ) : 0;
 	$file ? update_post_meta( $post_id, 'cptdp_document_file', $file ) : delete_post_meta( $post_id, 'cptdp_document_file' );
 
-	$embed = isset( $_POST['cptdp_embed_url'] ) ? cptdp_document_sanitize_url( wp_unslash( $_POST['cptdp_embed_url'] ) ) : '';
+	$embed = isset( $_POST['cptdp_embed_url'] ) ? cptdp_media_sanitize_url( wp_unslash( $_POST['cptdp_embed_url'] ) ) : '';
 	'' !== $embed ? update_post_meta( $post_id, 'cptdp_embed_url', $embed ) : delete_post_meta( $post_id, 'cptdp_embed_url' );
 
 	foreach ( array( 'cptdp_filetype', 'cptdp_author' ) as $key ) {
@@ -667,11 +509,11 @@ function cptdp_document_save_meta( int $post_id ): void {
 	'' !== $cover ? update_post_meta( $post_id, 'cptdp_cover_style', $cover ) : delete_post_meta( $post_id, 'cptdp_cover_style' );
 
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
-	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_document_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
+	$tools = isset( $_POST['cptdp_software_tools'] ) ? cptdp_media_sanitize_software_tools( wp_unslash( $_POST['cptdp_software_tools'] ) ) : array();
 	$tools ? update_post_meta( $post_id, 'cptdp_software_tools', $tools ) : delete_post_meta( $post_id, 'cptdp_software_tools' );
 
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by callback.
-	$stats = isset( $_POST['cptdp_post_statistics'] ) ? cptdp_document_sanitize_statistics( wp_unslash( $_POST['cptdp_post_statistics'] ) ) : array();
+	$stats = isset( $_POST['cptdp_post_statistics'] ) ? cptdp_media_sanitize_statistics( wp_unslash( $_POST['cptdp_post_statistics'] ) ) : array();
 	$stats ? update_post_meta( $post_id, 'cptdp_post_statistics', $stats ) : delete_post_meta( $post_id, 'cptdp_post_statistics' );
 
 	empty( $_POST['cptdp_highlight'] ) ? delete_post_meta( $post_id, 'cptdp_highlight' ) : update_post_meta( $post_id, 'cptdp_highlight', 1 );
@@ -695,6 +537,7 @@ function cptdp_document_enqueue_admin( string $hook ): void {
 	}
 
 	wp_enqueue_media();
+	wp_enqueue_script( 'cptdp-admin-statistics', CPTDP_URL . 'assets/admin-statistics.js', array( 'jquery' ), CPTDP_VERSION, true );
 	wp_enqueue_script(
 		'cptdp-admin-document',
 		CPTDP_URL . 'assets/admin-document.js',

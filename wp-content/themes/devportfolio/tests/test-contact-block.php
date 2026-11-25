@@ -259,6 +259,6 @@ class Devportfolio_Test_Contact_Block extends WP_UnitTestCase {
 		$file = $this->read( 'render.php' );
 
 		$this->assertStringContainsString( 'if ( empty( $devportfolio_config ) )', $file );
-		$this->assertStringContainsString( "function_exists( 'cptdp_contact_config' )", (string) file_get_contents( $this->theme_dir() . '/functions.php' ) );
+		$this->assertStringContainsString( "function_exists( 'cptdp_contact_config' )", (string) file_get_contents( $this->theme_dir() . '/inc/home.php' ) );
 	}
 }

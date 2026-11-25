@@ -192,7 +192,7 @@ class Devportfolio_Test_Collateral_Viewer extends WP_UnitTestCase {
 	}
 
 	public function test_collateral_arrows_have_their_own_left_and_right_position(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--prev,\s*\.collaterals-modal__arrow--prev \{\s*left: var\(--dm-arrow-inset\);/', $css, 'Previous sits on the left for collaterals too.' );
 		$this->assertMatchesRegularExpression( '/\.documents-modal__arrow--next,\s*\.collaterals-modal__arrow--next \{\s*right: var\(--dm-arrow-inset\);/', $css, 'Next sits on the right for collaterals too.' );
 	}
@@ -227,7 +227,7 @@ class Devportfolio_Test_Collateral_Viewer extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#\.collaterals-modal__tap \{[^}]*position: absolute#s', $css );
 		$this->assertMatchesRegularExpression( '#\.collaterals-modal__tap\[hidden\]#', $css );
 
-		$documents = $this->read( 'blocks/document-modal/style.css' );
+		$documents = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( '.collaterals-modal__stage', $documents, 'The stage rule is listed for both modals.' );
 		$this->assertStringContainsString( '.collaterals-modal__pg', $documents );
 		$this->assertStringContainsString( '.collaterals-modal__book', $documents );

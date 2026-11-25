@@ -107,14 +107,6 @@ export function nativeAllowedOnMobile( doc ) {
 }
 
 /**
- * Whether the native viewer draws this document as a workbook grid: the grid has sheet tabs at the bottom
- * the round buttons must stay clear of.
- */
-export function isNativeGrid( doc ) {
-	return !! doc && doc.kind === 'xlsx' && nativeAllowedOnMobile( doc ) && viewerMode( doc ) === 'native';
-}
-
-/**
  * Whether the native viewer brings its own scrolling, zoom and selection (a workbook grid or a .docx
  * scroller): for the modal it is one piece (no page turner, no footer) and the page gestures are not bound
  * to it.

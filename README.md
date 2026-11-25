@@ -5,7 +5,7 @@ Personal developer portfolio built on WordPress and developed locally with [DDEV
 ## Stack
 
 - WordPress (block theme / Full Site Editing)
-- Theme: `devportfolio` (standalone, tracked in this repo; Twenty Twenty-Five stays installed as a fallback)
+- Theme: `devportfolio` (standalone, tracked in this repo; WordPress's bundled default themes are not tracked)
 - PHP 8.4, nginx-fpm
 - MariaDB 11.8
 - Composer 2
@@ -137,7 +137,6 @@ When adding a CPT, add a plugin test class extending `CPTDP_CPT_Test_Case` (or `
 | --- | --- |
 | `.ddev/config.yaml` | DDEV project config (tracked) |
 | `wp-content/themes/devportfolio/` | Tracked theme (active) |
-| `wp-content/themes/twentytwentyfive/` | Tracked, unused reference theme |
 | `wp-content/plugins/custom-post-types-dp/` | Master plugin: portfolio CPTs, taxonomies and settings (tracked) |
 | `.claude/plans/` | Per-ticket implementation plans (`DPB-NNN-*.md`) |
 | `.github/pull_request_template.md` | PR template |
@@ -168,4 +167,4 @@ Branch from `main`, use Conventional Commits (`feat(custom-post-types-dp): ...`)
 
 ## License
 
-WordPress core is GPLv2 or later (see `license.txt`). Twenty Twenty-Five is GPL-2.0-or-later.
+WordPress core is GPLv2 or later (see `license.txt`). The `devportfolio` theme, forked from Twenty Twenty-Five, is GPL-2.0-or-later.

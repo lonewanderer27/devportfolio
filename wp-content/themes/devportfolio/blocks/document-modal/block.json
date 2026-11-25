@@ -10,6 +10,6 @@
 		"html": false
 	},
 	"render": "file:./render.php",
-	"style": "file:./style.css",
-	"viewScriptModule": "file:./view.js"
+	"style": [ "devportfolio-viewer", "file:./style.css" ],
+	"viewScriptModule": "file:./boot.js"
 }

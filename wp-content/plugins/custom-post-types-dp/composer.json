@@ -1,20 +1,27 @@
 {
 	"name": "lonewanderer27/custom-post-types-dp",
-	"description": "Portfolio custom post types and settings. Dev dependencies for the PHPUnit suite.",
+	"description": "Portfolio custom post types and settings. Dev dependencies for the PHPUnit suite and the PHPCS report.",
 	"type": "wordpress-plugin",
 	"license": "MIT",
 	"require": {
 		"php": ">=8.4"
 	},
 	"require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
 		"phpunit/phpunit": "^9.6",
+		"wp-coding-standards/wpcs": "^3.1",
 		"yoast/phpunit-polyfills": "^2.0"
 	},
 	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
 		"process-timeout": 0,
 		"sort-packages": true
 	},
 	"scripts": {
-		"test": "phpunit"
+		"test": "phpunit",
+		"lint": "phpcs",
+		"lint:summary": "phpcs --report=summary"
 	}
 }

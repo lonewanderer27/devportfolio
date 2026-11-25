@@ -1,0 +1,1866 @@
+/* Viewer rules shared by the Documents, Collaterals and Videos modals (moved from blocks/document-modal/style.css, DPB-NNN F2). Handle devportfolio-viewer: listed first in the Documents modal block.json style, enqueued on the Collaterals and Videos archives by devportfolio_enqueue_page_styles(). Tokens follow the hi-fi viewer (.vmodal / .vhead / .vfoot). */
+.collaterals-mobile,
+.documents-modal,
+.collaterals-modal,
+.documents-mobile,
+.videos-mobile {
+	--dm-ink: var(--wp--custom--modal--ink);
+	--dm-subtle: var(--wp--custom--modal--subtle);
+	--dm-line: var(--wp--custom--modal--line);
+	--dm-line-strong: var(--wp--custom--modal--line-strong);
+	--dm-edge: var(--wp--custom--edge);
+	--dm-surface: var(--wp--custom--modal--surface);
+	--dm-surface-alt: var(--wp--custom--modal--surface-alt);
+	--dm-on-primary: var(--wp--custom--modal--on-primary);
+	--dm-grad: linear-gradient(135deg, rgb(26 214 253), rgb(29 98 240));
+	--dm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--dm-dur: 260ms;
+}
+
+/* Mobile modal (DPD-017 to DPD-019). */
+.collaterals-mobile,
+.documents-mobile {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: none;
+	height: 100vh;
+	height: 100dvh;
+	max-height: none;
+	margin: 0;
+	padding: 0;
+	inset: 0;
+	overflow: hidden;
+	color: var(--dm-ink);
+	background: var(--dm-surface);
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.collaterals-mobile::backdrop,
+.documents-mobile::backdrop {
+	background: transparent;
+}
+
+.collaterals-mobile[open],
+.documents-mobile[open] {
+	animation: documents-mobile-up var(--dm-dur) var(--dm-ease);
+}
+
+@keyframes documents-mobile-up {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+}
+
+.collaterals-mobile__panel,
+.documents-mobile__panel {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.collaterals-mobile__header,
+.documents-mobile__header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: none;
+	padding: calc(8px + env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
+	border-bottom: 1px solid var(--dm-line-strong);
+	background: var(--dm-surface);
+}
+
+.collaterals-mobile__btn,
+.documents-mobile__btn {
+	position: relative;
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+}
+
+.collaterals-mobile__btn::after,
+.documents-mobile__btn::after {
+	position: absolute;
+	inset: -4px;
+	content: "";
+}
+
+.collaterals-mobile__btn:hover,
+.documents-mobile__btn:hover {
+	border-color: var(--dm-line-strong);
+}
+
+.collaterals-mobile__title,
+.documents-mobile__title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	font-family: var(--wp--preset--font-family--sans);
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.collaterals-mobile__download[aria-disabled="true"],
+.documents-mobile__download[aria-disabled="true"] {
+	cursor: not-allowed;
+	pointer-events: none;
+	opacity: 0.42;
+}
+
+.collaterals-mobile__body,
+.documents-mobile__body {
+	position: relative;
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+	background: var(--dm-surface-alt);
+}
+
+.collaterals-mobile__stage,
+.documents-mobile__stage {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+}
+
+.collaterals-mobile__bar,
+.documents-mobile__bar {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 1;
+	display: block;
+	width: 100%;
+	height: 3px;
+	overflow: hidden;
+	background: var(--dm-line);
+	border-radius: 2px;
+}
+
+.collaterals-mobile__footer,
+.documents-mobile__footer {
+	display: grid;
+	flex: none;
+	gap: 10px;
+	padding: 10px max(14px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+	border-top: 1px solid var(--dm-line-strong);
+	background: var(--dm-surface);
+}
+
+.collaterals-mobile__row,
+.documents-mobile__row {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: 10px;
+}
+
+.collaterals-mobile__textbtn,
+.documents-mobile__textbtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0 14px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+}
+
+.collaterals-mobile__pages,
+.documents-mobile__pages {
+	justify-self: start;
+}
+
+.collaterals-mobile__details,
+.documents-mobile__details {
+	justify-self: end;
+}
+
+.collaterals-mobile__position,
+.documents-mobile__position {
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.collaterals-mobile__bar i,
+.documents-mobile__bar i {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: var(--dm-grad);
+	transition: width var(--dm-dur) var(--dm-ease);
+}
+
+.collaterals-mobile__btn:focus-visible,
+.collaterals-mobile__textbtn:focus-visible,
+.documents-mobile__btn:focus-visible,
+.documents-mobile__textbtn:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+.collaterals-mobile,
+.documents-modal,
+.documents-mobile {
+	view-transition-name: documents-modal;
+}
+
+html[data-collaterals-swapping] .collaterals-mobile[open],
+html[data-documents-swapping] .documents-modal[open],
+html[data-documents-swapping] .documents-mobile[open],
+html[data-documents-swapping] .documents-modal[open]::backdrop {
+	animation: none;
+}
+
+.documents-modal__header,
+.documents-modal__footer,
+.collaterals-modal__footer {
+	flex: none;
+}
+
+.documents-modal__tags[hidden],
+.documents-modal__format[hidden],
+.documents-modal__desc[hidden],
+.documents-modal__pager[hidden],
+.documents-modal__arrow[hidden],
+.documents-modal__footer[hidden],
+.documents-modal__indicator[hidden],
+.collaterals-modal__pager[hidden],
+.collaterals-modal__arrow[hidden],
+.collaterals-modal__footer[hidden],
+.collaterals-modal__indicator[hidden] {
+	display: none;
+}
+
+.documents-modal__download {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 36px;
+	padding: 0 14px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--dm-on-primary);
+	text-decoration: none;
+	cursor: pointer;
+	background: var(--dm-ink);
+	border: 1px solid transparent;
+	border-radius: 999px;
+	transition: background 160ms var(--dm-ease), transform 160ms var(--dm-ease);
+}
+
+.documents-modal__icon {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.documents-modal__download:focus-visible,
+.documents-modal__close:focus-visible,
+.documents-modal__arrow:focus-visible,
+.documents-modal__pg:focus-visible,
+.collaterals-modal__arrow:focus-visible,
+.collaterals-modal__pg:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+/* Where the page arrows sit and how big they are, in one place: the zoom buttons line up with the Next
+   arrow's column from these too (BF-DPD-038). The media queries below change only the values. */
+.documents-modal__body,
+.collaterals-modal__body {
+	--dm-arrow-inset: 18px;
+	--dm-arrow-size: 38px;
+}
+
+/* The viewer (viewer.js) puts the book in the stage, centred, and measures the stage to size it. */
+.documents-modal__stage,
+.collaterals-modal__stage {
+	position: relative;
+	display: grid;
+	flex: 1 1 auto;
+	place-items: center;
+	min-width: 0;
+}
+
+/* Book and pages (DPD-013). StPageFlip positions and sizes the pages itself. */
+.documents-modal__book,
+.collaterals-modal__book {
+	position: relative;
+}
+
+.documents-modal__page,
+.collaterals-modal__page {
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+}
+
+/* Selectable text (Settings > Documents): pdf.js canvas with a transparent text layer on top.
+   The text layer rules follow pdf.js's own text layer CSS; --scale-factor is set by viewer.js. */
+.documents-modal__pdf-page,
+.collaterals-modal__pdf-page {
+	position: relative;
+}
+
+.documents-modal__pdf-page canvas,
+.collaterals-modal__pdf-page canvas {
+	display: block;
+}
+
+.documents-modal__text,
+.collaterals-modal__text {
+	position: absolute;
+	inset: 0;
+	overflow: clip;
+	line-height: 1;
+	text-align: initial;
+	text-size-adjust: none;
+	forced-color-adjust: none;
+	transform-origin: 0 0;
+}
+
+.documents-modal__text :is(span, br),
+.collaterals-modal__text :is(span, br) {
+	position: absolute;
+	color: transparent;
+	white-space: pre;
+	cursor: text;
+	transform-origin: 0 0;
+}
+
+.documents-modal__text ::selection,
+.collaterals-modal__text ::selection {
+	background: color-mix(in srgb, AccentColor, transparent 75%);
+}
+
+.documents-modal__text br::selection,
+.collaterals-modal__text br::selection {
+	background: transparent;
+}
+
+/* The page content: a stored image or a canvas, centred (a page shaped differently from page 1 is letterboxed). */
+.documents-modal__sheet,
+.collaterals-modal__sheet {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+}
+
+.documents-modal__sheet img,
+.collaterals-modal__sheet img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	user-select: none;
+	-webkit-user-drag: none;
+}
+
+/* Page number at the bottom of every page, whatever the file prints itself. */
+.documents-modal__pn,
+.collaterals-modal__pn {
+	position: absolute;
+	bottom: 2.4%;
+	left: 50%;
+	padding: 0 8px;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.6;
+	color: var(--dm-subtle);
+	pointer-events: none;
+	background: rgb(255 255 255 / 0.82);
+	border-radius: 6px;
+	transform: translateX(-50%);
+}
+
+/* A .pptx the browser draws itself (DPD-026): one canvas for the current slide.
+   The pager, arrows and keys of the modal turn the slides, as they turn the book's pages. */
+.documents-modal__native,
+.collaterals-modal__native {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+}
+
+/* Zoomed with the zoom buttons (BF-DPD-038): the library sets the canvas's width and height, so the clamp
+   above would shrink only the width. The slide keeps its size on both axes and the stage scrolls; auto
+   margins centre it without cutting off the top and left as `justify-content: center` would. */
+.documents-modal__native--zoomed,
+.collaterals-modal__native--zoomed {
+	align-items: flex-start;
+	justify-content: flex-start;
+	overflow: auto;
+}
+
+/* The zoomed slide fills the whole body, edge to edge, instead of scrolling inside the stage, which sits
+   in the body's padding (the gutters that keep the arrows clear of an unzoomed slide). The stage stops
+   being the containing block, so the scroll area, the arrows and the zoom buttons all place against the
+   body; the arrows (z-index 2) and zoom buttons (3) stay on top of the slide. */
+.documents-modal__stage--zoomed,
+.collaterals-modal__stage--zoomed {
+	position: static;
+}
+
+.documents-modal__stage--zoomed > .documents-modal__native--zoomed,
+.collaterals-modal__stage--zoomed > .collaterals-modal__native--zoomed {
+	position: absolute;
+	inset: 0;
+	width: auto;
+	height: auto;
+	padding: 12px;
+}
+
+.documents-modal__native--zoomed > *,
+.collaterals-modal__native--zoomed > * {
+	flex: none;
+	margin: auto;
+}
+
+.documents-modal__native--zoomed .documents-modal__native-canvas,
+.collaterals-modal__native--zoomed .collaterals-modal__native-canvas {
+	max-width: none;
+}
+
+/* A .xlsx the browser draws itself (DPD-027): the library's own grid, with its sheet tabs and zoom control,
+   fills the stage. The modal's pager and arrows are hidden (the workbook reports one piece). */
+.documents-modal__grid,
+.collaterals-modal__grid {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+}
+
+/* Loading and "can't be previewed" messages, centred over the stage. */
+.documents-modal__state,
+.collaterals-modal__state {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	align-content: center;
+	justify-items: center;
+	gap: 10px;
+	padding: 24px;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--dm-subtle);
+	text-align: center;
+	pointer-events: none;
+}
+
+.documents-modal__state[hidden],
+.collaterals-modal__state[hidden] {
+	display: none;
+}
+
+.documents-modal__state[data-kind="unavailable"] .documents-modal__spinner,
+.collaterals-modal__state[data-kind="unavailable"] .collaterals-modal__spinner,
+.documents-modal__state[data-kind="pending"] .documents-modal__spinner,
+.collaterals-modal__state[data-kind="pending"] .collaterals-modal__spinner {
+	display: none;
+}
+
+.documents-modal__state[data-kind="unavailable"] .documents-modal__state-text {
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--dm-ink);
+}
+
+/* A pending collateral (DPC-025): the sample loading image instead of the spinner. */
+.documents-modal__state-image,
+.collaterals-modal__state-image {
+	width: 104px;
+	max-width: 40%;
+	height: auto;
+	border: 1px solid var(--dm-line);
+	border-radius: 4px;
+	background: #fff;
+}
+
+.documents-modal__state-image[hidden],
+.collaterals-modal__state-image[hidden] {
+	display: none;
+}
+
+.documents-modal__state[data-kind="pending"] .documents-modal__state-text,
+.collaterals-modal__state[data-kind="pending"] .collaterals-modal__state-text {
+	color: var(--dm-ink);
+}
+
+.documents-modal__spinner,
+.collaterals-modal__spinner {
+	width: 26px;
+	height: 26px;
+	border: 2px solid var(--dm-line);
+	border-top-color: var(--dm-ink);
+	border-radius: 50%;
+	animation: documents-modal-spin 800ms linear infinite;
+}
+
+@keyframes documents-modal-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Page arrows (DPD-014): round, vertically centred on the grey area, shown on hover or focus. */
+.documents-modal__arrow,
+.collaterals-modal__arrow {
+	position: absolute;
+	top: 50%;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	width: var(--dm-arrow-size);
+	height: var(--dm-arrow-size);
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: rgb(255 255 255 / 0.72);
+	border: 1px solid var(--dm-edge);
+	border-radius: 50%;
+	-webkit-backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	backdrop-filter: var(--wp--custom--glass--filter, blur(20px) saturate(180%));
+	transform: translateY(-50%);
+	transition: opacity 160ms var(--dm-ease), background 160ms var(--dm-ease);
+}
+
+.documents-modal__arrow::after,
+.collaterals-modal__arrow::after {
+	position: absolute;
+	inset: -4px;
+	content: "";
+}
+
+.documents-modal__arrow--prev,
+	.collaterals-modal__arrow--prev {
+	left: var(--dm-arrow-inset);
+}
+
+.documents-modal__arrow--next,
+	.collaterals-modal__arrow--next {
+	right: var(--dm-arrow-inset);
+}
+
+/*
+ * Medium and small windows (still the desktop dialog, 701px and up): the document gets the room. The 76px side
+ * gutters only exist to keep the arrows clear of the page on a large screen; here the arrows float over the page
+ * edges (they show on hover or focus, or always on touch) and the padding shrinks, then goes. viewer.js measures
+ * the stage, so the book grows by itself. Short windows also give up their vertical padding.
+ */
+@media (max-width: 1100px) {
+
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 10px;
+		--dm-arrow-size: 34px;
+	}
+}
+
+@media (max-width: 900px) {
+
+	.documents-modal__body,
+	.collaterals-modal__body {
+		--dm-arrow-inset: 8px;
+	}
+}
+
+.documents-modal__arrow:hover,
+.collaterals-modal__arrow:hover {
+	background: rgb(255 255 255 / 0.86);
+}
+
+.documents-modal__arrow[aria-disabled="true"],
+.collaterals-modal__arrow[aria-disabled="true"] {
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+/* With a pointer, the arrows appear only while hovering the body (or when focused by keyboard). */
+@media (hover: hover) {
+	.documents-modal__arrow,
+.collaterals-modal__arrow {
+		opacity: 0;
+	}
+
+	.documents-modal__body:hover .documents-modal__arrow,
+	.collaterals-modal__body:hover .collaterals-modal__arrow,
+	.documents-modal__arrow:focus-visible,
+.collaterals-modal__arrow:focus-visible {
+		opacity: 1;
+	}
+
+	.collaterals-modal__body:hover .collaterals-modal__arrow[aria-disabled="true"],
+	.documents-modal__body:hover .documents-modal__arrow[aria-disabled="true"] {
+		opacity: 0.3;
+	}
+}
+
+/* Footer */
+.documents-modal__footer,
+.collaterals-modal__footer {
+	position: relative;
+	display: grid;
+	gap: 12px;
+	padding: 14px 26px 20px;
+	border-top: 1px solid var(--dm-edge);
+}
+
+.documents-modal__pager,
+.collaterals-modal__pager {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+}
+
+.documents-modal__pg,
+.collaterals-modal__pg {
+	display: inline-grid;
+	place-items: center;
+	min-width: 36px;
+	height: 36px;
+	padding: 0 10px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: var(--dm-surface);
+	border: 1px solid var(--dm-line);
+	border-radius: 6px;
+	transition: border-color 160ms var(--dm-ease), background 160ms var(--dm-ease);
+}
+
+.documents-modal__pg:hover,
+.collaterals-modal__pg:hover {
+	border-color: var(--dm-line-strong);
+}
+
+.documents-modal__pg.is-on,
+.collaterals-modal__pg.is-on {
+	color: var(--dm-on-primary);
+	background: var(--dm-ink);
+	border-color: var(--dm-ink);
+}
+
+.documents-modal__pg[aria-disabled="true"],
+.collaterals-modal__pg[aria-disabled="true"] {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+.documents-modal__gap,
+.collaterals-modal__gap {
+	padding: 0 4px;
+	color: var(--dm-subtle);
+	letter-spacing: 0.1em;
+}
+
+.documents-modal__indicator,
+.collaterals-modal__indicator {
+	/* A thin progress line along the top edge of the footer, over its border: no text. */
+	position: absolute;
+	top: -1px;
+	right: 0;
+	left: 0;
+	height: 3px;
+}
+
+.documents-modal__bar,
+.collaterals-modal__bar {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: var(--dm-line);
+}
+
+.documents-modal__bar i,
+.collaterals-modal__bar i {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: var(--dm-grad);
+	transition: width var(--dm-dur) var(--dm-ease);
+}
+
+/* Mobile (700px and below, or a touch screen held sideways): the mobile modal takes over from the desktop modal.
+   These two queries and the mobile-dialog one below are the same as in routing.js (a test compares them). */
+@media (max-width: 700px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.documents-modal,
+	.documents-modal__footer,
+.collaterals-modal__footer {
+		display: none;
+	}
+}
+
+@media (min-width: 701px) and (not ((pointer: coarse) and (orientation: landscape) and (max-height: 520px))) {
+	.collaterals-mobile,
+	.documents-mobile {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.documents-modal__download,
+	.documents-modal__arrow,
+	.documents-modal__pg,
+	.documents-modal__bar i,
+.collaterals-modal__arrow,
+.collaterals-modal__pg,
+.collaterals-modal__bar i {
+		transition: none;
+	}
+
+	.documents-modal__spinner,
+.collaterals-modal__spinner {
+		animation: none;
+	}
+
+	.collaterals-mobile[open],
+	.documents-mobile[open] {
+		animation: none;
+	}
+
+	.collaterals-mobile__bar i,
+	.documents-mobile__bar i {
+		transition: none;
+	}
+}
+
+/* Mobile body (DPD-021, DPD-024). One page, or a spread when the space allows, on the light grey of the body.
+   mobile-viewer.js builds frame > track > view > zoom > book; the pages reuse the desktop page rules above. */
+.collaterals-mobile__stage,
+.documents-mobile__stage {
+	overflow: hidden;
+}
+
+.collaterals-mobile__frame,
+.documents-mobile__frame {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.collaterals-mobile__track,
+.documents-mobile__track {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+}
+
+.collaterals-mobile__view,
+.documents-mobile__view {
+	position: absolute;
+	top: 0;
+	overflow: hidden;
+}
+
+.collaterals-mobile__zoom,
+.documents-mobile__zoom {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	transform-origin: 0 0;
+}
+
+.collaterals-mobile__book,
+.documents-mobile__book {
+	display: flex;
+	justify-content: center;
+}
+
+.collaterals-mobile__book .collaterals-modal__page,
+.documents-mobile__book .documents-modal__page {
+	position: relative;
+	flex: none;
+}
+
+.collaterals-mobile__state,
+.documents-mobile__state {
+	z-index: 4;
+}
+
+/* No fold shading down the middle of a spread on mobile: it only adds paint work and a visible seam. */
+.collaterals-mobile__book .collaterals-modal__page--left::after,
+.collaterals-mobile__book .collaterals-modal__page--right::after,
+.documents-mobile__book .documents-modal__page--left::after,
+.documents-mobile__book .documents-modal__page--right::after {
+	display: none;
+}
+
+/* Edge hints: small, light, round; the tap zone itself is the outer 20% of the page area. */
+.collaterals-mobile__edge,
+.collaterals-mobile__fab,
+.documents-mobile__edge,
+.documents-mobile__fab {
+	position: absolute;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: rgb(255 255 255 / 0.9);
+	border: 1px solid var(--dm-line);
+	border-radius: 50%;
+	box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+.collaterals-mobile__edge::after,
+.collaterals-mobile__fab::after,
+.documents-mobile__edge::after,
+.documents-mobile__fab::after {
+	position: absolute;
+	inset: -6px;
+	content: "";
+}
+
+.collaterals-mobile__edge,
+.documents-mobile__edge {
+	top: 50%;
+	width: 38px;
+	height: 38px;
+	transform: translateY(-50%);
+}
+
+/* The same size and side inset as the round buttons (close, download, pages, details), so they line up in columns. */
+.collaterals-mobile__edge--prev,
+.documents-mobile__edge--prev {
+	left: max(12px, env(safe-area-inset-left, 0px));
+}
+
+.collaterals-mobile__edge--next,
+.documents-mobile__edge--next {
+	right: max(12px, env(safe-area-inset-right, 0px));
+}
+
+.collaterals-mobile__edge .collaterals-modal__icon,
+.collaterals-mobile__fab .collaterals-modal__icon,
+.documents-mobile__edge .documents-modal__icon,
+.documents-mobile__fab .documents-modal__icon {
+	width: 18px;
+	height: 18px;
+}
+
+.collaterals-mobile__footer[hidden],
+.collaterals-mobile__bar[hidden],
+.collaterals-mobile__edge[hidden],
+.collaterals-mobile__hint[hidden],
+.collaterals-mobile__fab[hidden],
+.documents-mobile__footer[hidden],
+.documents-mobile__bar[hidden],
+.documents-mobile__edge[hidden],
+.documents-mobile__hint[hidden],
+.documents-mobile__fab[hidden] {
+	display: none;
+}
+
+/* The hint line under the document: plain "swipe or tap edges" text, or the two pills of a landscape document.
+   It disappears at the first action in the body. */
+.collaterals-mobile__hint,
+.documents-mobile__hint {
+	position: absolute;
+	right: 0;
+	bottom: 14px;
+	left: 0;
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 6px 8px;
+	padding: 0 64px;
+	pointer-events: none;
+}
+
+.collaterals-mobile__hint-text,
+.documents-mobile__hint-text {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--dm-subtle);
+	text-shadow: 0 0 6px var(--dm-surface-alt), 0 0 2px var(--dm-surface-alt);
+}
+
+.collaterals-mobile__pill,
+.documents-mobile__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	font-size: 12.5px;
+	font-weight: 500;
+	line-height: 1.2;
+	color: var(--dm-ink);
+	background: rgb(255 255 255 / 0.92);
+	border: 1px solid var(--dm-line);
+	border-radius: 999px;
+}
+
+.collaterals-mobile__pill--dark,
+.documents-mobile__pill--dark {
+	color: var(--dm-on-primary);
+	background: var(--dm-line-strong);
+	border-color: var(--dm-line-strong);
+}
+
+.collaterals-mobile__pill .collaterals-modal__icon,
+.documents-mobile__pill .documents-modal__icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* The round Info and Pages buttons: they get out of the way on a swipe down and return after a swipe up. They open the
+   Details and Pages sheets (below). */
+.collaterals-mobile__fabs,
+.documents-mobile__fabs {
+	position: absolute;
+	right: max(12px, env(safe-area-inset-right, 0px));
+	bottom: 12px;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 10px;
+	transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.collaterals-mobile__fabs[hidden],
+.documents-mobile__fabs[hidden] {
+	display: none;
+}
+
+.collaterals-mobile__fabs .collaterals-mobile__fab,
+.documents-mobile__fabs .documents-mobile__fab {
+	position: relative;
+	width: 38px;
+	height: 38px;
+}
+
+.collaterals-mobile__fabs.is-away,
+.documents-mobile__fabs.is-away {
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(14px);
+}
+
+.collaterals-mobile__edge:focus-visible,
+.collaterals-mobile__fab:focus-visible,
+.documents-mobile__edge:focus-visible,
+.documents-mobile__fab:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+.collaterals-mobile__live,
+.documents-mobile__live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* A rotated phone or an unfolded foldable gets the desktop dialog (wider than 700px) on a touch screen:
+   the book is driven by swipe and pinch, the browser must not scroll or zoom the page there, the
+   arrows are always visible, and a short screen gives the book most of its height (DPD-024). */
+@media (pointer: coarse) {
+	.documents-modal__stage,
+	.collaterals-modal__stage {
+		touch-action: none;
+	}
+}
+
+/* A touch screen held sideways uses the mobile dialog (view.js): no header and no footer. Close sits top left and
+   Download top right as round buttons, in the same columns as the page buttons and the round buttons below them. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.collaterals-mobile__panel,
+	.documents-mobile__panel {
+		position: relative;
+	}
+
+	/* The header's children float over the page; the title stays for screen readers. */
+	.collaterals-mobile__header,
+	.documents-mobile__header {
+		display: contents;
+	}
+
+	.collaterals-mobile__title,
+	.documents-mobile__title {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.collaterals-mobile__btn,
+	.documents-mobile__btn {
+		box-sizing: border-box;
+		position: absolute;
+		top: max(12px, env(safe-area-inset-top, 0px));
+		z-index: 5;
+		width: 38px;
+		height: 38px;
+		background: rgb(255 255 255 / 0.9);
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+	}
+
+	.collaterals-mobile__close,
+	.documents-mobile__close {
+		left: max(12px, env(safe-area-inset-left, 0px));
+	}
+
+	.collaterals-mobile__download,
+	.documents-mobile__download {
+		right: max(12px, env(safe-area-inset-right, 0px));
+	}
+
+	.collaterals-mobile__footer,
+	.documents-mobile__footer {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.collaterals-mobile__fabs,
+	.documents-mobile__fabs {
+		transition: opacity 150ms ease;
+	}
+
+	.collaterals-mobile__fabs.is-away,
+	.documents-mobile__fabs.is-away {
+		transform: none;
+	}
+}
+
+/* A .pptx drawn from the original file on mobile (DPD-029): one canvas inside the zoom wrapper, with a
+   transparent text layer. The frame turns selection off for the swipe; the slide turns it back on so a
+   long press selects and copies text. */
+.collaterals-mobile__native,
+.documents-mobile__native {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+/* A .xlsx drawn by the library's own grid, or a .docx by its scrolling page flow, on mobile (DPD-030, DPD-031). It fills the stage OUTSIDE the swipe/zoom frame,
+   so the grid keeps its own scroll, pinch and cell selection; it reports one piece, so there is no footer. The
+   library's 30px tab bar (nav, sheet tabs, zoom) sits at the bottom of the grid and must stay clear: the details
+   button is lifted above it (--documents-grid-bar is measured after mount) and the zoom buttons are not built. */
+.collaterals-mobile__stage--scroll,
+.documents-mobile__stage--scroll {
+	touch-action: auto;
+}
+
+.collaterals-mobile__scroll,
+.documents-mobile__scroll {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	background: #fff;
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	box-sizing: border-box;
+	overscroll-behavior: contain;
+	touch-action: pan-x pan-y pinch-zoom;
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+.collaterals-mobile__stage--scroll .collaterals-mobile__fabs,
+.documents-mobile__stage--scroll .documents-mobile__fabs {
+	bottom: calc(var(--documents-grid-bar, 30px) + 12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* A document has no tab bar: the buttons keep the normal inset, and its zoom buttons sit bottom left. */
+.collaterals-mobile__stage--doc .collaterals-mobile__fabs,
+.collaterals-mobile__stage--doc .collaterals-mobile__zoomfabs,
+.documents-mobile__stage--doc .documents-mobile__fabs,
+.documents-mobile__stage--doc .documents-mobile__zoomfabs {
+	bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* The scroller's host scrolls (as the desktop wrapper does). */
+.collaterals-mobile__scroll--doc,
+.documents-mobile__scroll--doc {
+	overflow: auto;
+	background: var(--dm-stage, #eee);
+}
+
+/* Thumb-sized tab bar: the library sets 30px inline on the bar (the parent of the tab strip), so this needs
+   !important. The details button follows the measured height. */
+@media (pointer: coarse) {
+	.collaterals-mobile__scroll :has( > .xlsx-tab-strip ),
+	.documents-mobile__scroll :has( > .xlsx-tab-strip ) {
+		height: 40px !important;
+	}
+}
+
+/* Held sideways there is no header: Close and Download float over the top corners, so the grid starts below them. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.collaterals-mobile__scroll,
+	.documents-mobile__scroll {
+		top: calc(max(12px, env(safe-area-inset-top, 0px)) + 38px + 8px);
+		left: max(0px, env(safe-area-inset-left, 0px));
+		right: max(0px, env(safe-area-inset-right, 0px));
+	}
+
+	/* A Word document has no tab bar to keep clear and scrolls under the round buttons like the page viewer, so it
+	   fills the whole screen: starting below them left a visible bar across the top. */
+	.collaterals-mobile__scroll--doc,
+	.documents-mobile__scroll--doc {
+		top: 0;
+	}
+}
+
+/* Zoom in and out (bottom left, the round buttons' size and inset): the same steps as the + and - keys. */
+.collaterals-mobile__zoomfabs,
+.documents-mobile__zoomfabs {
+	position: absolute;
+	bottom: 12px;
+	left: max(12px, env(safe-area-inset-left, 0px));
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.collaterals-mobile__zoomfabs .collaterals-mobile__fab,
+.documents-mobile__zoomfabs .documents-mobile__fab {
+	position: relative;
+	width: 38px;
+	height: 38px;
+}
+
+.collaterals-mobile__zoomfabs .collaterals-mobile__fab:disabled,
+.documents-mobile__zoomfabs .documents-mobile__fab:disabled {
+	color: var(--dm-subtle);
+	cursor: default;
+	opacity: 0.45;
+}
+
+/* Mobile Pages sheet (DPD-020): a bottom sheet over the dimmed viewer, inside the mobile dialog. It has a Gallery
+   view (3 columns of page thumbnails, at most 3 rows tall, scrolling for more) and a List view (one row per page).
+   The viewer behind it is `inert` (pages-sheet.js), so the round buttons cannot be reached while it is open. */
+.videos-mobile__dim,
+.collaterals-mobile__dim,
+.documents-mobile__dim {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	background: rgb(0 0 0 / 0.4);
+	animation: documents-mobile-fade var(--dm-dur) ease;
+}
+
+.videos-mobile__sheet,
+.collaterals-mobile__sheet,
+.documents-mobile__sheet {
+	--pg-ratio: 0.7576;
+	--pg-crop: 0;
+	--pg-gap: 14px;
+	--pg-pad: 18px;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 21;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	max-width: 560px;
+	max-height: 82%;
+	margin: 0 auto;
+	padding: 10px var(--pg-pad) calc(18px + env(safe-area-inset-bottom, 0px));
+	color: var(--dm-ink);
+	background: var(--dm-surface);
+	border-top: 1px solid var(--dm-edge);
+	border-radius: 14px 14px 0 0;
+	box-shadow: 0 -8px 28px rgb(0 0 0 / 0.16);
+	container-type: inline-size;
+	animation: documents-mobile-sheet-up var(--dm-dur) var(--dm-ease);
+}
+
+.videos-mobile__dim[hidden],
+.videos-mobile__sheet[hidden],
+.collaterals-mobile__dim[hidden],
+.collaterals-mobile__sheet[hidden],
+.documents-mobile__dim[hidden],
+.documents-mobile__sheet[hidden] {
+	display: none;
+}
+
+@keyframes documents-mobile-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes documents-mobile-sheet-up {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+}
+
+.videos-mobile__grab,
+.collaterals-mobile__grab,
+.documents-mobile__grab {
+	position: relative;
+	display: block;
+	flex: none;
+	width: 40px;
+	height: 4px;
+	padding: 0;
+	margin: 0 auto 12px;
+	cursor: pointer;
+	background: var(--dm-line);
+	border: 0;
+	border-radius: 2px;
+}
+
+.videos-mobile__grab::after,
+.collaterals-mobile__grab::after,
+.documents-mobile__grab::after {
+	position: absolute;
+	inset: -12px -20px;
+	content: "";
+}
+
+/* The handle and the title row are dragged down to dismiss the sheet: the browser must not scroll or select there. */
+.videos-mobile__grab,
+.videos-mobile__sheet-head,
+.collaterals-mobile__grab,
+.collaterals-mobile__sheet-head,
+.documents-mobile__grab,
+.documents-mobile__sheet-head {
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.videos-mobile__grab,
+.collaterals-mobile__grab,
+.documents-mobile__grab {
+	cursor: grab;
+}
+
+.videos-mobile__grab:active,
+.collaterals-mobile__grab:active,
+.documents-mobile__grab:active {
+	cursor: grabbing;
+}
+
+.videos-mobile__sheet-head,
+.collaterals-mobile__sheet-head,
+.documents-mobile__sheet-head {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.videos-mobile__sheet-title,
+.collaterals-mobile__sheet-title,
+.documents-mobile__sheet-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+/* Two small grouped icon buttons: the active view is filled dark with a light icon, the other is outlined. */
+.collaterals-mobile__sheet-toggle,
+.documents-mobile__sheet-toggle {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.collaterals-mobile__sheet-view,
+.documents-mobile__sheet-view {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 28px;
+	padding: 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--dm-ink);
+	border-radius: 6px;
+}
+
+.collaterals-mobile__sheet-view::after,
+.documents-mobile__sheet-view::after {
+	position: absolute;
+	inset: -8px -2px;
+	content: "";
+}
+
+.collaterals-mobile__sheet-view .collaterals-modal__icon,
+.documents-mobile__sheet-view .documents-modal__icon {
+	width: 16px;
+	height: 16px;
+}
+
+.collaterals-mobile__sheet-view[aria-pressed="true"],
+.documents-mobile__sheet-view[aria-pressed="true"] {
+	color: var(--dm-on-primary);
+	background: var(--dm-ink);
+}
+
+.videos-mobile__grab:focus-visible,
+.collaterals-mobile__grab:focus-visible,
+.collaterals-mobile__sheet-view:focus-visible,
+.collaterals-mobile__tile:focus-visible,
+.collaterals-mobile__prow:focus-visible,
+.documents-mobile__grab:focus-visible,
+.documents-mobile__sheet-view:focus-visible,
+.documents-mobile__tile:focus-visible,
+.documents-mobile__prow:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+/* One scroll area for both views; the gallery shows at most three rows of tiles, so a long document scrolls. */
+.videos-mobile__sheet-body,
+.collaterals-mobile__sheet-body,
+.documents-mobile__sheet-body {
+	flex: 0 1 auto;
+	min-height: 0;
+	margin-top: 12px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	contain: layout paint;
+}
+
+/* The Pages sheet shows three tile rows. 100cqw is the sheet's content width: tile width = (that - 2 gaps - the grid's 8px of padding) / 3, tile height = width / ratio. */
+.collaterals-mobile__sheet--pages .collaterals-mobile__sheet-body,
+.documents-mobile__sheet--pages .documents-mobile__sheet-body {
+	max-height: calc(3 * ((100cqw - 2 * var(--pg-gap) - 8px) / 3 / var(--pg-ratio)) + 2 * var(--pg-gap) + 8px);
+}
+
+.collaterals-mobile__pgr,
+.documents-mobile__pgr {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--pg-gap);
+	padding: 4px 4px 4px;
+}
+
+.collaterals-mobile__pgr[hidden],
+.collaterals-mobile__rows[hidden],
+.documents-mobile__pgr[hidden],
+.documents-mobile__rows[hidden] {
+	display: none;
+}
+
+.collaterals-mobile__tile,
+.documents-mobile__tile {
+	position: relative;
+	display: block;
+	aspect-ratio: var(--pg-ratio);
+	padding: 0;
+	overflow: hidden;
+	color: var(--dm-subtle);
+	cursor: pointer;
+	background: #fff;
+	border: 1px solid var(--dm-line);
+	border-radius: 6px;
+	content-visibility: auto;
+	contain-intrinsic-size: auto 120px;
+}
+
+/* The page thumbnail fills the tile; the bottom crop of the book applies here too (the page image is taller
+   than the visible part, pinned to the top). */
+.collaterals-mobile__thumb,
+.documents-mobile__thumb {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: calc(100% / (1 - var(--pg-crop)));
+	object-fit: cover;
+	object-position: top;
+	opacity: 0;
+	transition: opacity 160ms ease;
+}
+
+.collaterals-mobile__tile.is-loaded .collaterals-mobile__thumb,
+.documents-mobile__tile.is-loaded .documents-mobile__thumb {
+	opacity: 1;
+}
+
+/* The page number: a small chip at the bottom of a real thumbnail, in the centre of a blank page. */
+.collaterals-mobile__tile-n,
+.documents-mobile__tile-n {
+	position: absolute;
+	bottom: 6px;
+	left: 50%;
+	padding: 1px 8px;
+	font: 600 12px/1.5 var(--wp--preset--font-family--sans);
+	color: var(--dm-ink);
+	background: rgb(255 255 255 / 0.92);
+	border-radius: 999px;
+	transform: translateX(-50%);
+}
+
+.collaterals-mobile__tile--blank,
+.documents-mobile__tile--blank {
+	background-image: repeating-linear-gradient(#fff 0 9px, #e5e5ea 9px 11px);
+	background-repeat: no-repeat;
+	background-position: center 30%;
+	background-size: 70% 60%;
+}
+
+.collaterals-mobile__tile--blank .collaterals-mobile__tile-n,
+.documents-mobile__tile--blank .documents-mobile__tile-n {
+	top: 50%;
+	bottom: auto;
+	font-size: 14px;
+	transform: translate(-50%, -50%);
+}
+
+/* The current page(s): a thick dark outline. */
+.collaterals-mobile__tile.is-current,
+.documents-mobile__tile.is-current {
+	border-color: var(--dm-ink);
+	box-shadow: 0 0 0 3px var(--dm-ink);
+}
+
+.collaterals-mobile__rows,
+.documents-mobile__rows {
+	border-top: 1px solid var(--dm-line);
+}
+
+.collaterals-mobile__prow,
+.documents-mobile__prow {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 56px;
+	padding: 8px 2px;
+	color: var(--dm-ink);
+	text-align: left;
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--dm-line);
+	content-visibility: auto;
+	contain-intrinsic-size: auto 56px;
+}
+
+.collaterals-mobile__prow-n,
+.documents-mobile__prow-n {
+	display: grid;
+	flex: none;
+	place-items: center;
+	box-sizing: border-box;
+	width: 32px;
+	height: 42px;
+	font: 600 12px/1 var(--wp--preset--font-family--sans);
+	color: var(--dm-subtle);
+	background: #fff;
+	border: 1px solid var(--dm-line);
+	border-radius: 4px;
+}
+
+.collaterals-mobile__prow.is-current .collaterals-mobile__prow-n,
+.documents-mobile__prow.is-current .documents-mobile__prow-n {
+	color: var(--dm-ink);
+	border-color: var(--dm-ink);
+	box-shadow: 0 0 0 2px var(--dm-ink);
+}
+
+.collaterals-mobile__prow-name,
+.documents-mobile__prow-name {
+	flex: 1;
+	min-width: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+.collaterals-mobile__prow-text,
+.documents-mobile__prow-text {
+	font-weight: 700;
+}
+
+.collaterals-mobile__prow-cur,
+.documents-mobile__prow-cur {
+	display: none;
+	font-weight: 400;
+	color: var(--dm-subtle);
+}
+
+.collaterals-mobile__prow.is-current .collaterals-mobile__prow-cur,
+.documents-mobile__prow.is-current .documents-mobile__prow-cur {
+	display: inline;
+}
+
+.collaterals-mobile__sentinel,
+.documents-mobile__sentinel {
+	grid-column: 1 / -1;
+	height: 1px;
+}
+
+/* Mobile Details sheet (DPD-023): the same shell as the Pages sheet (dim layer, handle, drag to dismiss), with the
+   document's title and an X, then the category (outlined pill), description, software pills, the Format and Pages
+   rows, and a full-width Download button that stays visible while the text scrolls. */
+.collaterals-mobile__sheet--details .collaterals-mobile__sheet-head,
+.documents-mobile__sheet--details .documents-mobile__sheet-head {
+	align-items: flex-start;
+}
+
+.videos-mobile__details-title,
+.collaterals-mobile__details-title,
+.documents-mobile__details-title {
+	display: -webkit-box;
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	font-family: var(--wp--preset--font-family--sans);
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+}
+
+.videos-mobile__sheet-close,
+.collaterals-mobile__sheet-close,
+.documents-mobile__sheet-close {
+	position: relative;
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	margin: -8px -10px -8px 0;
+	color: var(--dm-ink);
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+	border-radius: 50%;
+}
+
+.videos-mobile__sheet-close .collaterals-modal__icon,
+.collaterals-mobile__sheet-close .collaterals-modal__icon,
+.documents-mobile__sheet-close .documents-modal__icon {
+	width: 20px;
+	height: 20px;
+}
+
+.videos-mobile__sheet-close:focus-visible,
+.collaterals-mobile__sheet-close:focus-visible,
+.collaterals-mobile__details-download:focus-visible,
+.documents-mobile__sheet-close:focus-visible,
+.documents-mobile__details-download:focus-visible {
+	outline: 2px solid #1d62f0;
+	outline-offset: 2px;
+}
+
+.collaterals-mobile__sheet--details .collaterals-mobile__sheet-body,
+.documents-mobile__sheet--details .documents-mobile__sheet-body {
+	margin-top: 10px;
+}
+
+.collaterals-mobile__details-main,
+.documents-mobile__details-main {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.videos-mobile__details-category,
+.collaterals-mobile__details-category,
+.documents-mobile__details-category {
+	padding: 2px 10px;
+	font-size: 11.5px;
+	font-weight: 600;
+	line-height: 1.5;
+	border: 1px solid var(--dm-ink);
+	border-radius: 999px;
+}
+
+.videos-mobile__details-desc,
+.collaterals-mobile__details-desc,
+.documents-mobile__details-desc {
+	margin: 0;
+	font-size: 13.5px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.videos-mobile__details-tools,
+.collaterals-mobile__details-tools,
+.documents-mobile__details-tools {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+
+.videos-mobile__details-tool,
+.collaterals-mobile__details-tool,
+.documents-mobile__details-tool {
+	padding: 3px 10px;
+	font-size: 12px;
+	line-height: 1.4;
+	background: var(--dm-surface-alt);
+	border-radius: 999px;
+}
+
+.videos-mobile__details-category[hidden],
+.videos-mobile__details-desc[hidden],
+.videos-mobile__details-tools[hidden],
+.videos-mobile__details-rows[hidden],
+.collaterals-mobile__details-category[hidden],
+.collaterals-mobile__details-desc[hidden],
+.collaterals-mobile__details-tools[hidden],
+.collaterals-mobile__details-rows[hidden],
+.documents-mobile__details-category[hidden],
+.documents-mobile__details-desc[hidden],
+.documents-mobile__details-tools[hidden],
+.documents-mobile__details-rows[hidden] {
+	display: none;
+}
+
+.videos-mobile__details-rows,
+.collaterals-mobile__details-rows,
+.documents-mobile__details-rows {
+	padding: 0;
+	margin: 14px 0 0;
+	font-size: 13px;
+	border-top: 1px solid var(--dm-line);
+}
+
+.videos-mobile__details-row,
+.collaterals-mobile__details-row,
+.documents-mobile__details-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--dm-line);
+}
+
+.videos-mobile__details-row dt,
+.collaterals-mobile__details-row dt,
+.documents-mobile__details-row dt {
+	color: var(--dm-subtle);
+}
+
+.videos-mobile__details-row dd,
+.collaterals-mobile__details-row dd,
+.documents-mobile__details-row dd {
+	margin: 0;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.collaterals-mobile__sheet-foot,
+.documents-mobile__sheet-foot {
+	flex: none;
+	margin-top: 14px;
+}
+
+.collaterals-mobile__details-download,
+.documents-mobile__details-download {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--dm-on-primary);
+	text-decoration: none;
+	cursor: pointer;
+	background: var(--dm-ink);
+	border-radius: 10px;
+}
+
+.collaterals-mobile__details-download .collaterals-modal__icon,
+.documents-mobile__details-download .documents-modal__icon {
+	width: 18px;
+	height: 18px;
+}
+
+.collaterals-mobile__details-download[aria-disabled="true"],
+.documents-mobile__details-download[aria-disabled="true"] {
+	cursor: default;
+	opacity: 0.45;
+}
+
+/* A phone held sideways: the sheet is shorter than the screen, three columns of smaller tiles, the list scrolls. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+	.videos-mobile__sheet,
+.collaterals-mobile__sheet,
+.documents-mobile__sheet {
+		max-height: 80%;
+		padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+	}
+
+	.collaterals-mobile__sheet--pages .collaterals-mobile__sheet-body,
+	.documents-mobile__sheet--pages .documents-mobile__sheet-body {
+		max-height: none;
+	}
+
+	/* The Details sheet held sideways: two columns. The text (title, category, description, tools) scrolls on the
+	   left; the Format and Pages rows and the Download button stay on the right. The markup is the same in both
+	   orientations, so rotating only changes the layout. The body is dissolved so its two groups are grid items. */
+	.collaterals-mobile__sheet--details,
+	.documents-mobile__sheet--details {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(190px, 40%);
+		grid-template-rows: auto auto minmax(0, 1fr) auto;
+		grid-template-areas:
+			"grab grab"
+			"head head"
+			"main rows"
+			"main foot";
+		column-gap: 22px;
+		align-items: start;
+		max-width: 720px;
+		height: min(86%, 320px);
+		max-height: none;
+	}
+
+	.collaterals-mobile__sheet--details .collaterals-mobile__grab,
+	.documents-mobile__sheet--details .documents-mobile__grab {
+		grid-area: grab;
+		width: 40px;
+		margin-bottom: 8px;
+	}
+
+	.collaterals-mobile__sheet--details .collaterals-mobile__sheet-head,
+	.documents-mobile__sheet--details .documents-mobile__sheet-head {
+		grid-area: head;
+	}
+
+	.collaterals-mobile__sheet--details .collaterals-mobile__sheet-body,
+	.documents-mobile__sheet--details .documents-mobile__sheet-body {
+		display: contents;
+	}
+
+	.collaterals-mobile__details-main,
+	.documents-mobile__details-main {
+		grid-area: main;
+		align-self: stretch;
+		min-height: 0;
+		margin-top: 8px;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	.videos-mobile__details-rows,
+.collaterals-mobile__details-rows,
+.documents-mobile__details-rows {
+		grid-area: rows;
+		margin-top: 8px;
+	}
+
+	/* The title row spans both columns so the X sits in the sheet's top-right corner. */
+	.collaterals-mobile__sheet--details .collaterals-mobile__sheet-close,
+	.documents-mobile__sheet--details .documents-mobile__sheet-close {
+		margin-right: -8px;
+	}
+
+	.collaterals-mobile__sheet-foot,
+	.documents-mobile__sheet-foot {
+		grid-area: foot;
+		align-self: end;
+		margin-top: 10px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.videos-mobile__dim,
+.videos-mobile__sheet,
+.collaterals-mobile__dim,
+.collaterals-mobile__sheet,
+.documents-mobile__dim,
+.documents-mobile__sheet {
+		animation: none;
+	}
+
+	.collaterals-mobile__thumb,
+	.documents-mobile__thumb {
+		transition: none;
+	}
+}

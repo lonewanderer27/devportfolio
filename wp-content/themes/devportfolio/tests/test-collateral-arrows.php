@@ -24,7 +24,7 @@ class Devportfolio_Test_Collateral_Arrows extends WP_UnitTestCase {
 	 * The text of the `@media (hover: hover)` block of the arrow reveal.
 	 */
 	private function hover_block(): string {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertSame( 1, preg_match( '/@media \(hover: hover\) \{\s*\.documents-modal__arrow,.*?\n\}\n/s', $css, $m ), 'Arrow hover block not found.' );
 		return $m[0];
 	}

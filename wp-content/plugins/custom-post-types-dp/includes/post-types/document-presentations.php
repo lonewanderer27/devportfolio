@@ -57,21 +57,6 @@ function cptdp_pptx_warning( string $kind ): string {
 	);
 }
 
-/**
- * The warnings for every presentation kind, keyed by kind (for the media picker script).
- *
- * @return array<string,string>
- */
-function cptdp_pptx_warnings(): array {
-	$out = array();
-
-	foreach ( array( CPTDP_Page_Store::KIND_PPTX, CPTDP_Page_Store::KIND_PPT, CPTDP_Page_Store::KIND_ODP ) as $kind ) {
-		$out[ $kind ] = cptdp_pptx_warning( $kind );
-	}
-
-	return $out;
-}
-
 if ( ! function_exists( 'cptdp_document_native_pptx_url' ) ) :
 	/**
 	 * URL of the `.pptx` the native viewer should draw in the visitor's browser, or '' (see cptdp_native_office_url(); 30 MB).

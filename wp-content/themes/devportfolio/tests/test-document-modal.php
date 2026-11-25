@@ -193,7 +193,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_css_arrows_are_round_centred_and_hover_only(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow[^{]*\{[^}]*top: 50%[^}]*border-radius: 50%[^}]*translateY\(-50%\)#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__arrow--prev(?:,\s*\.collaterals-modal__arrow--prev)?\s*\{\s*left: var\(--dm-arrow-inset\);#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__body,\s*\.collaterals-modal__body\s*\{\s*--dm-arrow-inset: 18px;\s*--dm-arrow-size: 38px;#', $css );
@@ -235,7 +235,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_css_close_is_aligned_with_download(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertSame( 1, preg_match( '#\.documents-modal__close\s*\{([^}]*)\}#', $css, $close ) );
 		$this->assertSame( 1, preg_match( '#\.documents-modal__download\s*\{([^}]*)\}#', $css, $download ) );
 		$this->assertStringNotContainsString( 'position: absolute', $close[1] );
@@ -274,7 +274,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_css_progress_is_a_thin_line_on_the_top_edge_of_the_footer(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__footer[^{]*\{[^}]*position: relative#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__indicator[^{]*\{[^}]*position: absolute[^}]*top: -1px[^}]*height: 3px#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__footer\[hidden\]#', $css );
@@ -332,7 +332,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	// --- CSS structure (parsed text; there is no browser runner) -----------------
 
 	public function test_css_shell_rules(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( 'width: min(1680px, calc(100% - 32px))', $css );
 		$this->assertStringContainsString( 'border-radius: 14px', $css );
 		$this->assertStringContainsString( '.documents-modal::backdrop', $css );
@@ -342,7 +342,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_medium_and_small_windows_give_the_document_the_room_the_arrow_gutters_held(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		// Large screens keep the 76px side gutters that hold the arrows clear of the page.
 		$this->assertMatchesRegularExpression( '#\.documents-modal__body\s*\{[^}]*padding:\s*30px 76px#', $css );
@@ -360,7 +360,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_header_is_a_grid_on_medium_windows_with_the_tools_on_their_own_row(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 
 		$this->assertSame( 1, preg_match( '#@media \(max-width: 1100px\)\s*\{\s*\.documents-modal__header\s*\{([^}]*)\}(.*?)\n\}\n#s', $css, $m ), 'Medium header block missing.' );
 
@@ -386,7 +386,7 @@ class Devportfolio_Test_Document_Modal extends WP_UnitTestCase {
 	}
 
 	public function test_css_header_pager_rules(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__header[^{]*\{[^}]*border-bottom: 1px solid#', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__title\s*\{[^}]*font-family: var\(--wp--preset--font-family--sans\)[^}]*font-weight: 700#s', $css );
 		$this->assertMatchesRegularExpression( '#\.documents-modal__desc\s*\{[^}]*white-space: nowrap#s', $css );

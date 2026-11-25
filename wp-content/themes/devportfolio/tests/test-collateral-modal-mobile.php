@@ -84,14 +84,14 @@ class Devportfolio_Test_Collateral_Modal_Mobile extends WP_UnitTestCase {
 	}
 
 	public function test_a_long_title_is_truncated_with_an_ellipsis_in_the_shared_rule(): void {
-		$block = $this->rule_containing( $this->read( 'blocks/document-modal/style.css' ), '.collaterals-mobile__title' );
+		$block = $this->rule_containing( ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) ), '.collaterals-mobile__title' );
 		$this->assertStringContainsString( 'text-overflow: ellipsis', $block );
 		$this->assertStringContainsString( 'white-space: nowrap', $block );
 		$this->assertStringContainsString( 'min-width: 0', $block );
 	}
 
 	public function test_held_sideways_the_header_goes_and_close_and_download_float_at_the_corners(): void {
-		$css      = $this->read( 'blocks/document-modal/style.css' );
+		$css      = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$sideways = '(pointer: coarse) and (orientation: landscape) and (max-height: 520px)';
 		$this->assertStringContainsString( "@media {$sideways}", $css );
 		$this->assertMatchesRegularExpression( '#\.collaterals-mobile__header[^{]*\{\s*display: contents#', $css, 'The header row is not drawn held sideways.' );
@@ -100,7 +100,7 @@ class Devportfolio_Test_Collateral_Modal_Mobile extends WP_UnitTestCase {
 	}
 
 	public function test_the_dialog_stylesheet_mirrors_the_documents_mobile_rules_with_its_own_prefix(): void {
-		$css = $this->read( 'blocks/document-modal/style.css' );
+		$css = ( $this->read( 'blocks/shared/viewer.css' ) . $this->read( 'blocks/document-modal/style.css' ) );
 		$this->assertStringContainsString( '.collaterals-mobile,', $css, 'The token root covers the collateral mobile dialog.' );
 		$this->assertStringContainsString( '.collaterals-mobile__stage', $css );
 		$this->assertStringContainsString( '.collaterals-mobile__state', $css );
@@ -236,10 +236,10 @@ class Devportfolio_Test_Collateral_Modal_Mobile extends WP_UnitTestCase {
 
 	public function test_back_closes_only_a_sheet_and_the_popstate_listener_is_registered_at_script_run(): void {
 		$view = $this->read( 'blocks/collateral-modal/view.js' );
-		$this->assertStringContainsString( "window.addEventListener(\n\t\t'popstate',", $view );
+		$this->assertStringContainsString( "historyEvents.addEventListener(\n\t\t'popstate',", $view );
 		$this->assertLessThan(
 			strpos( $view, 'routing.onChange( swapDialogs );' ),
-			strpos( $view, "window.addEventListener(\n\t\t'popstate'" ),
+			strpos( $view, "historyEvents.addEventListener(\n\t\t'popstate'" ),
 			'The listener is registered while the script runs, not inside a lazy import.'
 		);
 		$this->assertStringContainsString( 'hasSheetState( event.state )', $view, 'Forward onto a sheet entry does nothing.' );

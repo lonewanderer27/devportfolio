@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bindOpen } from '../modal-trigger.js';
+import { bindOpen, queueOpen } from '../modal-trigger.js';
 
 // A tiny stand-in for the DOM: a listener list and an event whose target has closest().
 function fakeScope() {
@@ -72,4 +72,25 @@ test( 'a target without closest() is ignored rather than throwing', () => {
 	bindOpen( scope, 'data-document-id', ( id ) => calls.push( id ) );
 	scope.fire( 'click', { getAttribute() { return null; } } );
 	assert.deepEqual( calls, [] );
+} );
+
+test( 'a click queued before the view loaded is replayed once, after the caller finished (DPB-NNN F1)', () => {
+	const calls = [];
+	const later = [];
+	const button = element( { 'data-video-id': '5' } );
+	queueOpen( 'data-video-id', button );
+	bindOpen( fakeScope(), 'data-video-id', ( id, trigger ) => calls.push( [ id, trigger ] ), ( fn ) => later.push( fn ) );
+	assert.deepEqual( calls, [], 'not during bindOpen' );
+	later.forEach( ( fn ) => fn() );
+	assert.deepEqual( calls, [ [ '5', button ] ] );
+	bindOpen( fakeScope(), 'data-video-id', ( id ) => calls.push( [ id ] ), ( fn ) => fn() );
+	assert.equal( calls.length, 1, 'replayed only once' );
+} );
+
+test( 'a queued click replays only for its own attribute', () => {
+	const calls = [];
+	queueOpen( 'data-collateral-id', element( { 'data-collateral-id': '3' } ) );
+	bindOpen( fakeScope(), 'data-document-id', ( id ) => calls.push( [ 'document', id ] ), ( fn ) => fn() );
+	bindOpen( fakeScope(), 'data-collateral-id', ( id ) => calls.push( [ 'collateral', id ] ), ( fn ) => fn() );
+	assert.deepEqual( calls, [ [ 'collateral', '3' ] ] );
 } );

@@ -18,6 +18,7 @@ import { createNextPreloader } from './preload-next.js';
 import { mountControls, DESKTOP_CONTROLS } from './controls/index.js';
 import { createMobileVideo } from './mobile.js';
 import { frameOf, flyTo, flightDuration, FLIGHT_EASE } from '../shared/flight.js';
+import { historyEvents } from '../shared/history-events.js';
 
 const SLUG_PARAM = 'video_slug';
 
@@ -489,7 +490,7 @@ if ( dialog && mobileDialog && dataEl ) {
 
 	// Back and Forward open or close the modal to match the URL. Capture phase at module top level and stopping
 	// the event whenever it acts, so the Interactivity Router never reloads the page (see collateral-modal/view.js).
-	window.addEventListener(
+	historyEvents.addEventListener(
 		'popstate',
 		( event ) => {
 			if ( skipNextPop ) {

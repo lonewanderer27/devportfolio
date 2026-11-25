@@ -5,6 +5,7 @@
  * the viewer itself closes with the sheet open.
  */
 import { withSheetState, hasSheetState } from './deeplink.js';
+import { historyEvents } from './history-events.js';
 
 /**
  * @param {Object}   args
@@ -20,7 +21,7 @@ export function createSheetHistory( { isOpen, onBack } ) {
 	// does not change when the sheet opens or closes, but WordPress's Interactivity Router (loaded for the Navigation
 	// block) answers every popstate: for a URL it has not cached, here `?document_slug=...`, it reloads the whole
 	// page, which flickered the modal and re-opened it from scratch the first time a page was chosen.
-	window.addEventListener(
+	historyEvents.addEventListener(
 		'popstate',
 		( event ) => {
 			if ( expectPop ) {
