@@ -231,9 +231,10 @@
 		left: 15px;
 	}
 
+	/* Cover artwork: the labels keep the desktop 10px (the text floor's artwork exception, DPF-NNN). */
 	.documents-book__cat,
 	.documents-book__ft {
-		font-size: 8.5px;
+		font-size: 10px;
 	}
 
 	.documents-book__ttl {
