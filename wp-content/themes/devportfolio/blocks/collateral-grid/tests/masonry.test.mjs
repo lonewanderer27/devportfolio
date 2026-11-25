@@ -42,8 +42,8 @@ test( 'the layout table in DPC-014 §1', async ( t ) => {
 		{ viewport: 600, columns: 3, tile: 184 },
 		{ viewport: 768, columns: 4, tile: 165 },
 		{ viewport: 1024, columns: 4, tile: 229 },
-		{ viewport: 1440, columns: 5, tile: 256 },
-		{ viewport: 1920, columns: 5, tile: 256 },
+		{ viewport: 1440, columns: 6, tile: 211 },
+		{ viewport: 1920, columns: 6, tile: 211 },
 	];
 	for ( const row of rows ) {
 		await t.test( `viewport ${ row.viewport }`, () => {
@@ -55,13 +55,15 @@ test( 'the layout table in DPC-014 §1', async ( t ) => {
 	}
 } );
 
-test( 'minimum tile width steps at 420, 700 and 1000', () => {
+test( 'minimum tile width steps at 420, 700 and 1440', () => {
 	assert.equal( minTileWidth( 420 ), 150 );
 	assert.equal( minTileWidth( 421 ), 160 );
 	assert.equal( minTileWidth( 700 ), 160 );
 	assert.equal( minTileWidth( 701 ), 190 );
 	assert.equal( minTileWidth( 1000 ), 190 );
-	assert.equal( minTileWidth( 1001 ), 220 );
+	assert.equal( minTileWidth( 1001 ), 190 );
+	assert.equal( minTileWidth( 1439 ), 190 );
+	assert.equal( minTileWidth( 1440 ), 220 );
 } );
 
 test( 'there are never fewer than two columns', () => {

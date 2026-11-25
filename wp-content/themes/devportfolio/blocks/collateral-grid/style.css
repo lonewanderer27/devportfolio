@@ -294,3 +294,15 @@
 		animation: none;
 	}
 }
+
+/* Laptop density tier (DPF-NNN): the no-JS columns match masonry.js (190px below a 1440px column), and the dot field above the first row is shorter. */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.collaterals-grid {
+		column-width: 190px;
+		margin-top: 28px;
+	}
+
+	.collaterals-grid::before {
+		top: -28px;
+	}
+}

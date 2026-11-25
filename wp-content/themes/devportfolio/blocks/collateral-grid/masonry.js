@@ -26,7 +26,8 @@ export function minTileWidth( width ) {
 	if ( width <= 700 ) {
 		return 160;
 	}
-	if ( width <= 1000 ) {
+	// Below a full 1440px column (laptop windows, DPF-NNN) 190px gives six columns instead of five wide ones.
+	if ( width < 1440 ) {
 		return 190;
 	}
 	return 220;

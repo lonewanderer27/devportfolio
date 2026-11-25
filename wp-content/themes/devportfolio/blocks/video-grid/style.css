@@ -512,3 +512,10 @@ html.is-morphing-outline .videos-outline {
 		min-height: 120px;
 	}
 }
+
+/* Laptop density tier (DPF-NNN): eight tiles per row on a 1280 to 1440px column instead of seven larger ones. */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.videos-grid {
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	}
+}
