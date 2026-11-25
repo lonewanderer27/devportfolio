@@ -2,9 +2,9 @@
 /**
  * Plugin Name:       Custom Post Types DP
  * Description:       Loads all portfolio modules when active: custom post types and site settings (e.g. Contact).
- * Version:           0.36.0
+ * Version:           0.36.1
  * Requires at least: 6.5
- * Requires PHP:      8.4
+ * Requires PHP:      8.3
  * Author:            Ian James Puzon
  * Author URI:        https://jay.thedev.id
  * License:           MIT
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CPTDP_VERSION', '0.36.0' );
+define( 'CPTDP_VERSION', '0.36.1' );
 define( 'CPTDP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CPTDP_URL', plugin_dir_url( __FILE__ ) );
 
