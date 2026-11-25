@@ -84,17 +84,11 @@
 .software-tools__name {
 	max-width: 100%;
 	overflow-wrap: anywhere;
-	font-size: 9px;
+	font-size: 12px;
 	line-height: 1.25;
 	text-align: center;
 	color: var(--wp--preset--color--mid);
 	transition: color 0.2s;
-}
-
-@media (min-width: 601px) {
-	.software-tools__name {
-		font-size: 11.5px;
-	}
 }
 
 .software-tools__tile[aria-pressed='true'] .software-tools__icon {

@@ -99,6 +99,11 @@
 	text-transform: uppercase;
 }
 
+/* One role per line at every width. */
+.hero__roles span {
+	display: block;
+}
+
 .hero__cta {
 	display: inline-block;
 	padding: 10px 18px;
@@ -309,7 +314,8 @@
 	.hero__roles {
 		display: block;
 		margin: 0 0 12px;
-		font-size: 10.5px;
+		font-size: 11px;
+		text-wrap: balance;
 	}
 
 	.hero__cta {
@@ -320,5 +326,12 @@
 	.hero__links,
 	.hero__scroll {
 		display: none;
+	}
+}
+
+/* Laptop density tier (DPF-NNN): the name keeps about the share of the width it has on 2K (12vw filled 84% of a laptop window). */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.hero__stage {
+		font-size: min(9vw, 168px);
 	}
 }

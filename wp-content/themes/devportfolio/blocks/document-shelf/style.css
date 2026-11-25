@@ -242,3 +242,25 @@
 		transform: none;
 	}
 }
+
+/* Laptop density tier (DPF-NNN): six books per row on a 1280 to 1440px column, as on 2K, instead of five larger ones. */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	.documents-shelf {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+		gap: 32px 24px;
+		padding-top: 28px;
+	}
+
+	/* The covers are narrower, so their titles step down too (scoped to the shelf: the Home book fan keeps its sizes). */
+	.documents-shelf .documents-book__ttl {
+		font-size: 20px;
+	}
+
+	.documents-shelf .documents-book[data-title-length="long"] .documents-book__ttl {
+		font-size: 17px;
+	}
+
+	.documents-shelf .documents-book[data-title-length="xlong"] .documents-book__ttl {
+		font-size: 14px;
+	}
+}
