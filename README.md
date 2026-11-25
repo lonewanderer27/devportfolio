@@ -6,7 +6,7 @@ Personal developer portfolio built on WordPress and developed locally with [DDEV
 
 - WordPress (block theme / Full Site Editing)
 - Theme: `devportfolio` (standalone, tracked in this repo; WordPress's bundled default themes are not tracked)
-- PHP 8.4, nginx-fpm
+- PHP 8.3, nginx-fpm
 - MariaDB 11.8
 - Composer 2
 

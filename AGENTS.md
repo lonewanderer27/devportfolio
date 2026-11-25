@@ -26,7 +26,8 @@ Detail lives in `docs/agents/`. Read the file for the area you are about to touc
 ## Environment
 
 - DDEV project `devportfolio`, type `wordpress`, docroot `.` (repo root = WP root).
-- PHP 8.4, nginx-fpm, MariaDB 11.8, Node 24, Composer 2, LibreOffice Impress and Calc 25.x with Liberation, Carlito and Caladea fonts (for PPTX/PPT/ODP conversion, DPB-026).
+- PHP 8.3, nginx-fpm, MariaDB 11.8, Node 24, Composer 2, LibreOffice Impress and Calc 25.x with Liberation, Carlito and Caladea fonts (for PPTX/PPT/ODP conversion, DPB-026).
+- The plugin requires PHP 8.3 (`Requires PHP` header and `composer.json`), the version Wasmer and Hostinger run; it was 8.4 until DPB-034. Do not use 8.4-only features (property hooks, asymmetric visibility, `array_find()`, `mb_trim()`).
 - Run WP/PHP tooling inside the container: `ddev wp ...`, `ddev composer ...`, `ddev exec ...`.
 - `wp-config.php` loads `wp-config-ddev.php` (DDEV-generated, git-ignored) when `IS_DDEV_PROJECT=true`. Don't hardcode DB creds or URLs.
 

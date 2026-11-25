@@ -4,7 +4,7 @@
 	"type": "wordpress-plugin",
 	"license": "MIT",
 	"require": {
-		"php": ">=8.4"
+		"php": ">=8.3"
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
@@ -15,6 +15,9 @@
 	"config": {
 		"allow-plugins": {
 			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "8.3.0"
 		},
 		"process-timeout": 0,
 		"sort-packages": true
