@@ -169,7 +169,7 @@ class Devportfolio_Test_Hero extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p class="hero__role">Digital Marketer</p>', $html );
-		$this->assertStringContainsString( '<p class="hero__roles">Virtual Assistant · Social Media Manager · Web Developer</p>', $html );
+		$this->assertStringContainsString( '<p class="hero__roles"><span>Virtual Assistant</span> <span>Social Media Manager</span> <span>Web Developer</span></p>', $html );
 	}
 
 	public function test_without_a_highlight_the_first_role_by_order_is_on_top(): void {
@@ -179,7 +179,7 @@ class Devportfolio_Test_Hero extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p class="hero__role">Virtual Assistant</p>', $html );
-		$this->assertStringContainsString( '<p class="hero__roles">Web Developer</p>', $html );
+		$this->assertStringContainsString( '<p class="hero__roles"><span>Web Developer</span></p>', $html );
 	}
 
 	public function test_a_draft_role_is_never_shown(): void {

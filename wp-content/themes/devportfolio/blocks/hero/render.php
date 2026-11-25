@@ -87,7 +87,7 @@ $devportfolio_wrapper = get_block_wrapper_attributes( array( 'class' => 'hero' )
 		<?php if ( '' !== $devportfolio_roles['main'] ) : ?>
 			<p class="hero__role"><?php echo esc_html( $devportfolio_roles['main'] ); ?></p>
 			<?php if ( ! empty( $devportfolio_roles['others'] ) ) : ?>
-				<p class="hero__roles"><?php echo esc_html( implode( ' · ', $devportfolio_roles['others'] ) ); ?></p>
+				<p class="hero__roles"><?php echo implode( ' ', array_map( static fn( $role ) => '<span>' . esc_html( $role ) . '</span>', $devportfolio_roles['others'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each role is escaped above. ?></p>
 			<?php endif; ?>
 		<?php endif; ?>
 		<a class="hero__cta" href="#contact"><?php echo esc_html__( 'Let’s work together', 'devportfolio' ); ?> <span aria-hidden="true">↗</span></a>
