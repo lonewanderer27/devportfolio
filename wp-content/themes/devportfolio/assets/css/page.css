@@ -86,3 +86,26 @@ body.post-type-archive-collateral .documents-page__title {
 		font-size: clamp(36px, 9vw, 52px);
 	}
 }
+
+/*
+ * Laptop density tier (DPF-NNN): laptop windows (1025px to 1599px) get the same layout with tighter spacing and a
+ * smaller title, so the first row of content sits higher on a short screen. 1600px and wider (2K) is unchanged.
+ * The same query closes every stylesheet the tier touches (tests/test-screen-fit.php).
+ */
+@media (min-width: 1025px) and (max-width: 1599px) {
+	/* The archive templates set 48px inline; Home keeps 0 (hero/style.css wins with a more specific !important). */
+	.documents-page {
+		padding-top: 32px !important;
+	}
+
+	.documents-page .documents-page__title {
+		margin-bottom: 18px;
+		font-size: clamp(44px, 4vw, 56px);
+	}
+
+	/* front-page.html sets 48px inline on each section. */
+	.home-page > .home-section {
+		padding-top: 32px !important;
+		padding-bottom: 32px !important;
+	}
+}
