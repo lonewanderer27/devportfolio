@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Documents – Bookshelf Wireframe v3</title>
+<style>
+:root{--bg:#ececec;--paper:#fff;--ink:#222;--mid:#8a8a8a;--line:#c9c9c9;--fill:#ddd;--fill2:#eee;--g1:#3a3a3a;--g2:#6b6b6b;--g3:#a8a8a8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;padding:32px 24px 80px}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mid);margin:0 0 24px;max-width:780px}
+.frame{background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:28px 36px 40px;position:relative;overflow:hidden;margin-bottom:28px}
+.nav{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:26px;font-weight:700}
+.nav .links{display:flex;gap:22px;font-weight:400;color:var(--mid)}.nav .on{color:var(--ink);border-bottom:2px solid var(--ink)}
+.title{font-size:34px;font-weight:800;letter-spacing:-.5px;margin:0 0 16px}
+.tabs{display:flex;gap:8px;margin:0 0 30px;flex-wrap:wrap;align-items:center}
+.chip{border:1.5px solid var(--ink);border-radius:20px;padding:4px 14px;font-size:13px;cursor:pointer;background:#fff}
+.chip.on{background:var(--ink);color:#fff}
+.key{margin-left:auto;color:var(--mid);font-size:12px;display:flex;gap:14px}
+/* shelf */
+.shelf{display:grid;grid-template-columns:repeat(4,1fr);gap:34px 28px}
+.item{cursor:pointer}
+.book{position:relative;aspect-ratio:2/3;border-radius:3px 8px 8px 3px;border:1.5px solid var(--ink);overflow:hidden;color:#fff;
+ box-shadow:8px 10px 0 var(--fill2),8px 10px 0 1.5px var(--line);transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column;justify-content:space-between;padding:16px 14px 14px 26px}
+.item:hover .book{transform:translateY(-6px) rotate(-1deg);box-shadow:12px 16px 0 var(--fill2),12px 16px 0 1.5px var(--line)}
+.book:before{content:"";position:absolute;left:0;top:0;bottom:0;width:14px;background:rgba(0,0,0,.35);border-right:1.5px solid rgba(255,255,255,.35)}
+.book:after{content:"";position:absolute;left:5px;top:0;bottom:0;border-left:1px dashed rgba(255,255,255,.4)}
+.p0{background:linear-gradient(160deg,var(--g1),#222)}
+.p1{background:repeating-linear-gradient(135deg,var(--g2) 0 10px,#5e5e5e 10px 20px)}
+.p2{background:radial-gradient(circle at 70% 25%,var(--g3) 0 28px,transparent 29px),linear-gradient(var(--g2),var(--g1))}
+.p3{background:linear-gradient(var(--g3) 0 40%,var(--g1) 40%)}
+.p4{background:radial-gradient(circle,rgba(255,255,255,.18) 2px,transparent 3px) 0 0/16px 16px,var(--g2)}
+.p5{background:linear-gradient(90deg,var(--g1) 50%,var(--g2) 50%)}
+.cat{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;position:relative}
+.ct{font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:1.1;font-weight:700;position:relative;text-shadow:0 1px 0 #0006}
+.orn{width:34px;height:2px;background:#fff;margin:10px 0 0;opacity:.8}
+.cfoot{font-size:10px;opacity:.85;display:flex;justify-content:space-between;position:relative}
+.lock{position:absolute;right:8px;top:8px;background:#fff;color:var(--ink);border:1.5px solid var(--ink);border-radius:12px;font-size:10px;padding:1px 8px;z-index:2}
+.free{background:var(--ink);color:#fff;border:1.5px solid #fff}
+.info{padding:16px 2px 0}
+.info h4{margin:0 0 3px;font-size:14.5px}.info p{margin:0 0 8px;color:var(--mid);font-size:12.5px}
+.tags{display:flex;gap:5px;flex-wrap:wrap}.tag{border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:10.5px;color:var(--mid)}
+.plank{height:10px;background:var(--fill);border:1.5px solid var(--ink);border-radius:2px;margin:12px 0 0;grid-column:1/-1}
+.note{position:absolute;background:#fff7b3;border:1px solid #c9b84a;padding:6px 9px;font-size:11.5px;max-width:200px;border-radius:3px;box-shadow:2px 3px 0 #0002;z-index:2}
+/* modal */
+.dim{position:absolute;inset:0;background:#0007;display:none;place-items:center;padding:18px;z-index:10;overflow:auto}
+.dim.show,.dim.static{display:grid}
+.dim.static{position:relative;inset:auto;padding:28px 18px}
+.stage:has(.dim.static){min-height:0}
+.modal{background:#fff;border:2px solid var(--ink);border-radius:10px;width:min(800px,100%);display:grid;grid-template-columns:1.25fr 1fr;position:relative;overflow:hidden}
+.pv{background:var(--fill2);border-right:1.5px solid var(--ink);padding:20px;position:relative}
+.page{background:#fff;border:1.5px solid var(--ink);padding:18px;min-height:280px;position:relative;overflow:hidden}
+.ph{height:8px;background:var(--fill);border-radius:2px;margin:9px 0}.w9{width:92%}.w7{width:74%}.w5{width:50%}.dk{background:var(--mid)}
+.img{height:70px;margin:12px 0;background:repeating-linear-gradient(45deg,var(--fill),var(--fill) 8px,var(--fill2) 8px,var(--fill2) 16px);border:1px solid var(--line)}
+.blur .page>*{filter:blur(4px)}
+.veil{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-size:13px;z-index:2;background:#fffa}
+.veil b{display:block;font-size:26px}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--mid);font-size:12px}
+.pbtn{border:1.5px solid var(--ink);border-radius:6px;padding:2px 10px;cursor:pointer;color:var(--ink);background:#fff}
+.side{padding:24px 22px;display:flex;flex-direction:column}
+.side h3{margin:0 0 4px;font-size:21px;font-family:Georgia,serif}.side p{color:var(--mid);margin:0 0 12px}
+.badge{display:inline-block;border:1.5px solid var(--ink);border-radius:12px;font-size:11px;padding:1px 10px;margin-bottom:10px;align-self:flex-start}
+.badge.dark{background:var(--ink);color:#fff}
+.btn{display:inline-block;border:1.5px solid var(--ink);border-radius:6px;padding:8px 14px;margin:4px 6px 0 0;cursor:pointer;background:#fff;text-align:center}
+.btn.fill{background:var(--ink);color:#fff}
+.field{border:1.5px solid var(--line);border-radius:6px;padding:7px 10px;margin:4px 0;color:var(--mid);font-size:13px}
+.close{position:absolute;right:12px;top:6px;font-size:20px;cursor:pointer;z-index:5}
+.ok{display:none;border:1.5px dashed var(--ink);border-radius:6px;padding:10px;margin-top:8px}
+.label{display:flex;gap:10px;align-items:baseline;margin:34px 0 10px}
+.label b{background:var(--ink);color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:12px}
+.label h2{margin:0;font-size:16px}.label span{color:var(--mid)}
+.stage{position:relative;min-height:470px;background:var(--paper);border:2px solid var(--ink);border-radius:8px;overflow:hidden}
+.legend{background:#fff;border:1.5px dashed var(--mid);border-radius:8px;padding:18px 24px;margin-top:34px}.legend li{margin:4px 0}
+.gg{display:grid;grid-template-columns:repeat(3,1fr);gap:30px 26px;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:28px}
+.gi{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start}
+.gi .book{padding:10px 8px 8px 16px;box-shadow:5px 6px 0 var(--fill2),5px 6px 0 1.5px var(--line)}
+.gi .book:before{width:9px}.gi .book:after{left:3px}
+.gi .ct{font-size:13px}.gi .cat{font-size:7px}.gi .cfoot{font-size:7px}.gi .orn{width:20px;margin-top:6px}
+.gi h4{margin:0 0 2px;font-size:14px}.gi small{display:block;color:var(--mid);margin-bottom:6px;font-size:11.5px}
+.gi ul{margin:0;padding-left:16px;font-size:12.5px}.gi li{margin:2px 0}
+@media(max-width:820px){.gg{grid-template-columns:1fr}}
+.modal.vm{display:block;width:min(940px,100%)}
+.vhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 56px 14px 20px;border-bottom:1.5px solid var(--ink)}
+.vhead h3{margin:0;font-family:Georgia,serif;font-size:19px}.vhead small{color:var(--mid)}
+.vstage{background:var(--fill2);padding:22px 56px;position:relative;display:flex;justify-content:center}
+.spread{display:flex;gap:0;justify-content:center;filter:drop-shadow(0 6px 0 #0002)}
+.sheet{background:#fff;border:1.5px solid var(--ink);padding:22px 24px;position:relative;overflow:hidden}
+.sheet.port{width:290px;aspect-ratio:1/1.32}
+.sheet.land{width:min(640px,100%);aspect-ratio:16/10}
+.spread .sheet.port:nth-child(1):not(:only-child){border-right:1px dashed var(--line);box-shadow:inset -14px 0 14px -14px #0003}
+.spread .sheet.port:nth-child(2){border-left:0;box-shadow:inset 14px 0 14px -14px #0003}
+.sheet .pn{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:10px;color:var(--mid)}
+.sheet.blank{background:transparent;border:0}
+.arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border:1.5px solid var(--ink);border-radius:50%;background:#fff;display:grid;place-items:center;cursor:pointer;font-size:18px;user-select:none}
+.arrow.l{left:12px}.arrow.r{right:12px}.arrow.off{opacity:.25;pointer-events:none}
+.vfoot{padding:12px 20px 16px;border-top:1.5px solid var(--ink)}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 8px 8px;justify-content:center}
+.th{flex:none;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;font-size:10px;color:var(--mid);cursor:pointer}
+.th.port{width:34px;height:45px}.th.land{width:64px;height:40px}.th.on{border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 1.5px var(--ink)}
+.vrow{display:flex;align-items:center;gap:14px;color:var(--mid);font-size:12px}
+.vrow .bar{flex:1;height:6px;background:var(--fill);border-radius:3px;position:relative}.vrow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:3px}
+@media(max-width:700px){.vstage{padding:18px 44px}.sheet.port{width:min(250px,100%)}.spread .sheet.port:nth-child(2){display:none}.spread .sheet.port:nth-child(1){border-right:1.5px solid var(--ink)!important}}
+.sheet.locked{background:#fff}
+.sheet.locked>.ph,.sheet.locked>.img{filter:blur(4px);opacity:.7}
+.lockov{position:absolute;inset:0;background:#fffc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;gap:4px;font-size:12px;z-index:2}
+.lockov b{font-size:15px}.lockov .li{font-size:30px;line-height:1}
+.lockov .field{width:100%;margin:2px 0;padding:4px 8px;font-size:11.5px;background:#fff}
+.lockov .btn{padding:5px 10px;margin:4px 0 0;font-size:12px}
+.lockov .okm{border:1.5px dashed var(--ink);border-radius:6px;padding:8px;background:#fff}
+.th{position:relative}.th em{position:absolute;right:-5px;top:-7px;font-style:normal;font-size:11px;background:#fff;border:1px solid var(--ink);border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+.th.lk{border-style:dashed;background:var(--fill2)}
+.an{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.anbox{position:relative;display:grid;grid-template-columns:1fr 230px 1fr;gap:0 26px;align-items:start}
+.anbox .item{cursor:default;grid-column:2}
+.anbox .item:hover .book{transform:none;box-shadow:8px 10px 0 var(--fill2),8px 10px 0 1.5px var(--line)}
+.cw{position:relative}
+.co{position:absolute;display:flex;align-items:center;gap:6px;font-size:11.5px;white-space:nowrap;z-index:3}
+.co i{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:11px;flex:none}
+.co.l{right:calc(100% + 8px);flex-direction:row-reverse}.co.r{left:calc(100% + 8px)}
+.co:after{content:"";width:22px;border-top:1.5px solid var(--ink);order:2}
+.co.l:after{order:2}.co.r:before{content:"";width:22px;border-top:1.5px solid var(--ink);order:0}.co.r:after{display:none}
+.co.l .t,.co.r .t{color:var(--ink)}
+.states{display:flex;gap:30px;margin-top:70px;grid-column:1/-1;justify-content:center}
+.states .st{width:110px;font-size:11.5px;text-align:center;color:var(--mid)}
+.states .book{padding:8px 6px 6px 14px}.states .ct{font-size:12px}.states .cat,.states .cfoot{font-size:6.5px}.states .book:before{width:8px}.states .book:after{left:3px}.states .orn{width:18px}
+.states .st.hv .book{transform:translateY(-6px) rotate(-1deg);box-shadow:9px 13px 0 var(--fill2),9px 13px 0 1.5px var(--line)}
+.spec{border-collapse:collapse;width:100%;font-size:12.5px}
+.spec th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);padding:6px 8px;border-bottom:1.5px solid var(--ink)}
+.spec td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}.spec td:first-child{white-space:nowrap}
+.spec td i{font-style:normal;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10.5px;margin-right:6px}
+@media(max-width:980px){.an{grid-template-columns:1fr}.anbox{grid-template-columns:90px 200px 90px;justify-content:center}.co{font-size:10px}}
+
+.md{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.bd{background:#8d8d8d;border-radius:6px;padding:30px 34px;position:relative}
+.anw{position:relative}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;background:#ffe14d;color:var(--ink);border:1.5px solid var(--ink);display:grid;place-items:center;font-size:11px;font-weight:700;z-index:20;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #fff9}
+.mst{display:flex;gap:26px;flex-wrap:wrap;margin-top:26px}
+.mst .c{width:210px}.mst .c .z{zoom:.72}.mst .c small{display:block;margin-top:8px;color:var(--mid);font-size:11.5px}.mst .c b{font-size:12.5px}
+.mst .arr{display:flex;gap:10px;align-items:center;margin-top:30px}.mst .arr .arrow{position:static;transform:none}
+@media(max-width:980px){.two{grid-template-columns:1fr!important}}
+
+.rp{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.rpg{display:flex;gap:34px 28px;flex-wrap:wrap;justify-content:center}
+.rpi{width:250px}.rpi .cap{margin-top:12px;font-size:12.5px}.rpi .cap b{display:block;font-size:13.5px;margin-bottom:2px}.rpi .cap span{color:var(--mid)}
+.ph2{width:250px;height:500px;border:2px solid var(--ink);border-radius:28px;background:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.ph2:before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:60px;height:5px;border-radius:3px;background:var(--line);z-index:5}
+.sb{height:26px;flex:none}
+.rnav{display:flex;justify-content:space-between;align-items:center;padding:4px 14px 8px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line)}
+.rh1{font-size:20px;font-weight:800;padding:10px 14px 4px}
+.rnav,.rh1,.rch,.rvh{flex:none}
+.rch{display:flex;gap:6px;padding:6px 14px 10px;overflow:hidden;white-space:nowrap}
+.rch .chip{font-size:11px;padding:2px 10px;flex:none}
+.rch.stk{border-bottom:1px solid var(--line);background:#fff}
+.rsh{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:8px 14px}
+.rsh .book{padding:8px 6px 6px 14px;box-shadow:4px 5px 0 var(--fill2),4px 5px 0 1.5px var(--line)}
+.rsh .book:before{width:8px}.rsh .book:after{left:3px}.rsh .ct{font-size:12px}.rsh .cat,.rsh .cfoot{font-size:6.5px}.rsh .orn{width:18px;margin-top:5px}
+.rsh .info{padding-top:10px}.rsh .info h4{font-size:11.5px}.rsh .info p{font-size:10px;margin:0 0 5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rsh .tag{font-size:9px;padding:0 5px}
+.rvh{display:flex;align-items:center;gap:8px;padding:2px 12px 8px;border-bottom:1.5px solid var(--ink);font-family:Georgia,serif;font-weight:700;font-size:13px}
+.rvh .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:28px;height:28px;border:1.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;font-size:13px;font-family:sans-serif;flex:none;background:#fff}
+.rst{flex:1;background:var(--fill2);position:relative;display:grid;place-items:center;padding:14px;overflow:hidden}
+.rpage{background:#fff;border:1.5px solid var(--ink);width:100%;aspect-ratio:1/1.32;padding:14px;position:relative;overflow:hidden;box-shadow:0 5px 0 #0002}
+.rpage.wide{aspect-ratio:16/10;padding:10px}
+.rpage .ph{margin:7px 0}
+.rpage .pn{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:9px;color:var(--mid)}
+.edge{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;color:var(--mid);background:#fffc;border:1px dashed var(--mid);border-radius:10px;padding:2px 6px}
+.edge.l{left:3px}.edge.r{right:3px}
+.rbar{flex:none;border-top:1.5px solid var(--ink);padding:8px 12px 12px;background:#fff}
+.rbar .row{display:flex;align-items:center;justify-content:space-between;font-size:11.5px}
+.rbar .mini{border:1.5px solid var(--ink);border-radius:6px;padding:3px 9px;background:#fff}
+.rbar .pg{height:5px;background:var(--fill);border-radius:3px;margin:8px 0 0;position:relative}.rbar .pg i{position:absolute;inset:0 auto 0 0;background:var(--ink);border-radius:3px}
+.dimm{position:absolute;inset:0;background:#0006;z-index:3}
+.sheetb{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--ink);border-radius:18px 18px 0 0;padding:12px 14px 16px;z-index:4}
+.sheetb .grab{width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 10px}
+.pgr{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pgr .t{aspect-ratio:1/1.32;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;font-size:11px;color:var(--mid);position:relative}
+.pgr .t.on{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink);color:var(--ink)}
+.pgr .t.lk{border-style:dashed;background:var(--fill2)}
+.pgr .t em{position:absolute;right:-4px;top:-6px;font-style:normal;font-size:10px;background:#fff;border:1px solid var(--ink);border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+.rlk{position:absolute;inset:0;background:#fffc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;font-size:11px;padding:10px}
+.rlk .li{font-size:26px;line-height:1}.rlk b{font-size:13px}
+.rbtn{display:block;width:100%;text-align:center;background:var(--ink);color:#fff;border-radius:6px;padding:8px;font-size:12px;margin-top:6px}
+.rfield{border:1.5px solid var(--line);border-radius:6px;padding:7px 9px;margin:5px 0;color:var(--mid);font-size:12px}
+.kb{height:120px;background:var(--fill);border-top:1.5px solid var(--ink);display:grid;place-items:center;color:var(--mid);font-size:11px;flex:none}
+.chipx{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;background:var(--ink);color:#fff;border-radius:14px;padding:3px 12px;font-size:10.5px;z-index:2;white-space:nowrap}
+.rland{width:540px;height:250px;border:2px solid var(--ink);border-radius:26px;background:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.rland .rvh{padding-top:8px}.rland .rst{display:flex;gap:0;justify-content:center;align-items:center;padding:10px}
+.rland .rpage{width:130px;aspect-ratio:1/1.32;padding:8px}
+
+.pagn{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.thumbs{display:none}
+.pg-n,.pg-e,.pg-b{border:1px solid var(--line);border-radius:5px;min-width:32px;height:30px;padding:0 10px;display:inline-grid;place-items:center;font-size:12.5px;background:#fff;color:var(--ink);cursor:pointer;user-select:none;position:relative}
+.pg-e{cursor:default;color:var(--mid);letter-spacing:.1em}
+.pg-n.on{background:#111;border-color:#111;color:#fff}
+.pg-n.lk{border-style:dashed;background:var(--fill2)}.pg-n.lk.on{background:#111}
+.pg-n sup{font-size:8px;position:absolute;right:-5px;top:-7px;background:#fff;border:1px solid var(--ink);border-radius:50%;width:15px;height:15px;display:grid;place-items:center;line-height:1;color:var(--ink)}
+.pg-b.off{opacity:.35;pointer-events:none}
+@media(max-width:700px){.pagn{display:none}.thumbs{display:flex}}
+
+.shh{display:flex;justify-content:space-between;align-items:center}
+.vt{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.vb{width:28px;height:24px;display:grid;place-items:center;cursor:pointer;background:#fff;color:var(--ink)}
+.vb+.vb{border-left:1.5px solid var(--ink)}.vb.on{background:var(--ink);color:#fff}
+.vb svg{width:12px;height:12px;display:block}
+.pgsheet .pgl{display:none;margin-top:8px}
+.pgsheet[data-view="list"] .pgr{display:none}.pgsheet[data-view="list"] .pgl{display:block}
+.pgl .r{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line)}
+.pgl .r .mt{width:26px;height:34px;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;font-size:10px;color:var(--mid);flex:none}
+.pgl .r div{flex:1;font-size:12px;line-height:1.25}.pgl .r small{display:block;color:var(--mid);font-size:10.5px}
+.pgl .r.on .mt{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink);color:var(--ink)}.pgl .r.on b:after{content:"  · current";font-weight:400;color:var(--mid)}
+.pgl .r.lk{background:var(--fill2)}.pgl .r.lk .mt{border-style:dashed}.pgl .r em{font-style:normal;font-size:13px}
+@media(max-width:820px){.shelf{grid-template-columns:repeat(2,1fr)}.frame{padding:20px}.modal{grid-template-columns:1fr}.pv{border-right:0;border-bottom:1.5px solid var(--ink)}.key{display:none}}
+</style></head><body><div class="wrap">
+<h1>Documents section – Bookshelf wireframe v3</h1>
+<p class="sub">Bookshelf is back, with styled covers (spine, pattern, serif title). Title, description and tags remain. Click any book: some open to a full view, others show a teaser and need a sample request (the cover itself carries no tag). Try the filters and both book types below.</p>
+
+<div class="frame" id="s1">
+ <div class="nav"><span>/DAVE</span><div class="links"><span>Services</span><span class="on">Documents</span><span>Testimonials</span><span>Contact</span></div></div>
+ <h3 class="title">Documents</h3>
+ <div class="tabs" id="tabs">
+  <span class="chip on" data-f="all">All</span><span class="chip" data-f="admin">Admin &amp; Email</span><span class="chip" data-f="sched">Scheduling &amp; Travel</span><span class="chip" data-f="sheet">Spreadsheets &amp; Reports</span><span class="chip" data-f="tmpl">Templates &amp; SOPs</span>
+  
+ </div>
+ <div class="shelf" id="shelf"></div>
+ <div class="note" style="right:14px;top:96px">Tags + description sit under each cover; the cover carries category, title and format.</div>
+ <div class="dim" id="dim"><div class="modal" id="modal"></div></div>
+</div>
+
+<div class="label"><b>A</b><h2>Modal – Open document, portrait · multi-page</h2><span>two-page spread like the e-reader inspiration; arrows or thumbnails to turn pages</span></div>
+<div class="stage"><div class="dim static"><div class="modal" id="mA"></div></div></div>
+
+<div class="label"><b>A2</b><h2>Modal – Open document, landscape</h2><span>single wide page (calendars, spreadsheets, slides)</span></div>
+<div class="stage"><div class="dim static"><div class="modal" id="mA2"></div></div></div>
+
+<div class="label"><b>A3</b><h2>Modal – Open document, portrait · single page</h2><span>one centred page, no spread or thumbnails</span></div>
+<div class="stage"><div class="dim static"><div class="modal" id="mA3"></div></div></div>
+
+<div class="label"><b>B</b><h2>Modal – Document with locked pages</h2><span>most pages are viewable; locked ones are marked in the thumbnails and only warn when reached</span></div>
+<div class="stage"><div class="dim static"><div class="modal" id="mB"></div></div></div>
+
+<div class="label"><b>C</b><h2>Cover pattern guide</h2><span>what each cover design is best suited for</span></div>
+<div class="gg"><div class="gi"><div class="book p0"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>1 · Midnight</h4><small>Solid dark gradient</small><ul><li><b>Best for:</b> SOPs, onboarding guides, policies, confidential files</li><li><b>Why:</b> Serious, trustworthy tone; works well for locked / request-only samples</li></ul></div></div><div class="gi"><div class="book p1"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>2 · Pinstripe</h4><small>Diagonal stripes</small><ul><li><b>Best for:</b> Templates: email replies, meeting minutes, checklists</li><li><b>Why:</b> Suggests something repeatable and ready to reuse</li></ul></div></div><div class="gi"><div class="book p2"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>3 · Horizon</h4><small>Sun / circle over a gradient</small><ul><li><b>Best for:</b> Travel itineraries, event plans, trip logistics</li><li><b>Why:</b> The circle reads as destination or sunrise; adds warmth and movement</li></ul></div></div><div class="gi"><div class="book p3"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>4 · Split Sky</h4><small>Light top, dark bottom</small><ul><li><b>Best for:</b> Calendars, schedules, time-blocking plans</li><li><b>Why:</b> The horizon line echoes a day divided into blocks</li></ul></div></div><div class="gi"><div class="book p4"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>5 · Dot Grid</h4><small>Evenly spaced dots</small><ul><li><b>Best for:</b> Spreadsheets, trackers, expense logs, data entry</li><li><b>Why:</b> Resembles cells and grids; instantly signals numbers and organisation</li></ul></div></div><div class="gi"><div class="book p5"><div class="cat">Category</div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div><h4>6 · Two-Tone</h4><small>Vertical half split</small><ul><li><b>Best for:</b> Reports, dashboards, comparisons, before / after results</li><li><b>Why:</b> Two columns hint at side-by-side data or contrast</li></ul></div></div></div>
+<div class="label"><b>D</b><h2>Single book – anatomy &amp; spec</h2><span>how one book is “bound”: parts, measurements and states</span></div>
+<div class="an"><div class="anbox"><div class="item"><div class="cw"><div class="book p0"><div><div class="cat">Admin &amp; Email</div></div><div><div class="ct">Document title</div><div class="orn"></div></div><div class="cfoot"><span>PDF · 3 pp</span><span>DAVE</span></div></div><div class="co l" style="top:20%"><i>1</i><span class="t">Spine</span></div><div class="co l" style="top:36%"><i>2</i><span class="t">Stitch line</span></div><div class="co l" style="top:55%"><i>3</i><span class="t">Cover pattern</span></div><div class="co l" style="top:78%"><i>4</i><span class="t">Border &amp; corners</span></div><div class="co r" style="top:5%"><i>5</i><span class="t">Category</span></div><div class="co r" style="top:44%"><i>6</i><span class="t">Title</span></div><div class="co r" style="top:56%"><i>7</i><span class="t">Ornament</span></div><div class="co r" style="top:88%"><i>8</i><span class="t">Format &amp; owner</span></div><div class="co r" style="top:101%"><i>9</i><span class="t">Shadow</span></div></div>
+<div class="info" style="margin-top:22px;position:relative"><h4>Document title</h4><p>One-line description of the sample.</p><div class="tags"><span class="tag">Tool</span><span class="tag">Tool</span></div>
+<div class="co r" style="top:14px;left:calc(100% + 8px)"><i>10</i><span class="t">Info block</span></div></div></div>
+<div class="states"><div class="st"><div class="book p0"><div><div class="cat">Category</div></div><div><div class="ct">Title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div style="margin-top:10px">Default</div></div>
+<div class="st hv"><div class="book p0"><div><div class="cat">Category</div></div><div><div class="ct">Title</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div style="margin-top:10px">Hover: lifts 6px, tilts 1°, deeper shadow</div></div></div></div>
+<table class="spec"><tr><th>Part</th><th>Spec</th><th>Notes</th></tr><tr><td><i>1</i>Spine</td><td>14px wide strip, 35% black overlay, 1.5px light edge on the inner side</td><td>Gives the “bound” look; same on every cover</td></tr><tr><td><i>2</i>Stitch line</td><td>1px dashed line, 5px from the left edge, full height</td><td>Suggests binding thread; keep subtle</td></tr><tr><td><i>3</i>Cover pattern</td><td>One of 6 greyscale patterns (Midnight, Pinstripe, Horizon, Split Sky, Dot Grid, Two-Tone)</td><td>Chosen by document type, see section C</td></tr><tr><td><i>4</i>Border &amp; corners</td><td>1.5px ink border; radius 3px (spine side) / 8px (open side); ratio 2 : 3</td><td>Same size for every book so shelves align</td></tr><tr><td><i>5</i>Category</td><td>9.5px caps, 0.14em tracking, top of cover</td><td>Service category (e.g. Admin &amp; Email)</td></tr><tr><td><i>6</i>Title</td><td>Georgia bold 21px, line-height 1.1, white with soft shadow</td><td>Max ~3 lines; truncate with the full title below</td></tr><tr><td><i>7</i>Ornament</td><td>34 × 2px white rule, 80% opacity, under the title</td><td>Visual anchor; no other decoration</td></tr><tr><td><i>8</i>Format &amp; owner</td><td>10px; file type + pages on the left, “DAVE” on the right</td><td>Footer row of the cover</td></tr><tr><td><i>9</i>Shadow</td><td>Offset 8px / 10px, flat fill + 1.5px outline (no blur)</td><td>Hover raises to 12 / 16</td></tr><tr><td><i>10</i>Info block</td><td>Under the cover: title 14.5px bold, description 12.5px grey, tags 10.5px</td><td>Keeps cover clean; carries description and tags</td></tr></table></div>
+
+<div class="label"><b>E</b><h2>Modal – anatomy &amp; spec</h2><span>one-page reference: parts, measurements, states and behaviour</span></div>
+<div class="md"><div class="bd"><div class="anw"><div class="modal vm" id="mE"></div><span class="dot" style="left:-1.2%;top:-2.4%">0</span><span class="dot" style="left:-1.2%;top:6%">1</span><span class="dot" style="left:73%;top:2.2%">2</span><span class="dot" style="left:88%;top:2.2%">3</span><span class="dot" style="left:101.2%;top:4%">4</span><span class="dot" style="left:-1.2%;top:22%">5</span><span class="dot" style="left:40%;top:30%">6</span><span class="dot" style="left:-1.2%;top:48%">7</span><span class="dot" style="left:36%;top:88%">8</span><span class="dot" style="left:57.5%;top:84%">9</span><span class="dot" style="left:-1.2%;top:96%">10</span><span class="dot" style="left:50%;top:96%">11</span><span class="dot" style="left:76%;top:40%">12</span><span class="dot" style="left:101.2%;top:96%">13</span></div></div>
+<div class="mst" id="mst"></div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:30px;margin-top:30px;align-items:start" class="two">
+<table class="spec"><tr><th>Part</th><th>Spec</th><th>Notes</th></tr><tr><td><i>0</i>Backdrop</td><td>Full-area dim, rgba(0,0,0,.45); 18px padding; click it or ✕ to close</td><td>Keeps the portfolio visible behind; focus on the document</td></tr><tr><td><i>1</i>Header: title &amp; description</td><td>Georgia bold 19px title + 1-line grey description; 14px/20px padding, 1.5px divider</td><td>Same text as the book’s info block</td></tr><tr><td><i>2</i>Tags &amp; format</td><td>Tool tags + “PDF · 3 pp”; 10.5px, grey outline</td><td>Mirrors the shelf card tags</td></tr><tr><td><i>3</i>Download</td><td>Filled dark button, 12px text</td><td>Always available, even if some pages are locked</td></tr><tr><td><i>4</i>Close ✕</td><td>20px, top-right, 12px from edges</td><td>Also closes via backdrop click</td></tr><tr><td><i>5</i>Stage</td><td>Light-grey backdrop, 22px / 56px padding</td><td>Makes white pages stand out</td></tr><tr><td><i>6</i>Page(s)</td><td>Portrait multi-page: two 290px pages, ratio 1 : 1.32, centre fold shadow. Landscape: one page, 16 : 10, max 640px. Single portrait: one centred page</td><td>Chosen automatically from orientation and page count</td></tr><tr><td><i>7</i>Prev / Next arrows</td><td>34px circles on the stage edges; turn 2 pages on a spread, 1 otherwise; dimmed at the ends</td><td>Next also dims at the first locked page</td></tr><tr><td><i>8</i>Page indicator (desktop)</td><td>Numbered pagination: ‹ Back, 1, ···, a window of pages around the current one, ···, last page, Next ›. Buttons 32 × 30px; current page(s) solid black; every number shown when there are 9 pages or fewer</td><td>Hidden for single-page documents. Below 700px it is replaced by the Pages button / grid</td></tr><tr><td><i>9</i>Locked badge</td><td>Dashed, greyed page number with a small 🔒 chip</td><td>Visible from the start so visitors know what to expect</td></tr><tr><td><i>10</i>Page counter</td><td>“Pages 3–4 of 4”, 12px grey</td><td>Updates on every turn</td></tr><tr><td><i>11</i>Progress bar</td><td>6px track, dark fill to the last visible page</td><td>Quick sense of length</td></tr><tr><td><i>12</i>Locked page</td><td>Content blurred; centred lock, “This page is locked”, name + email, “Request full sample”; then a confirmation message</td><td>Appears only when the visitor reaches that page</td></tr><tr><td><i>13</i>Legend</td><td>“🔒 = locked page” (only on documents with locked pages), otherwise the layout name</td><td>Replaces the layout label on the right</td></tr></table>
+<table class="spec"><tr><th>Behaviour</th><th>Rule</th></tr><tr><td>Open</td><td>Click a book → modal opens on page 1 (no up-front warning, even if pages are locked).</td></tr><tr><td>Turn pages</td><td>Arrows or numbered thumbnails. On a spread, always lands on an odd left page.</td></tr><tr><td>First locked page</td><td>Next is disabled. Clicking a thumbnail beyond it jumps to the first locked page.</td></tr><tr><td>Request sample</td><td>Fill name + email → “Request sent” message replaces the form on every locked page.</td></tr><tr><td>Close</td><td>✕, backdrop click.</td></tr><tr><td>Mobile (≤700px)</td><td>Spreads become one page at a time; arrows step by 1; modal fills the screen width.</td></tr></table></div></div>
+
+<div class="label"><b>F</b><h2>Responsive design (mobile)</h2><span>how the shelf and the document viewer adapt to phones and tablets</span></div>
+<div class="rp"><div class="rpg"><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rnav"><span>/DAVE</span><span>☰</span></div><div class="rh1">Documents</div>
+<div class="rch stk"><span class="chip on">All</span><span class="chip">Admin &amp; Email</span><span class="chip">Scheduling</span><span class="chip">Sheets</span></div>
+<div class="rsh"><div class="item"><div class="book p0"><div><div class="cat">Admin & Email</div></div><div><div class="ct">Inbox Clean-up Report</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div class="info"><h4>Inbox Clean-up Report</h4><p>Cleared 2,000+ emails into a simple folder system.</p><div class="tags"><span class="tag">Gmail</span><span class="tag">Zapier</span></div></div></div><div class="item"><div class="book p1"><div><div class="cat">Admin & Email</div></div><div><div class="ct">Email Reply Templates</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div class="info"><h4>Email Reply Templates</h4><p>Ready-to-send replies that save hours each week.</p><div class="tags"><span class="tag">Gmail</span><span class="tag">Docs</span><span class="tag">+1</span></div></div></div><div class="item"><div class="book p3"><div><div class="cat">Scheduling</div></div><div><div class="ct">Weekly Calendar Plan</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div class="info"><h4>Weekly Calendar Plan</h4><p>Meetings, focus time and deadlines on one page.</p><div class="tags"><span class="tag">Calendly</span><span class="tag">G-Cal</span></div></div></div><div class="item"><div class="book p2"><div><div class="cat">Scheduling</div></div><div><div class="ct">Executive Travel Itinerary</div><div class="orn"></div></div><div class="cfoot"><span>PDF</span><span>DAVE</span></div></div><div class="info"><h4>Executive Travel Itinerary</h4><p>Flights, hotels and transfers in one clear plan.</p><div class="tags"><span class="tag">Docs</span><span class="tag">Sheets</span></div></div></div></div></div>
+<div class="cap"><b>F1 · Shelf</b><span>2 books per row. Chips scroll sideways and stick under the nav. Description clamped to 2 lines, tags to 2 + “+N”. Tap = pressed state (no hover).</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Inbox Clean-up Report</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">2</span></div><span class="edge l">‹</span><span class="edge r">›</span><span class="chipx">swipe or tap edges</span></div>
+<div class="rbar"><div class="row"><span class="mini">▦ Pages</span><b>2 / 24</b><span class="mini">Details ⌄</span></div><div class="pg"><i style="width:8%"></i></div></div></div>
+<div class="cap"><b>F2 · Viewer (open document)</b><span>Full screen, single page fit to width. Minimal header (close, title, download). Swipe or tap the edges to turn; arrows hidden. Double-tap / pinch to zoom.</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Inbox Clean-up Report</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">2</span></div><span class="edge l">‹</span><span class="edge r">›</span><span class="chipx">swipe or tap edges</span></div>
+<div class="rbar"><div class="row"><span class="mini">▦ Pages</span><b>2 / 24</b><span class="mini" style="background:var(--ink);color:#fff">Details ⌃</span></div><div class="pg"><i style="width:8%"></i></div></div><div class="dimm"></div><div class="sheetb"><div class="grab"></div><div class="shh"><b style="font-family:Georgia,serif;font-size:14px">Inbox Clean-up Report</b><span class="ib">✕</span></div>
+<span class="chip" style="font-size:10px;padding:1px 9px;display:inline-block;margin:8px 0 6px">Admin &amp; Email</span>
+<p style="font-size:12px;margin:0 0 8px">Cleared 2,000+ emails into a simple folder system.</p>
+<div class="tags" style="margin-bottom:10px"><span class="tag">Gmail</span><span class="tag">Zapier</span></div>
+<div style="border-top:1px solid var(--line);font-size:11.5px"><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span style="color:var(--mid)">Format</span><span>PDF</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span style="color:var(--mid)">Pages</span><span>24</span></div></div>
+<span class="rbtn" style="margin-top:12px">⤓ Download</span></div></div><div class="cap"><b>F2b · Details sheet</b><span>Opens from the “Details” button in the viewer. Bottom sheet with the document name, category, description, tags, format and page count, and a full-width Download button. Closes with ✕, a tap on the dimmed page, or a swipe down.</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Executive Travel Itinerary</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">3</span></div></div><div class="rbar"><div class="row"><span class="mini">▦ Pages</span><b>3 / 4</b><span class="mini">Details ⌄</span></div><div class="pg"><i style="width:75%"></i></div></div>
+<div class="dimm"></div><div class="sheetb pgsheet" data-view="grid"><div class="grab"></div><div class="shh"><b style="font-size:13px">Pages</b><div class="vt"><span class="vb on" data-v="grid" title="Thumbnail view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.5" cy="6.3" r="1.2" fill="currentColor" stroke="none"/><path d="M2.5 12l3.6-3.4 2.4 2.2 2-1.8 3 3"/></svg></span><span class="vb" data-v="list" title="List view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="2.6" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.6" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.6" cy="12" r=".9" fill="currentColor" stroke="none"/><path d="M6 4h8M6 8h8M6 12h8"/></svg></span></div></div><div class="pgr" style="margin-top:8px"><div class="t">1</div><div class="t">2</div><div class="t on">3</div><div class="t lk">4<em>🔒</em></div></div><div class="pgl"><div class="r"><span class="mt">1</span><div><b>Trip summary</b></div></div><div class="r"><span class="mt">2</span><div><b>Flights</b></div></div><div class="r on"><span class="mt">3</span><div><b>Hotels</b></div></div><div class="r lk"><span class="mt">4</span><div><b>Transfers</b><small>Locked · request to view</small></div><em>🔒</em></div></div><div style="color:var(--mid);font-size:10.5px;margin-top:8px">🔒 = locked page</div></div></div>
+<div class="cap"><b>F3 · Pages sheet – thumbnail view</b><span>Replaces the thumbnail strip. Top-right toggle: image icon = thumbnail grid (3 columns, current page outlined, locked pages dashed with 🔒).</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Executive Travel Itinerary</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">3</span></div></div><div class="rbar"><div class="row"><span class="mini">▦ Pages</span><b>3 / 4</b><span class="mini">Details ⌄</span></div><div class="pg"><i style="width:75%"></i></div></div>
+<div class="dimm"></div><div class="sheetb pgsheet" data-view="list"><div class="grab"></div><div class="shh"><b style="font-size:13px">Pages</b><div class="vt"><span class="vb" data-v="grid" title="Thumbnail view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.5" cy="6.3" r="1.2" fill="currentColor" stroke="none"/><path d="M2.5 12l3.6-3.4 2.4 2.2 2-1.8 3 3"/></svg></span><span class="vb on" data-v="list" title="List view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="2.6" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.6" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.6" cy="12" r=".9" fill="currentColor" stroke="none"/><path d="M6 4h8M6 8h8M6 12h8"/></svg></span></div></div><div class="pgr" style="margin-top:8px"><div class="t">1</div><div class="t">2</div><div class="t on">3</div><div class="t lk">4<em>🔒</em></div></div><div class="pgl"><div class="r"><span class="mt">1</span><div><b>Trip summary</b></div></div><div class="r"><span class="mt">2</span><div><b>Flights</b></div></div><div class="r on"><span class="mt">3</span><div><b>Hotels</b></div></div><div class="r lk"><span class="mt">4</span><div><b>Transfers</b><small>Locked · request to view</small></div><em>🔒</em></div></div><div style="color:var(--mid);font-size:10.5px;margin-top:8px">🔒 = locked page</div></div></div>
+<div class="cap"><b>F3b · Pages sheet – list view</b><span>List icon = one row per page: the page number appears once, in the leading square, followed by the page name (no repeated “Page N” title) and a “current” marker; locked rows greyed with 🔒 and “Locked · request to view”. Toggle is tappable on both.</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Executive Travel Itinerary</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><div class="rlk"><span class="li">🔒</span><b>This page is locked</b><span>Request the full sample to read the rest.</span><span class="rbtn" style="width:90%">Request full sample</span></div><span class="pn">4</span></div><span class="edge l">‹</span></div>
+<div class="rbar"><div class="row"><span class="mini">▦ Pages</span><b>4 / 4</b><span class="mini">Details ⌄</span></div><div class="pg"><i style="width:100%"></i></div></div></div>
+<div class="cap"><b>F4 · Locked page reached</b><span>Swipe stops here with a small rubber-band bounce (no forward edge hint). Lock + warning sit on the page; the form opens in a sheet.</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Executive Travel Itinerary</span><span class="ib">⤓</span></div>
+<div class="rst" style="flex:none;height:90px"><div class="rpage" style="aspect-ratio:auto;height:70px;padding:8px"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div></div></div>
+<div class="dimm" style="bottom:auto;height:116px"></div>
+<div style="flex:1;padding:12px 14px;border-top:2px solid var(--ink);border-radius:18px 18px 0 0;margin-top:-10px;background:#fff;position:relative;z-index:4"><div class="grab" style="width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 8px"></div><b style="font-size:13px">Request full sample</b><div style="color:var(--mid);font-size:11px;margin:2px 0 6px">Dave will email it to you.</div><div class="rfield">Your name</div><div class="rfield" style="border-color:var(--ink);color:var(--ink)">name@email.com|</div><span class="rbtn">Request full sample</span></div><div class="kb">keyboard (email layout)</div></div>
+<div class="cap"><b>F5 · Request sheet</b><span>Bottom sheet over the locked page. Email keyboard, button stays visible above it. On success the sheet closes and the page shows “Request sent”.</span></div></div><div class="rpi"><div class="ph2"><div class="sb"></div><div class="rvh"><span class="ib">✕</span><span class="t">Weekly Calendar Plan</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage wide"><div class="ph w5 dk"></div><div class="img" style="height:60px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">1</span></div><span class="chipx" style="bottom:90px">⟳ Rotate for a bigger view</span><span class="chipx" style="bottom:56px;background:#555">pinch to zoom</span></div>
+<div class="rbar"><div class="row"><span></span><b>1 / 1</b><span class="mini">Details ⌄</span></div></div></div>
+<div class="cap"><b>F6 · Landscape document</b><span>Wide page fit to width with letterbox space; rotate hint + pinch zoom. No thumbnails for single-page files.</span></div></div></div>
+<div class="rpg" style="margin-top:34px"><div class="rpi" style="width:540px"><div class="rland"><div class="rvh"><span class="ib">✕</span><span class="t">Inbox Clean-up Report</span><span class="ib">⤓</span></div>
+<div class="rst"><div class="rpage"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">2</span></div><div class="rpage" style="border-left:0"><div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img" style="height:46px"></div><div class="ph w9"></div><div class="ph w7"></div><span class="pn">3</span></div></div>
+<div class="rbar" style="padding:5px 12px"><div class="row"><span class="mini">▦ Pages</span><b>Pages 2–3 of 3</b><span class="mini">Details ⌄</span></div></div></div>
+<div class="cap"><b>F7 · Phone in landscape / tablet</b><span>The two-page spread returns once there is room (above ~700px wide). Arrows or swipe turn two pages.</span></div></div><div style="flex:1;min-width:300px"><table class="spec"><tr><th>Topic</th><th>Rule</th></tr><tr><td>Shelf columns</td><td>≤ 480px: 2 · 481–820px: 3 · 821px and up: 4 (proposed; current wireframe uses 2 below 820px)</td></tr><tr><td>Viewer</td><td>Full-screen on phones; centred modal from ~700px wide</td></tr><tr><td>Page layout</td><td>Single page fit-to-width below 700px; two-page spread above (portrait multi-page documents)</td></tr><tr><td>Gestures</td><td>Swipe / edge-tap to turn; double-tap or pinch to zoom; swipe down on the header to close</td></tr><tr><td>Locked pages</td><td>Swipe stops at the first locked page with a bounce; “Pages” grid shows 🔒; form in a bottom sheet</td></tr><tr><td>Back button</td><td>Closes the viewer (and sheets) instead of leaving the portfolio</td></tr><tr><td>Touch targets</td><td>Minimum 44 × 44px for buttons, chips and the page-grid tiles</td></tr><tr><td>Performance</td><td>Lazy-load pages and thumbnails; low-res first, sharp on zoom</td></tr><tr><td>Motion</td><td>Respect “reduce motion”: swap slide / bounce for a simple fade</td></tr></table></div></div></div>
+
+<div class="legend"><b>Notes</b><ul>
+<li>Covers carry no “Open / Request” tag; the difference only appears once a book is clicked.</li><li><b>Open</b> books adapt to the document: portrait + multi-page = two-page spread (single page on mobile); landscape = one wide page; single portrait page = one centred page. Arrows and numbered thumbnails turn pages, with a progress bar and page counter.</li>
+<li><b>Locked</b> documents are not blocked up front: the viewer opens normally, the Next button stops at the first locked page, locked pages are marked with a 🔒 on their thumbnail, and only when the visitor turns to one does that page show the warning with a name + email request form. Which pages are locked is a content decision for Dave.</li>
+<li>No intro line or sticky “Hire me” bar, per earlier feedback. Titles/tools are placeholders.</li></ul></div>
+<div class="label" style="margin-top:44px"><b>G</b><h2>Changelog</h2><span>what changed with each request, in order</span></div>
+<div class="md" style="padding:20px 24px"><table class="spec"><tr><th>#</th><th>Request</th><th>What changed</th></tr><tr><td>1</td><td><b>Initial request</b><br><span style="color:var(--mid)">Create a low-fidelity design for displaying the documents part, based on the Services inspiration PDF.</span></td><td>First wireframe (v1): shelf view, accordion list view, two-page reader and mobile screens, combining the bookshelf, /SERVICE accordion and reading-spread references.</td></tr><tr><td>2</td><td><b>Check the design against the project instructions</b><br><span style="color:var(--mid)">Recall the project instructions and check whether the lo-fi fits.</span></td><td>No file change. Review found it only partly fit “simple and marketable portfolio for a virtual assistant”: too many views, designer-style categories, no benefit-led cards. Proposed five revisions.</td></tr><tr><td>3</td><td><b>Go ahead on revisions 1, 2, 3; keep the pop-up; skip revision 5</b><br><span style="color:var(--mid)">Apply the proposed changes but retain the quick-preview pop-up and do not add the intro line / sticky “Hire me” bar.</span></td><td>v2: single card grid, VA service categories (Admin &amp; Email, Scheduling &amp; Travel, Spreadsheets &amp; Reports, Templates &amp; SOPs), benefit-led cards with tool tags, quick-preview pop-up with “Request full sample”. Bookshelf, accordion and reader removed.</td></tr><tr><td>4</td><td><b>Restore the bookshelf; two kinds of modal</b><br><span style="color:var(--mid)">Bring back the bookshelf with aesthetic covers that keep title, description and tags; modal on click, with some documents request-only and others viewable.</span></td><td>v3: bookshelf with styled covers (spine, pattern, serif title); description and tags under the cover. Open books show a full preview; locked books show a teaser, blurred pages and a name + email request form.</td></tr><tr><td>5</td><td><b>Remove cover tags; add a pattern guide</b><br><span style="color:var(--mid)">Remove the “Open” / “Request” tag from covers; add a section showing each cover pattern and what it suits.</span></td><td>Cover tags and key removed. Added <b>Section C – Cover pattern guide</b> (Midnight, Pinstripe, Horizon, Split Sky, Dot Grid, Two-Tone). Meeting Minutes cover switched to Pinstripe.</td></tr><tr><td>6</td><td><b>Revise the open-document modal for portrait documents</b><br><span style="color:var(--mid)">The modal only worked for landscape; handle vertical, multi-page documents like the inspiration PDF.</span></td><td>Viewer now adapts: portrait multi-page = two-page spread; landscape = one wide page; single portrait = one centred page. Added arrows, numbered thumbnails, page counter, progress bar and header with tags and Download. Added static screens A, A2, A3.</td></tr><tr><td>7</td><td><b>Revise B – locked modal with page-level locks</b><br><span style="color:var(--mid)">Lock specific pages only; warn only when the user reaches them; show a lock on those thumbnails.</span></td><td>Locked documents open normally. Locked pages get a 🔒 thumbnail badge and, when reached, a blurred page with warning and request form (confirmation after submit). Locked pages set per document (placeholders).</td></tr><tr><td>8</td><td><b>Remove B2; disable Next at the first locked page</b><br><span style="color:var(--mid)">Delete B2 and stop the Next button at the first locked page.</span></td><td>B2 removed. Next disables once a locked page is on screen; clicking a thumbnail beyond the first locked page jumps to it so the limit cannot be bypassed.</td></tr><tr><td>9</td><td><b>Document a single book</b><br><span style="color:var(--mid)">Create a separate section documenting a single book.</span></td><td>Added <b>Section D – Single book anatomy &amp; spec</b>: annotated book (parts 1–10), spec table, default and hover states.</td></tr><tr><td>10</td><td><b>Document the modal on one page</b><br><span style="color:var(--mid)">Do the same for the modal as a single-page documentation.</span></td><td>Added <b>Section E – Modal anatomy &amp; spec</b>: annotated modal (callouts 0–13), page states (normal, locked before/after request, arrow states), spec and behaviour tables. Callout dots were then moved off the content they labelled and the behaviour table height fixed.</td></tr><tr><td>11</td><td><b>Ideas for the mobile implementation</b><br><span style="color:var(--mid)">Suggest how to implement the mobile design, without changing the lo-fi.</span></td><td>No file change. Advice on a 2-column shelf, full-screen single-page viewer, swipe gestures, pages grid, locked-page handling, bottom-sheet form and practical details.</td></tr><tr><td>12</td><td><b>Create the Responsive design section</b><br><span style="color:var(--mid)">Add a separate section for the mobile design.</span></td><td>Added <b>Section F – Responsive design (mobile)</b>: shelf, full-screen viewer, pages grid, locked page, request bottom sheet, landscape document, tablet / landscape spread, plus a rules table. Chip row height bug fixed.</td></tr><tr><td>13</td><td><b>Lock in and update the project</b><br><span style="color:var(--mid)">Update the project with a summary of the work.</span></td><td>Saved the summary (<code>documents-section-summary.md</code>) and the final wireframe (<code>documents-lofi-wireframe.html</code>) to the Dave Portfolio project.</td></tr><tr><td>14</td><td><b>Add this Changelog</b><br><span style="color:var(--mid)">Add a Changelog section at the bottom detailing the changes in each request.</span></td><td>Added <b>Section G – Changelog</b> (this section) to the wireframe and the project summary.</td></tr><tr><td>15</td><td><b>Numbered page indicator on desktop</b><br><span style="color:var(--mid)">Make the page indicator in the document viewer look like the reference pagination (Back, 1, ···, page window, ···, last, Next), on desktop only.</span></td><td>Desktop viewer footer now uses numbered pagination: ‹ Back / Next ›, first and last page, ellipsis for gaps, current page(s) solid black, locked pages dashed with a 🔒 chip. Mobile (≤700px) keeps the Pages button / grid. Section E spec updated (part 8) and a long-document example (24 pages) added.</td></tr><tr><td>16</td><td><b>Make one document many pages</b><br><span style="color:var(--mid)">Modify one document so it is several pages long, to test how the viewer looks with a lot of pages.</span></td><td>“Inbox Clean-up Report” changed from 3 to 24 pages (open document, portrait spread) so the pagination ellipsis, spread stepping and thumbnail strip on mobile can be tried. Placeholder only.</td></tr><tr><td>17</td><td><b>Mobile pages modal: image / list view toggle</b><br><span style="color:var(--mid)">Add two icon buttons at the top right of the mobile pages modal (image icon and list icon) so users can use either view.</span></td><td>Section F: the Pages sheet now has an image-icon / list-icon toggle at its top right. F3 shows the thumbnail view; new F3b shows the list view (page, title line, current marker, locked rows with 🔒). Both toggles are clickable.</td></tr><tr><td>18</td><td><b>Smaller view-toggle icons</b><br><span style="color:var(--mid)">Make the image / list icons in the mobile pages modal a bit smaller.</span></td><td>Toggle buttons reduced from 34 × 28px to 28 × 24px and the icons from 16px to 12px (F3, F3b).</td></tr><tr><td>19</td><td><b>F3b: remove repeated page number</b><br><span style="color:var(--mid)">The page number was shown both in the leading square and as a “Page N” title; remove it from the content and keep the page name / description.</span></td><td>List rows now show the number once (leading square) and the page name as the main text (Trip summary, Flights, Hotels, Transfers). Locked row keeps its “Locked · request to view” line and 🔒.</td></tr><tr><td>20</td><td><b>Details button: add the Details sheet (mobile)</b><br><span style="color:var(--mid)">Add a UI for what appears when the Details button is tapped in the mobile viewer.</span></td><td>New F2b in Section F: bottom sheet with title, category, description, tags, format, page count and a Download button. F2 counter aligned to the 24-page Inbox Clean-up Report (2 / 24).</td></tr></table></div>
+</div>
+<script>
+const docs=[
+{c:'admin',cn:'Admin & Email',t:'Inbox Clean-up Report',o:'P',n:24,d:'Cleared 2,000+ emails into a simple folder system.',g:['Gmail','Zapier'],f:'PDF · 24 pp',lock:0,p:0},
+{c:'admin',cn:'Admin & Email',t:'Email Reply Templates',o:'P',n:2,d:'Ready-to-send replies that save hours each week.',g:['Gmail','Docs'],f:'DOCX · 2 pp',lock:0,p:1},
+{c:'sched',cn:'Scheduling & Travel',t:'Weekly Calendar Plan',o:'L',n:1,d:'Meetings, focus time and deadlines on one page.',g:['Calendly','G-Cal'],f:'PDF · 1 p',lock:0,p:3},
+{c:'sched',cn:'Scheduling & Travel',t:'Executive Travel Itinerary',o:'P',n:4,lk:[4],d:'Flights, hotels and transfers in one clear plan.',g:['Docs','Sheets'],f:'PDF · 4 pp',lock:1,p:2},
+{c:'sheet',cn:'Spreadsheets & Reports',t:'Expense Tracker',o:'L',n:3,d:'Monthly spend summary with auto-totals.',g:['Sheets','Excel'],f:'XLSX · 3 tabs',lock:0,p:4},
+{c:'sheet',cn:'Spreadsheets & Reports',t:'Client Results Report',o:'P',n:5,lk:[4,5],d:'Weekly results at a glance for busy owners.',g:['Sheets','Looker'],f:'PDF · 5 pp',lock:1,p:5},
+{c:'tmpl',cn:'Templates & SOPs',t:'Client Onboarding SOP',o:'P',n:6,lk:[4,5,6],d:'Step-by-step checklist for bringing on new clients.',g:['Notion','Docs'],f:'PDF · 6 pp',lock:1,p:0},
+{c:'tmpl',cn:'Templates & SOPs',t:'Meeting Minutes Template',o:'P',n:1,d:'Decisions and action items, captured fast.',g:['Notion'],f:'DOCX · 1 p',lock:0,p:1}];
+const shelf=document.getElementById('shelf');
+const tg=a=>a.map(x=>`<span class="tag">${x}</span>`).join('');
+function render(f){const l=docs.map((d,i)=>[d,i]).filter(([d])=>f==='all'||d.c===f);
+ shelf.innerHTML=l.map(([d,i],k)=>`<div class="item" data-i="${i}"><div class="book p${d.p}"><div><div class="cat">${d.cn}</div></div><div><div class="ct">${d.t}</div><div class="orn"></div></div><div class="cfoot"><span>${d.f}</span><span>DAVE</span></div></div><div class="info"><h4>${d.t}</h4><p>${d.d}</p><div class="tags">${tg(d.g)}</div></div></div>`+((k%4===3||k===l.length-1)?'<div class="plank"></div>':'')).join('')}
+render('all');
+document.getElementById('tabs').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');render(c.dataset.f)};
+const pages=n=>`<div class="ph w5 dk"></div><div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="img"></div><div class="ph w9"></div><div class="ph w7"></div>`;
+const lockov=(v)=>v.dataset.req==='1'?`<div class="lockov"><span class="li">🔒</span><div class="okm">✓ Request sent.<br>Dave will email the full sample shortly.</div></div>`:`<div class="lockov"><span class="li">🔒</span><b>This page is locked</b><span>Request the full sample to read the rest.</span><div class="field">Your name</div><div class="field">Email address</div><span class="btn fill req">Request full sample</span></div>`;
+const sheet=(i,d,o,v)=>`<div class="sheet ${o==='L'?'land':'port'}${(d.lk||[]).includes(i)?' locked':''}">${i===1?'<div class="ph w5 dk" style="height:14px"></div><div class="ph w7"></div><div class="img" style="height:'+(o==='L'?'120':'70')+'px"></div>':'<div class="ph w5 dk"></div>'}<div class="ph w9"></div><div class="ph w9"></div><div class="ph w7"></div><div class="ph w9"></div>${o==='L'?'<div class="ph w9"></div>':'<div class="img"></div><div class="ph w9"></div><div class="ph w7"></div><div class="ph w9"></div>'}${(d.lk||[]).includes(i)?lockov(v):''}<span class="pn">${i}</span></div>`;
+const step=()=>innerWidth<=700?1:2;
+function pagnItems(n,cur,sp){const vis=[];for(let k=cur;k<=Math.min(n,cur+sp-1);k++)vis.push(k);
+ if(n<=9)return Array.from({length:n},(_,k)=>k+1);
+ const side=sp===2?2:3,set=new Set([1,n]);for(let k=Math.max(1,cur-side);k<=Math.min(n,cur+sp-1+side);k++)set.add(k);
+ const a=[...set].sort((x,y)=>x-y),out=[];a.forEach((p,i)=>{if(i){const g=p-a[i-1];if(g===2)out.push(p-1);else if(g>2)out.push('…')}out.push(p)});return out}
+function pagnHTML(d,cur,sp,n,nextOff){const vis=[];for(let k=cur;k<=Math.min(n,cur+sp-1);k++)vis.push(k);
+ return `<span class="pg-b${cur<=1?' off':''}" data-a="-1">‹ Back</span>`+pagnItems(n,cur,sp).map(p=>p==='…'?'<span class="pg-e">···</span>':`<span class="pg-n${vis.includes(p)?' on':''}${(d.lk||[]).includes(p)?' lk':''}" data-p="${p}">${p}${(d.lk||[]).includes(p)?'<sup>🔒</sup>':''}</span>`).join('')+`<span class="pg-b${nextOff?' off':''}" data-a="1">Next ›</span>`}
+function draw(v){const d=docs[v.dataset.i],n=d.n,o=d.o,cur=+v.dataset.cur,sp=(o==='P'&&n>1)?step():1;
+ let h='';if(sp===2){h=sheet(cur,d,o,v)+(cur+1<=n?sheet(cur+1,d,o,v):'<div class="sheet port blank"></div>')}else h=sheet(cur,d,o,v);
+ v.querySelector('.spread').innerHTML=h;
+ v.querySelector('.cnt').textContent=(sp===2&&cur+1<=n?'Pages '+cur+'–'+(cur+1):'Page '+cur)+' of '+n;
+ v.querySelector('.bar i').style.width=(Math.min(cur+sp-1,n)/n*100)+'%';
+ v.querySelector('.arrow.l').classList.toggle('off',cur<=1);v.querySelector('.arrow.r').classList.toggle('off',cur+sp>n||(d.lk&&cur+sp-1>=Math.min(...d.lk)));
+ v.querySelectorAll('.th').forEach(t=>t.classList.toggle('on',+t.dataset.p===cur||(sp===2&&+t.dataset.p===cur+1)));
+ const pg=v.querySelector('.pagn');if(pg)pg.innerHTML=pagnHTML(d,cur,sp,n,cur+sp>n||(d.lk&&cur+sp-1>=Math.min(...d.lk)));
+ v.dataset.sp=sp}
+function viewer(d,i,inline){const o=d.o,n=d.n;
+ return `<div class="viewer" data-i="${i}" data-cur="1">${inline?'':'<span class="close" onclick="closeM()">✕</span>'}
+ <div class="vhead"><div><h3>${d.t}</h3><small>${d.d}</small></div><div class="tags">${tg(d.g)}<span class="tag">${d.f}</span><span class="btn fill" style="margin:0 0 0 6px;padding:5px 12px">⤓ Download</span></div></div>
+ <div class="vstage"><span class="arrow l" data-a="-1">‹</span><div class="spread"></div><span class="arrow r" data-a="1">›</span></div>
+ <div class="vfoot">${n>1?'<div class="pagn"></div>':''}${n>1?'<div class="thumbs">'+Array.from({length:n},(_,k)=>`<div class="th ${o==='L'?'land':'port'}${(d.lk||[]).includes(k+1)?' lk':''}" data-p="${k+1}">${k+1}${(d.lk||[]).includes(k+1)?'<em>🔒</em>':''}</div>`).join('')+'</div>':''}
+ <div class="vrow"><span class="cnt"></span><div class="bar"><i></i></div><span>${d.lk?'🔒 = locked page':(o==='P'&&n>1?'Two-page spread':o==='P'?'Single page':'Wide page')}</span></div></div></div>`}
+function html(d,inline,i){return viewer(d,i,inline)}
+shelf.onclick=e=>{const c=e.target.closest('.item');if(!c)return;openDoc(+c.dataset.i)};
+function mount(el,i,inline,start){const d=docs[i];el.className='modal vm';el.innerHTML=html(d,inline,i);const v=el.querySelector('.viewer');if(v){if(start)v.dataset.cur=start;draw(v)}}
+function openDoc(i){mount(document.getElementById('modal'),i,0);document.getElementById('dim').classList.add('show')}
+function closeM(){document.getElementById('dim').classList.remove('show')}
+document.getElementById('dim').onclick=e=>{if(e.target.id==='dim')closeM()};
+mount(document.getElementById('mA'),0,1);mount(document.getElementById('mA2'),2,1);mount(document.getElementById('mA3'),7,1);mount(document.getElementById('mB'),3,1,3);
+document.addEventListener('click',e=>{const v=e.target.closest('.viewer');if(!v)return;const d=docs[v.dataset.i],sp=+v.dataset.sp||1;let cur=+v.dataset.cur;
+ if(e.target.closest('.req')){v.dataset.req='1';draw(v);return}
+ const a=e.target.closest('[data-a]'),t=e.target.closest('.th,.pg-n');
+ if(a)cur+=(+a.dataset.a)*sp;else if(t)cur=+t.dataset.p;else return;
+ if(sp===2&&cur%2===0)cur-=1;cur=Math.max(1,Math.min(d.n,d.lk?Math.min(cur,Math.min(...d.lk)):cur));v.dataset.cur=cur;draw(v)});
+addEventListener('resize',()=>document.querySelectorAll('.viewer').forEach(draw));
+
+mount(document.getElementById('mE'),3,0,3);
+(function(){const d=docs[3],mk=r=>sheet(4,d,'P',{dataset:{req:r}});
+ document.getElementById('mst').innerHTML=
+ `<div class="c"><div class="z">${sheet(3,d,'P',{dataset:{}})}</div><b>Normal page</b><small>White page, placeholder text/image, page number at the bottom.</small></div>
+  <div class="c"><div class="z">${mk('0')}</div><b>Locked page · before request</b><small>Blurred content, lock, warning, name + email, button.</small></div>
+  <div class="c"><div class="z">${mk('1')}</div><b>Locked page · after request</b><small>Confirmation replaces the form.</small></div>
+  <div class="c" style="width:100%;max-width:640px"><div class="pagn" style="justify-content:flex-start">${pagnHTML({},12,1,24,false).replace(/<span class="pg-n on"/,'<span class="pg-n on"')}</div><b>Page indicator · long document (desktop)</b><small>Example with 24 pages on page 12: first and last page always shown, ellipsis for gaps, window of 3 either side (2 on a spread). Locked pages show a dashed number with 🔒.</small></div>
+  <div class="c"><div class="arr"><span class="arrow">‹</span><span class="arrow off">›</span></div><b>Arrow states</b><small>Normal, and dimmed (end of document or first locked page reached).</small></div>`})();
+document.addEventListener('click',e=>{const b=e.target.closest('.vb');if(!b)return;const sh=b.closest('.pgsheet');sh.dataset.view=b.dataset.v;sh.querySelectorAll('.vb').forEach(x=>x.classList.toggle('on',x===b))});
+</script></body></html>

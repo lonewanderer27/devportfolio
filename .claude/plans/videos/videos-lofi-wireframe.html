@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Videos – Reel Grid Wireframe v2.12</title>
+<style>
+:root{--bg:#ececec;--paper:#fff;--ink:#222;--mid:#8a8a8a;--line:#c9c9c9;--fill:#ddd;--fill2:#eee;--g1:#3a3a3a;--g2:#6b6b6b;--g3:#a8a8a8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;padding:32px 24px 80px}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mid);margin:0 0 24px;max-width:780px}
+.frame{background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:28px 36px 40px;position:relative;overflow:hidden;margin-bottom:28px}
+.nav{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:26px;font-weight:700}
+.nav .links{display:flex;gap:22px;font-weight:400;color:var(--mid)}.nav .on{color:var(--ink);border-bottom:2px solid var(--ink)}
+.title{font-size:34px;font-weight:800;letter-spacing:-.5px;margin:0 0 16px}
+.tabs{display:flex;gap:8px;margin:0 0 24px;flex-wrap:wrap;align-items:center}
+.chip{border:1.5px solid var(--ink);border-radius:20px;padding:4px 14px;font-size:13px;cursor:pointer;background:#fff}
+.chip.on{background:var(--ink);color:#fff}
+.note{position:absolute;background:#fff7b3;border:1px solid #c9b84a;padding:6px 9px;font-size:11.5px;max-width:210px;border-radius:3px;box-shadow:2px 3px 0 #0002;z-index:2}
+
+/* ---------- placeholder footage ---------- */
+
+/* ---------- grid of thumbnails ---------- */
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(104px,calc(72px + 8vw),180px),1fr));gap:6px}
+.th{position:relative;aspect-ratio:9/16;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden;cursor:pointer;transition:filter .15s}
+.th.fc{outline:2px solid var(--ink);outline-offset:3px}
+.th.sk{background:repeating-linear-gradient(45deg,var(--fill),var(--fill) 8px,var(--fill2) 8px,var(--fill2) 16px);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+@media(max-width:620px){.frame{padding:16px}.wall{gap:4px}}
+
+/* ---------- labels ---------- */
+.label{display:flex;gap:10px;align-items:baseline;margin:34px 0 10px;flex-wrap:wrap}
+.label b{background:var(--ink);color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:12px;flex:none}
+.label h2{margin:0;font-size:16px}.label span{color:var(--mid)}
+.stage{position:relative;background:var(--paper);border:2px solid var(--ink);border-radius:8px;overflow:hidden}
+.dim{position:absolute;inset:0;background:#0007;display:none;place-items:center;padding:18px 64px;z-index:10;overflow:auto}
+.dim.show,.dim.static{display:grid}.dim.static{position:relative;inset:auto;padding:28px 64px}
+
+/* ---------- video modal (Instagram-style) ---------- */
+.vwrap{position:relative;width:fit-content;max-width:100%;margin:0 auto}
+.vmod{background:#fff;border:2px solid var(--ink);border-radius:10px;overflow:hidden;height:560px;display:grid;grid-template-columns:auto 380px}
+.vmed{background:#111;position:relative;height:100%;display:flex;align-items:center;justify-content:center;border-right:1.5px solid var(--ink);width:315px}
+.vmod.S .vmed,.vmod.W .vmed{width:560px}
+.scr{position:relative;color:#fff;overflow:hidden;width:100%;height:100%}
+.scr.W{height:auto;aspect-ratio:16/9}
+.lockv{position:absolute;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:18px 18px 58px;z-index:4}
+.lockv.show{display:flex}
+.lcard{background:rgba(255,255,255,.84);backdrop-filter:blur(6px);border:1.5px solid #fff;border-radius:12px;padding:14px 16px;text-align:center;color:var(--ink);width:100%;max-width:250px;font-size:12px}
+.lcard .li{font-size:26px;line-height:1;display:block}.lcard b{font-size:14px;display:block;margin:4px 0 2px}.lcard .sub2{color:#555;display:block;margin-bottom:6px}
+.lcard .field{margin:3px 0;padding:5px 8px;font-size:11.5px;background:#fff;text-align:left}
+.lcard .btn{display:block;padding:6px 10px;margin:6px 0 0;font-size:12px}
+.lcard .lnk{display:block;margin-top:8px;font-size:11px;text-decoration:underline;cursor:pointer;color:#444}
+.lcard .okm{border:1.5px dashed var(--ink);border-radius:6px;padding:8px;background:#fff;margin-top:6px}
+.rtop{display:flex;justify-content:space-between;align-items:flex-start}
+.scr .rtop{position:absolute;left:12px;right:12px;top:12px;z-index:1}
+.dur{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.5);border-radius:10px;font-size:9.5px;padding:0 7px}
+.play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:#fffe;color:var(--ink);border:1.5px solid var(--ink);display:grid;place-items:center;font-size:18px;padding-left:3px;cursor:pointer}
+.scr.on .play{opacity:0}
+.caps{position:absolute;left:12%;right:12%;bottom:17%;display:flex;flex-direction:column;align-items:center;gap:4px}
+.caps i{height:7px;border-radius:2px;background:#fff;box-shadow:0 0 0 2px #0007;width:80%;opacity:.9}.caps i+i{width:52%}
+.scr.W .caps{bottom:22%}
+.ctl{position:absolute;z-index:5;left:0;right:0;bottom:0;padding:26px 12px 11px;background:linear-gradient(transparent,#000a);display:flex;align-items:center;gap:8px;font-size:10.5px}
+.cb{width:22px;height:22px;border:1.2px solid #fff;border-radius:50%;display:grid;place-items:center;font-size:9px;cursor:pointer;flex:none;background:#0004}
+.sc{flex:1;height:5px;background:#fff5;border-radius:3px;position:relative}.sc i{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:3px}
+.sc .pv{position:absolute;top:0;bottom:0;right:0;border-radius:0 3px 3px 0;background:repeating-linear-gradient(90deg,#fffa 0 3px,transparent 3px 6px)}
+.sc{cursor:pointer}.sc:before{content:'';position:absolute;left:0;right:0;top:-9px;bottom:-9px}
+.lkb{position:absolute;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:#fff;color:#222;border:1.5px solid #222;display:grid;place-items:center;font-size:11px;cursor:pointer;z-index:2;padding:0;line-height:1}
+
+.arrow{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border:1.5px solid var(--ink);border-radius:50%;background:#fff;display:grid;place-items:center;cursor:pointer;font-size:18px;user-select:none;z-index:3}
+.arrow.l{left:-50px}.arrow.r{right:-50px}.arrow.off{opacity:.3;pointer-events:none}
+.vinfo{padding:26px 28px 22px;display:flex;flex-direction:column;gap:14px;position:relative;min-width:0;overflow:hidden}
+.vinfo h3{margin:0;font-family:Georgia,serif;font-size:23px;line-height:1.15}.vinfo p{margin:0;color:var(--mid)}
+.badge{display:inline-block;border:1.5px solid var(--ink);border-radius:12px;font-size:11px;padding:1px 10px;align-self:flex-start}.badge.dark{background:var(--ink);color:#fff}
+.vtop{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-right:24px}
+.tags{display:flex;gap:5px;flex-wrap:wrap}.tag{border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:10.5px;color:var(--mid)}
+.res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.res div{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px}.res b{display:block;font-size:15px}.res small{color:var(--mid);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}
+.sec{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin:0 0 5px}
+.nu{display:flex;gap:8px}.nu .t{width:52px;aspect-ratio:9/16;border:1.5px solid var(--ink);border-radius:4px;display:grid;place-items:end center;font-size:9px;color:#fff;cursor:pointer;padding-bottom:4px}
+.nu .t span{background:#0007;border-radius:8px;padding:0 5px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.btn{display:inline-block;border:1.5px solid var(--ink);border-radius:6px;padding:7px 13px;cursor:pointer;background:#fff;text-align:center;font-size:13px}.btn.fill{background:var(--ink);color:#fff}
+.close{position:absolute;right:14px;top:8px;font-size:20px;cursor:pointer;z-index:5}
+.field{border:1.5px solid var(--line);border-radius:6px;padding:7px 10px;margin:4px 0;color:var(--mid);font-size:13px}
+
+
+
+
+@media(max-width:900px){.vmod{grid-template-columns:1fr;height:auto}.vmed,.vmod.S .vmed,.vmod.W .vmed{width:100%;height:480px;border-right:0;border-bottom:1.5px solid var(--ink)}.dim,.dim.static{padding:18px 12px}.arrow{display:none}}
+
+/* ---------- anatomy ---------- */
+.an{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.anbox{position:relative;display:grid;grid-template-columns:1fr 210px 1fr;gap:0 30px;align-items:start}
+.anbox .mid{grid-column:2}
+.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.co{position:absolute;display:flex;align-items:center;gap:6px;font-size:11.5px;white-space:nowrap;z-index:3}
+.co i{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:11px;flex:none}
+.co.l{right:calc(100% + 8px);flex-direction:row-reverse}.co.r{left:calc(100% + 8px)}
+.co:after{content:"";width:22px;border-top:1.5px solid var(--ink);order:2}
+.co.l:after{order:2}.co.r:before{content:"";width:22px;border-top:1.5px solid var(--ink);order:0}.co.r:after{display:none}
+.cw{position:relative}
+.states{display:flex;gap:22px;margin-top:40px;grid-column:1/-1;justify-content:center;flex-wrap:wrap}
+.states .st{width:84px;font-size:11.5px;text-align:center;color:var(--mid)}.states .th{margin-bottom:8px}
+.crops{display:flex;gap:26px;grid-column:1/-1;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.crops .cp{text-align:center;font-size:11.5px;color:var(--mid);width:110px}
+.crops .src{border:1.5px solid var(--ink);border-radius:4px;margin:0 auto 8px;position:relative;display:grid;place-items:center;overflow:hidden}
+.crops .src i{position:absolute;border:2px dashed #fff;background:rgba(255,255,255,.18);top:0;bottom:0;left:50%;transform:translateX(-50%);aspect-ratio:9/16}
+.spec{border-collapse:collapse;width:100%;font-size:12.5px}
+.spec th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);padding:6px 8px;border-bottom:1.5px solid var(--ink)}
+.spec td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}.spec td:first-child{white-space:nowrap}
+.spec td i{font-style:normal;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10.5px;margin-right:6px}
+@media(max-width:980px){.an{grid-template-columns:1fr}.anbox{grid-template-columns:90px 180px 90px;justify-content:center}.co{font-size:10px}}
+.md{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.bd{background:#8d8d8d;border-radius:6px;padding:30px 70px;position:relative;overflow:auto}
+.anw{position:relative;width:fit-content;margin:0 auto}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;background:#ffe14d;color:var(--ink);border:1.5px solid var(--ink);display:grid;place-items:center;font-size:11px;font-weight:700;z-index:20;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #fff9}
+.mst{display:flex;gap:26px;flex-wrap:wrap;margin-top:26px}
+.mst .c{width:170px}.mst .c small{display:block;margin-top:8px;color:var(--mid);font-size:11.5px}.mst .c b{font-size:12.5px}
+.mst .c .scr{width:170px;height:auto;aspect-ratio:9/16;border:1.5px solid var(--ink);border-radius:12px}
+.mst .lockv{padding:8px 8px 34px}.mst .lcard{padding:8px;font-size:8.5px;border-radius:8px}.mst .lcard .li{font-size:16px}.mst .lcard b{font-size:10.5px;margin:2px 0}.mst .lcard .sub2{margin-bottom:3px}.mst .lcard .field{padding:2px 6px;font-size:8.5px;margin:2px 0}.mst .lcard .btn{padding:3px 6px;font-size:9px;margin-top:4px}.mst .lcard .lnk{font-size:8px;margin-top:4px}.mst .lcard .okm{padding:5px}
+.mst .c .scr .play{width:36px;height:36px;font-size:12px}.mst .c .ctl{font-size:8px;gap:5px;padding:20px 8px 8px}.mst .c .cb{width:16px;height:16px;font-size:7px}
+@media(max-width:980px){.two{grid-template-columns:1fr!important}}
+
+/* ---------- responsive phones ---------- */
+.rp{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.rpg{display:flex;gap:34px 28px;flex-wrap:wrap;justify-content:center}
+.rpi{width:250px}.rpi .cap{margin-top:12px;font-size:12.5px}.rpi .cap b{display:block;font-size:13.5px;margin-bottom:2px}.rpi .cap span{color:var(--mid)}
+.ph2{width:250px;height:500px;border:2px solid var(--ink);border-radius:28px;background:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.ph2:before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:60px;height:5px;border-radius:3px;background:var(--line);z-index:9}
+.sb{height:26px;flex:none}
+.rnav{display:flex;justify-content:space-between;align-items:center;padding:4px 14px 8px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line);flex:none}
+.rh1{font-size:20px;font-weight:800;padding:10px 14px 4px;flex:none}
+.rch{display:flex;gap:6px;padding:6px 14px 10px;overflow:hidden;white-space:nowrap;flex:none;border-bottom:1px solid var(--line);margin-bottom:3px}
+.rch .chip{font-size:11px;padding:2px 10px;flex:none}
+.rg{display:grid;gap:3px;padding:0 3px;flex:none}.rg3{grid-template-columns:repeat(3,1fr)}.rg2{grid-template-columns:repeat(2,1fr)}
+.rg .th{border-width:1px;border-radius:2px}
+.imm:before{content:'';position:absolute;inset:0;background:linear-gradient(#0007,transparent 24%,transparent 52%,#000b)}
+.imm{position:absolute;inset:0;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:34px 12px 14px}
+.itop{display:flex;align-items:center;gap:8px;position:relative;z-index:2;font-size:11px}
+.ib{width:28px;height:28px;border:1.5px solid #fff;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:none;background:#0005}
+.rail{color:#fff;position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;align-items:center;z-index:2}
+.ib.off{opacity:.35}
+.dbtn{position:absolute;right:10px;bottom:14px;z-index:2;color:#fff}
+.ibot b em{font-style:normal;opacity:.8;margin-left:2px}
+.dbtn,.rail,.itop,.ibot{z-index:2}
+.ibot{position:relative;z-index:2;padding-right:50px;color:#fff}
+.ibot b{font-family:Georgia,serif;font-size:15px;display:block;line-height:1.15}
+.ibot .scx{height:4px;background:#fff5;border-radius:2px;margin-top:9px;position:relative}.ibot .scx i{position:absolute;inset:0 auto 0 0;background:#fff;border-radius:2px}
+.hint{position:absolute;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border:1px solid #fff;border-radius:14px;padding:3px 12px;font-size:10.5px;white-space:nowrap;z-index:5}
+.dimm{position:absolute;inset:0;background:#0007;z-index:3}
+.sheetb{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--ink);border-radius:18px 18px 0 0;padding:12px 14px 16px;z-index:4;color:var(--ink)}
+.grab{width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 10px}
+.sheetb h4{font-family:Georgia,serif;font-size:15px;margin:2px 0}.sheetb p{margin:0 0 8px;font-size:11px;color:var(--mid)}
+.sheetb .res{gap:5px;margin:8px 0}.sheetb .res div{padding:4px 6px}.sheetb .res b{font-size:12px}.sheetb .res small{font-size:8px}
+.rbtn{display:block;width:100%;text-align:center;background:var(--ink);color:#fff;border-radius:6px;padding:8px;font-size:12px;margin-top:6px}
+.lbox{position:absolute;inset:0;z-index:1;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:14px 50px 70px 14px}
+.lbox .lcard{max-width:none;font-size:10.5px;padding:10px 12px}.lbox .lcard b{font-size:12.5px}.lbox .lcard .li{font-size:22px}.lbox .lcard .btn{font-size:11px}
+.msc{margin:0 0 12px;background:#fff6}.msc .lkb{width:20px;height:20px;font-size:10px}
+.lbar{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;background:#111}
+.lbx{aspect-ratio:16/9;color:#fff;position:relative;display:grid;place-items:center}
+.rland{width:540px;height:250px;border:2px solid var(--ink);border-radius:26px;background:#111;position:relative;overflow:hidden;color:#fff}
+.rland .lbx{position:absolute;left:50%;top:0;bottom:0;transform:translateX(-50%);aspect-ratio:16/9;height:100%}
+.rland .ctl{padding:22px 16px 8px}
+@media(max-width:620px){.rland{width:100%}}
+.scn{border:1.5px solid var(--ink);border-radius:6px;background:#fff;overflow:hidden}
+.scn .g{display:grid}.scn .g i{aspect-ratio:9/16;background:var(--g3);border:1px solid var(--ink);border-radius:2px}
+.scn .bar{height:7px;background:var(--fill);border-bottom:1px solid var(--ink)}
+.sc-row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}.sc-it{font-size:11.5px;color:var(--mid)}.sc-it b{display:block;color:var(--ink);font-size:12.5px;margin-top:8px}
+
+/* ---------- v2.6 preview on hover / long-press ---------- */
+.th{-webkit-tap-highlight-color:transparent}
+.th .pm{position:absolute;inset:0;background:inherit;pointer-events:none;animation:kb 6s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.14) translate(-2.5%,-1.5%)}}
+.pmu{position:absolute;right:5px;top:5px;width:18px;height:18px;border-radius:50%;background:#000a;color:#fff;border:1px solid #fff8;display:grid;place-items:center;font-size:9px;pointer-events:none;z-index:1}
+.pb{position:absolute;left:0;right:0;bottom:0;height:3px;background:#fff5;pointer-events:none;z-index:1}
+.pb i{display:block;height:100%;width:0;background:#fff;animation:pbar 6s linear infinite}
+@keyframes pbar{to{width:100%}}
+.th.hv{z-index:7}
+.th.hv:before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.4);pointer-events:none}
+.th.fo .pm,.th.fo .pmu,.th.fo .pb{animation:fout .14s ease-in forwards}
+.th.fo .pb i{animation:none}
+@keyframes fout{from{opacity:1}to{opacity:0}}
+.hvring{position:absolute;z-index:8;pointer-events:none;border:2.5px solid var(--ink);border-radius:8px;box-shadow:0 0 0 2.5px #fff,0 8px 22px #0006;opacity:0;view-transition-name:hvring}
+.hvring.show{opacity:1}
+.hvf .hvring{opacity:1;view-transition-name:none}
+html:not(.vtm)::view-transition-old(root),html:not(.vtm)::view-transition-new(root){animation:none;mix-blend-mode:normal}
+#modal.vn .vmed{view-transition-name:vid}
+.peek.vn .pmed{view-transition-name:pk}
+::view-transition-group(vid),::view-transition-group(pk){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.8,.2,1);border-radius:6px;overflow:clip}
+::view-transition-old(vid),::view-transition-new(vid),::view-transition-old(pk),::view-transition-new(pk){height:100%;width:100%;object-fit:cover}
+.peek.vt .pcard{transition:none;transform:none;opacity:1}
+::view-transition-group(hvring){animation-duration:.24s;animation-timing-function:cubic-bezier(.3,.8,.3,1)}
+::view-transition-group(*){animation-fill-mode:both}
+.hvdim{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .2s;background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.hvdim.show{opacity:1}
+.hvf{position:relative;overflow:hidden;border:2px solid var(--ink);border-radius:8px;padding:14px 16px 18px;background:#fff}
+.hvf .hvdim{opacity:1;transition:none}
+.hvg{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.hvtt{font-size:20px;font-weight:800;margin:0 0 8px}
+@media(prefers-reduced-motion:reduce){.th .pm,.pb i{animation:none}}
+/* mobile long-press */
+.lpg .th{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .15s}
+.th.pr{transform:scale(.93)}
+.ring{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;--p:0%;background:conic-gradient(#fff var(--p),#fff5 0);-webkit-mask:radial-gradient(circle,transparent 11px,#000 12px);mask:radial-gradient(circle,transparent 11px,#000 12px);pointer-events:none;z-index:2}
+.th.pr:after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.28);pointer-events:none}
+.peek{position:absolute;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(255,255,255,.46);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.peek.show{display:flex}
+.pcard{width:176px;background:#fff;border:2px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:0 14px 32px #0006;transform:scale(.8);opacity:0;transition:transform .2s cubic-bezier(.2,.9,.3,1.2),opacity .15s}
+.peek.show .pcard{transform:none;opacity:1}
+.phd{padding:6px 10px;border-bottom:1.5px solid var(--ink);font-size:11px;line-height:1.2;background:#fff}.phd b{font-family:Georgia,serif;font-size:12.5px}
+.pmed{position:relative;overflow:hidden;aspect-ratio:9/16}
+.pcard.S .pmed{aspect-ratio:1}.pcard.W .pmed{aspect-ratio:16/9}
+.phint{background:var(--ink);color:#fff;border:1px solid #fff;border-radius:14px;padding:3px 12px;font-size:10.5px;white-space:nowrap}
+.ph2 .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;background:var(--ink);color:#fff;border-radius:14px;padding:4px 12px;font-size:10.5px;white-space:nowrap;z-index:9}
+.tl{display:flex;gap:0;margin:0 0 4px;flex-wrap:wrap}
+.tl div{flex:1;min-width:84px;border-top:3px solid var(--ink);padding:8px 10px 0 0;font-size:11.5px;color:var(--mid)}.tl div b{display:block;color:var(--ink);font-size:12.5px}
+.legend{background:#fff;border:1.5px dashed var(--mid);border-radius:8px;padding:18px 24px;margin-top:34px}.legend li{margin:4px 0}
+</style></head><body><div class="wrap">
+<h1>Videos section – Reel grid wireframe v2.12</h1>
+<p class="sub">Simplified to an Instagram-style grid: only the video previews are shown, in a fluid grid that fits as many columns as make sense for the screen (see C2). Everything else (category, title, description, results, tools) now lives in the modal, which puts the video on the left at full height and the details on the right. Try the filters, <b>hover a thumbnail to preview it</b>, click it to open the modal, and use the arrows. New: the hover preview with a sliding outline (B2) and the mobile long-press pop-out (E9). Move between thumbnails to see the outline travel while the blur stays on and the previous video fades out while the next one starts right away. Opening a clip now grows the thumbnail into the video (B3). All motion is summarised in B4.</p>
+
+<div class="frame" id="s1">
+ <div class="nav"><span>/DAVE</span><div class="links"><span>Services</span><span>Documents</span><span class="on">Videos</span><span>Testimonials</span><span>Contact</span></div></div>
+ <h3 class="title">Videos</h3>
+ <div class="tabs" id="tabs"><span class="chip on" data-f="all">All</span><span class="chip" data-f="sm">Short Form Videos</span><span class="chip" data-f="mk">Social Media Marketing</span><span class="chip" data-f="ai">AI Generated Videos</span></div>
+ <div class="wall" id="wall"></div>
+ <div class="note" style="right:14px;top:84px">Thumbnails only. Hover to preview (muted), click to open the player.</div>
+ <div class="hvdim" id="hvdim"></div><div class="hvring" id="hvring"></div>
+ <div class="dim" id="dim"><div class="vwrap" id="modal"></div></div>
+</div>
+
+<div class="label"><b>A</b><h2>Modal – Vertical video (9:16)</h2><span>video fills the full height of the left side; details stay on the right; arrows sit outside the modal</span></div>
+<div class="stage"><div class="dim static"><div class="vwrap" id="mA"></div></div></div>
+
+<div class="label"><b>A2</b><h2>Modal – Square video (1:1)</h2><span>left side widens so the square video still fills it edge to edge</span></div>
+<div class="stage"><div class="dim static"><div class="vwrap" id="mA2"></div></div></div>
+
+<div class="label"><b>A3</b><h2>Modal – Wide video (16:9)</h2><span>same wider left side; the wide video is centred with dark bars above and below</span></div>
+<div class="stage"><div class="dim static"><div class="vwrap" id="mA3"></div></div></div>
+
+<div class="label"><b>B</b><h2>Modal – Private clip with a locked cut</h2><span>a 🔒 button on the scrubber marks the private timecode: click it to jump there, or play until you reach it; a translucent warning then offers to request the full cut</span></div>
+<div class="stage"><div class="dim static"><div class="vwrap" id="mB"></div></div></div>
+
+<div class="label"><b>B2</b><h2>Desktop – hover preview</h2><span>hover a thumbnail and it plays muted, in place, while the rest of the page blurs out. Try it on the live grid at the top, or study the frozen frame below.</span></div>
+<div class="an" style="grid-template-columns:1.1fr 1fr;align-items:start"><div class="hvw" style="position:relative"><div class="hvf" id="hvf"></div><div id="hdots"></div></div>
+<div><table class="spec"><tr><th>Part</th><th>Spec</th></tr>
+<tr><td><i>1</i>Hovered thumbnail</td><td>Stays exactly where it is, same size and position (no zoom or pop-out), lifted only by a soft shadow. Plays from 0:00, muted, as a slow loop</td></tr>
+<tr><td><i>2</i>Progress bar</td><td>3px white bar along the bottom edge: the only “player” element. Shows the loop (6s, or the public part if it is shorter)</td></tr>
+<tr><td><i>3</i>Mute badge</td><td>Small 🔇 badge, top-right. The preview is always silent; sound only starts in the modal</td></tr>
+<tr><td><i>4</i>Blurred page</td><td>Nav, title, chips and every other thumbnail blur (about 7px) under a 40% white veil. Fades in over 200ms; the veil does not block the pointer, so you can slide to another thumbnail. It stays on while the pointer is anywhere over the grid, including the gaps, and only fades out when the pointer leaves the grid</td></tr>
+<tr><td><i>5</i>Sliding outline</td><td>A 2.5px ink outline (with a white edge so it reads on the blur) wraps the active thumbnail. Moving to another thumbnail slides this outline across to it (view transition, about 240ms) and the preview switches over. The blur does not flicker off and on in between</td></tr>
+<tr><td><i>6</i>Switching videos</td><td>The new video starts playing on its thumbnail immediately, with no fade and no delay. Only the previous video fades out (about 150ms) back to its dimmed poster, together with its progress bar and mute badge, while the outline slides over to the new one</td></tr></table>
+<div class="sec" style="margin-top:22px">Timing</div>
+<div class="tl"><div><b>0 ms</b>Pointer enters a thumbnail</div><div><b>800 ms</b>Intent delay passes: video starts, outline appears, blur fades in (200ms)</div><div><b>Switch</b>Pointer moves to another thumbnail: no delay, new video starts at once, the old one fades out (150ms), the outline slides over (~240ms), blur stays on</div><div><b>Leave grid</b>Pointer leaves the grid: everything stops, outline and blur fade out (~200ms)</div><div><b>Click</b>Preview stops and the modal (A) opens</div></div></div></div>
+<div class="rp" style="margin-top:14px"><table class="spec"><tr><th>Rule</th><th>Behaviour</th></tr>
+<tr><td>Who gets it</td><td>Mouse and trackpad only (devices that can hover). Phones use the long-press pop-out in E9</td></tr>
+<tr><td>One at a time</td><td>Only one thumbnail plays. The 800ms delay applies only to the first one; once the page is blurred, moving to the next thumbnail switches at once, with the outline sliding over. Sweeping into the grid from outside does not flash previews</td></tr>
+<tr><td>Gaps between thumbnails</td><td>The pointer in a gap keeps the current highlight and blur; nothing changes until it reaches another thumbnail or leaves the grid</td></tr>
+<tr><td>Browsers without view transitions</td><td>The outline still slides using a plain CSS move; if even that is unavailable it simply jumps</td></tr>
+<tr><td>Private clips</td><td>The preview plays only the public part, never past the 🔒 timecode</td></tr>
+<tr><td>Keyboard</td><td>Focus does not autoplay; Enter / Space still opens the modal</td></tr>
+<tr><td>Reduced motion / data saver</td><td>No autoplay and no blur: the thumbnail just shows its poster. The click still opens the modal</td></tr>
+<tr><td>Loading</td><td>Poster stays until the first frame is ready (no spinner). Previews are short, muted, low-resolution renditions loaded on first hover</td></tr>
+<tr><td>Square / wide clips</td><td>Preview is centre-cropped to 9:16, like the poster; the full shape appears in the modal</td></tr></table></div>
+
+<div class="label"><b>B3</b><h2>Thumbnail to video transition</h2><span>the thumbnail itself grows into the video, and shrinks back when you close. Click any thumbnail on the live grid to see it.</span></div>
+<div class="rp"><table class="spec"><tr><th>Moment</th><th>What happens</th></tr>
+<tr><td>Open (desktop)</td><td>Click a thumbnail: its picture moves and grows into the video pane of the modal (about 400ms, quick start and soft landing). The dark backdrop fades in behind it and the details panel fades in beside it. Only the picture travels; no text is animated</td></tr>
+<tr><td>Close (desktop)</td><td>✕, Esc or a click outside reverses it: the video pane shrinks and flies back to the clip’s thumbnail while the backdrop and details fade out</td></tr>
+<tr><td>Different shapes</td><td>Vertical clips match the thumbnail ratio, so they grow cleanly. Square and wide clips widen as they grow and the poster is revealed in its full shape at the end</td></tr>
+<tr><td>Thumbnail not on screen</td><td>If the visitor stepped to another clip with the arrows and its thumbnail is hidden by the filter, the pane simply fades out instead of flying back</td></tr>
+<tr><td>Mobile pop-out (E9)</td><td>On long-press, the thumbnail grows into the centred pop-out card in the same way (about 400ms) and shrinks back into its thumbnail on release. The blur and title header fade in and out around it</td></tr>
+<tr><td>Interrupted</td><td>Pressing Esc, clicking again or releasing early skips to the final state; nothing gets stuck half-way</td></tr>
+<tr><td>Fallback</td><td>Browsers without the View Transitions API show the modal with a quick fade and the pop-out with a scale-up; the content is identical</td></tr>
+<tr><td>Reduced motion</td><td>No movement at all: the modal and pop-out appear and disappear instantly</td></tr></table></div>
+
+<div class="label"><b>B4</b><h2>Motion &amp; animation summary</h2><span>every animation in one table: what triggers it, what moves, how long it takes, and what happens without it</span></div>
+<div class="rp"><p style="margin:0 0 14px;color:var(--mid)">Principles: motion follows the pointer or finger and answers a visitor action; only previews loop; the picture moves, never the text; one thing animates at a time where possible; everything has a no-motion fallback.</p>
+<table class="spec"><tr><th>Animation</th><th>Trigger</th><th>What moves</th><th>Duration &amp; easing</th><th>Reduced motion / fallback</th></tr>
+<tr><td>Page blur in / out</td><td>Preview starts / pointer leaves the grid</td><td>Blur (about 7px) and white veil fade over the page</td><td>200ms fade, both ways; stays on while switching thumbnails</td><td>No blur; poster only</td></tr>
+<tr><td>Preview playback</td><td>Hover held 800ms (desktop)</td><td>Muted loop in place; the wireframe stands in with a slow push-in (scale 1 to 1.14 with a small drift); progress bar fills left to right</td><td>6s loop; ease-in-out back and forth for the picture, linear for the bar</td><td>Poster only, no loop</td></tr>
+<tr><td>Outline slide</td><td>Pointer moves to another thumbnail while one is active</td><td>The outline travels from one thumbnail to the next (view transition)</td><td>About 240ms, quick start and soft landing</td><td>CSS slide (~220ms); instant if unavailable</td></tr>
+<tr><td>Previous video fades out</td><td>Same moment as the outline slide</td><td>The old video, its progress bar and mute badge fade to a dimmed poster. The new video starts at once, with no fade</td><td>About 150ms, ease-in</td><td>Instant swap</td></tr>
+<tr><td>Thumbnail to video</td><td>Click a thumbnail (desktop)</td><td>The thumbnail’s picture grows into the modal’s video pane; backdrop and details fade in</td><td>About 400ms, quick start and soft landing</td><td>Modal fades in; instant with reduced motion</td></tr>
+<tr><td>Video back to thumbnail</td><td>✕, Esc or click outside</td><td>The pane shrinks back to its thumbnail; backdrop and details fade out</td><td>About 400ms, same easing</td><td>Fades out; instant with reduced motion</td></tr>
+<tr><td>Press feedback</td><td>Touch down on a thumbnail (phone)</td><td>Thumbnail shrinks to 93% and dims; a ring fills in its centre</td><td>150ms shrink; ring fills linearly over 450ms</td><td>Ring only, no shrink</td></tr>
+<tr><td>Thumbnail to pop-out</td><td>Hold reaches 450ms (phone)</td><td>The thumbnail’s picture grows into the centred card; page blurs and the title header fades in</td><td>About 400ms, same easing as the desktop open</td><td>Card scales up from 80% in 200ms; still poster with reduced motion</td></tr>
+<tr><td>Pop-out back to thumbnail</td><td>Finger lifts</td><td>The card shrinks back into its thumbnail; the blur fades out</td><td>About 400ms</td><td>Fades out; instant with reduced motion</td></tr>
+<tr><td>Loading skeleton</td><td>Poster not loaded yet</td><td>Striped grey block pulses</td><td>1.4s loop, ease-in-out</td><td>Static, no pulse</td></tr>
+<tr><td>Scrubber progress</td><td>Playing in the modal</td><td>Fill and time advance</td><td>Updates 4 times a second</td><td>Same</td></tr>
+<tr><td>Controls auto-hide <em>(proposed)</em></td><td>3s without input while playing</td><td>Control bar fades out and back on movement</td><td>200ms fade</td><td>Stay visible</td></tr>
+<tr><td>Lock warning <em>(proposed)</em></td><td>Playback reaches the lock timecode, or the 🔒 is clicked</td><td>Translucent card fades over the video</td><td>200ms fade</td><td>Appears instantly</td></tr>
+<tr><td>Details sheet <em>(proposed)</em></td><td>Tap the title or ⓘ (phone)</td><td>Bottom sheet slides up; backdrop fades</td><td>250ms ease-out; swipe down to close</td><td>Appears instantly</td></tr>
+<tr><td>Viewer clip switch <em>(proposed)</em></td><td>▲ ▼ or swipe up / down (phone)</td><td>Current clip slides out and the next slides in vertically</td><td>250ms ease-in-out</td><td>Cross-fade, 150ms</td></tr></table>
+<p style="margin:12px 0 0;color:var(--mid)">Rows marked <em>proposed</em> are not drawn in this wireframe yet; they are sensible defaults to confirm. Everything else can be tried above: hover the grid, click a thumbnail, and press and hold in E9.</p></div>
+
+<div class="label"><b>C</b><h2>Thumbnail – anatomy &amp; spec</h2><span>the grid now has one simple element, so this replaces the old card guide</span></div>
+<div class="an"><div class="anbox"><div class="mid"><div class="cw" id="anGrid"></div></div>
+<div class="states" id="states"></div><div class="crops" id="crops"></div></div>
+<table class="spec"><tr><th>Part</th><th>Spec</th><th>Notes</th></tr>
+<tr><td><i>1</i>Poster image</td><td>First frame, or a frame Dave picks; centred, fills the whole thumbnail</td><td>Nothing is drawn on top of it</td></tr>
+<tr><td><i>2</i>Frame</td><td>1.5px ink border, 4px radius, ratio 9 : 16 on every thumbnail</td><td>Same size for all, so rows stay even</td></tr>
+<tr><td><i>3</i>Gap</td><td>6px on desktop, 4px on phones</td><td>Tight, like a photo feed</td></tr>
+<tr><td><i>4</i>Columns</td><td>Fluid: as many as fit, with thumbnails kept between about 104px (phones) and 190px (large screens); typically 2 to 7</td><td>See section C2 for the rule and examples</td></tr>
+<tr><td>Left out</td><td>No title, category, length, play icon, tags or stats on the thumbnail</td><td>All of it is in the modal</td></tr>
+<tr><td>Hover</td><td>After 300ms, plays a muted loop in place and blurs the rest of the page; pointer cursor</td><td>Only a progress bar and a mute badge appear. See B2</td></tr>
+<tr><td>Focus</td><td>2px outline with a 3px gap</td><td>Enter / Space opens the modal</td></tr>
+<tr><td>Loading</td><td>Grey striped skeleton with a soft pulse</td><td>Replaced by the poster when it loads</td></tr>
+<tr><td>Square / wide sources</td><td>Centre-cropped to 9 : 16 in the grid (dashed box)</td><td>The modal shows the full original shape</td></tr>
+<tr><td>Order</td><td>Dave’s picks first, then newest; filter chips above the grid</td><td>Filters: All, Short Form, Social Media Marketing, AI Generated</td></tr></table></div>
+
+<div class="label"><b>C2</b><h2>Grid – columns by screen size</h2><span>fluid: as many columns as fit, within a size range; not a fixed 5</span></div>
+<div class="an" style="display:block"><div class="sc-row" id="scrow"></div>
+<table class="spec" style="margin-top:26px"><tr><th>Rule</th><th>Spec</th></tr>
+<tr><td>Thumbnail width</td><td>Never narrower than ~104px on phones, growing gradually with the screen to a ceiling of ~180px minimum on large displays. Thumbnails fill the leftover space evenly, so they end up roughly 105 to 190px wide.</td></tr>
+<tr><td>Columns</td><td>As many as fit at that minimum width. The count rises step by step as the screen widens and never jumps by more than one.</td></tr>
+<tr><td>Spacing</td><td>Page padding 16px on phones, 36px elsewhere · gap 4px on phones, 6px elsewhere</td></tr>
+<tr><td>Maximum width</td><td>Content stops growing at 1400px and stays centred, so very wide displays show more margin, not tiny thumbnails.</td></tr>
+<tr><td>Last row</td><td>Left-aligned and left incomplete; no stretching.</td></tr>
+<tr><td>CSS idea</td><td><code>repeat(auto-fill, minmax(clamp(104px, 72px + 8vw, 180px), 1fr))</code></td></tr></table></div>
+
+<div class="label"><b>D</b><h2>Modal – anatomy &amp; spec</h2><span>one-page reference: parts, measurements, states and behaviour</span></div>
+<div class="md"><div class="bd"><div class="anw"><div class="vwrap" id="mE"></div><div id="dots"></div></div></div>
+<div class="mst" id="mst"></div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:30px;margin-top:30px;align-items:start" class="two">
+<table class="spec"><tr><th>Part</th><th>Spec</th><th>Notes</th></tr>
+<tr><td><i>0</i>Backdrop</td><td>Full-area dim, rgba(0,0,0,.45); click it or ✕ to close</td><td>The grid stays visible behind</td></tr>
+<tr><td><i>1</i>Video side (left)</td><td>Full modal height (560px), no padding or rounded frame. Vertical: 315px wide, fills edge to edge. Square and wide: 560px wide</td><td>Square fills it; wide is centred with dark bars</td></tr>
+<tr><td><i>2</i>Captions toggle</td><td>“CC” pill, top-right of the video</td><td>Captions on by default</td></tr>
+<tr><td><i>3</i>Play / pause</td><td>Big centre button when paused; small one in the control bar</td><td>Tap or click the video, or press Space</td></tr>
+<tr><td><i>4</i>Scrub bar</td><td>5px track at the bottom of the video, white fill. Click or drag to seek. On private clips the track after the 🔒 is striped</td><td>Seeking past the lock lands on the lock</td></tr>
+<tr><td><i>5</i>Time &amp; sound</td><td>“0:08 / 0:28” and a mute button</td><td>Opens with sound on (the click counts as a user action)</td></tr>
+<tr><td><i>6</i>Prev / Next</td><td>36px circles outside the modal, on the backdrop</td><td>Step through the current filter; dimmed at the ends; ← → keys</td></tr>
+<tr><td><i>7</i>Category, title &amp; description</td><td>Category + shape badges, Georgia bold 23px title, grey description</td><td>Text that used to sit under the card</td></tr>
+<tr><td><i>8</i>Results</td><td>Three stat boxes. Marketing: views / reach / saves · Short form: length / platform / turnaround · AI: tool / time to make / format</td><td>Placeholders until Dave adds real numbers</td></tr>
+<tr><td><i>9</i>Made with</td><td>Grey tags: platform + software</td><td>Moved here from the card</td></tr>
+<tr><td><i>10</i>Next up</td><td>Three small thumbnails from the same category</td><td>Click to jump</td></tr>
+<tr><td><i>11</i>Actions</td><td>“Open original post ↗” (filled) and “Copy link”</td><td>Original link only where public</td></tr>
+<tr><td><i>12</i>Close ✕</td><td>20px, top-right of the details side</td><td>Also Esc or backdrop click</td></tr>
+<tr><td><i>13</i>Lock button &amp; warning</td><td>22px 🔒 button on the scrubber at the private timecode. When playback gets there, a translucent warning card sits over the video: “This part is private”, name + email, “Request the full cut”, “Watch the public part again”</td><td>Clicking the 🔒 jumps straight to the timecode and shows the warning. Private clips only; see states below</td></tr></table>
+<table class="spec"><tr><th>Behaviour</th><th>Rule</th></tr>
+<tr><td>Open</td><td>Click a thumbnail → modal opens and the video starts from 0:00.</td></tr>
+<tr><td>Next / prev</td><td>Outside arrows, ← → keys or Next-up thumbs. Playback restarts.</td></tr>
+<tr><td>End of clip</td><td>Replays once, then pauses on the last frame with a replay button.</td></tr>
+<tr><td>Private part</td><td>Everything after the 🔒 timecode is private. Playback stops there; the translucent warning appears; the controls stay usable (seek back, replay, close).</td></tr>
+<tr><td>Lock button</td><td>Click the 🔒 on the scrubber → jumps to the private timecode and shows the warning straight away.</td></tr>
+<tr><td>Request the full cut</td><td>Name + email → “Request sent” replaces the form. The video stays locked until Dave replies.</td></tr>
+<tr><td>Close</td><td>✕, Esc or backdrop click; the video stops and unloads.</td></tr>
+<tr><td>Small screens (≤900px)</td><td>Video stacks above the details; on phones it becomes the full-screen feed (section E).</td></tr></table></div></div>
+
+<div class="label"><b>E</b><h2>Responsive design (mobile)</h2><span>a fluid grid of thumbnails only (about 3 to 2 columns on phones); the viewer has just four controls, and details open from the title or the ⓘ button</span></div>
+<div class="rp"><div class="rpg" id="rpg"></div>
+<div class="rpg" style="margin-top:34px"><div class="rpi" style="width:540px"><div class="rland"><div class="lbx v7"><span class="play" style="transform:translate(-50%,-50%);width:40px;height:40px;font-size:14px">▶</span></div>
+<div class="itop" style="position:absolute;left:14px;top:12px"><span class="ib">✕</span></div>
+<div class="ibot" style="position:absolute;left:16px;bottom:12px;z-index:2"><b>AI Brand Film <em>›</em></b></div>
+<div class="rail" style="right:14px;top:50%;transform:translateY(-50%)"><div class="ib">▲</div><div class="ib">▼</div></div><div class="ib dbtn" style="right:14px;bottom:12px">ⓘ</div></div>
+<div class="cap"><b>E8 · Phone in landscape</b><span>The video fills the screen height with the same four controls. Rotate back to portrait or tap the title for details.</span></div></div>
+<div style="flex:1;min-width:300px"><table class="spec"><tr><th>Topic</th><th>Rule</th></tr>
+<tr><td>Grid columns</td><td>Fluid, not fixed. Roughly 2 on narrow phones (≤340px), 3 on typical phones, 4 on large phones, 5 on tablets and 6 to 7 on laptops and desktops (see C2)</td></tr>
+<tr><td>Grid contents</td><td>Thumbnails only. No text, icons or tags. Chips scroll sideways and stick under the nav</td></tr>
+<tr><td>Grid previews</td><td>No autoplay while scrolling (saves data); posters only. Press and hold a thumbnail for a muted pop-out preview (see E9)</td></tr>
+<tr><td>Viewer</td><td>Full-screen video up to 900px wide; side-by-side modal above</td></tr>
+<tr><td>On-screen controls</td><td>Only four: ✕ (top-left) · ▲ ▼ (right, vertically centred) · title with › (bottom-left) · ⓘ details (bottom-right). Private clips add one slim scrubber with the 🔒 button above the title</td></tr>
+<tr><td>Switch clips</td><td>▲ = previous, ▼ = next, within the current filter. Swiping up / down does the same. ▲ is dimmed on the first clip and ▼ on the last</td></tr>
+<tr><td>Details</td><td>Tap the title or ⓘ → bottom-sheet modal with category, description, results, tools, next up and “Open original post”. Closes by swiping down, tapping outside or Back</td></tr>
+<tr><td>Hidden on mobile</td><td>No scrub bar, time, mute, CC toggle, tags or category on the video (the slim scrubber only appears on private clips). Sound follows the device volume; captions are burned into the clip</td></tr>
+<tr><td>Playback</td><td>Tap the video = play / pause · double-tap = skip 5s · swipe down from the top edge to close</td></tr>
+<tr><td>Wide / square clips</td><td>Letterboxed in the centre with a “Rotate for full screen” hint</td></tr>
+<tr><td>Private clips</td><td>Tap 🔒 on the slim scrubber to jump to the private timecode, or watch until you reach it. Playback stops and a translucent warning appears with “Request the full cut” (opens a bottom sheet with the email keyboard) and “Watch the public part again”</td></tr>
+<tr><td>Back button</td><td>Closes the viewer (and sheets) instead of leaving the portfolio</td></tr>
+<tr><td>Touch targets</td><td>Each thumbnail is well over 44px; buttons, chips and rail icons are at least 44 × 44px</td></tr>
+<tr><td>Performance</td><td>Posters lazy-load; video loads on open; pre-load only the next clip; 720p, upgrade on Wi-Fi</td></tr>
+<tr><td>Accessibility</td><td>Captions on by default; every thumbnail has a text label for screen readers (the title); Esc and arrow keys on desktop</td></tr></table></div></div></div>
+
+<div class="label"><b>E9</b><h2>Mobile – long-press preview</h2><span>press and hold a thumbnail: it pops out in the centre like an Instagram post, autoplays muted, and the rest of the page blurs. Try it on the first phone (mouse or touch).</span></div>
+<div class="rp"><div class="rpg" id="rpg9"></div>
+<div style="margin-top:30px"><table class="spec"><tr><th>Topic</th><th>Rule</th></tr>
+<tr><td>Gesture</td><td>Press and hold a thumbnail for 450ms. A quick tap still opens the full viewer (E3)</td></tr>
+<tr><td>While holding</td><td>The thumbnail shrinks slightly (93%), dims a little, and a ring fills in its centre. Where supported, a light haptic tick fires when the pop-out opens</td></tr>
+<tr><td>Pop-out card</td><td>Centred on screen, about 70% of the screen width, in the clip’s own shape (9:16, 1:1 or 16:9) with the title in a slim header above. Rounded, with a soft shadow. Autoplays muted from 0:00 as a loop; thin progress bar and 🔇 badge</td></tr>
+<tr><td>Blurred page</td><td>Everything else blurs (about 7px) under a 45% white veil, fading in as the card scales up from the thumbnail</td></tr>
+<tr><td>Release</td><td>Lifting the finger closes the pop-out: the card shrinks back into its thumbnail (about 400ms, see B3) while the blur fades out. No extra buttons, nothing to tap</td></tr>
+<tr><td>Cancel</td><td>Moving the finger more than 10px, or starting to scroll, before 450ms cancels the press, so scrolling is never hijacked</td></tr>
+<tr><td>Private clips</td><td>The pop-out plays only the public part, never past the 🔒 timecode</td></tr>
+<tr><td>Data saver / reduced motion</td><td>The pop-out shows the still poster with no autoplay</td></tr>
+<tr><td>System menu</td><td>The browser’s own long-press menu (save image, copy) is turned off on thumbnails</td></tr>
+<tr><td>Assistive tech</td><td>The pop-out is an extra, never the only route: double-tap on a thumbnail opens the full viewer with all controls</td></tr></table></div></div>
+
+<div class="label"><b>F</b><h2>Changelog</h2><span>what changed with each request, newest last</span></div>
+<div class="rp"><table class="spec" id="changelog"><tr><th>Version</th><th>Request</th><th>What changed</th></tr>
+<tr><td><b>v1</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Generate a lo-fi design for mostly vertical videos (Short Form, Social Media Marketing, AI Generated), based on the Services inspiration and following the Documents lo-fi format.</td><td>Created the Videos wireframe with the same structure as Documents: a "reel wall" instead of the bookshelf, cards with category, length, type marker (CC / views / AI), play button, title, description and tags, hover preview, a player modal that adapts to vertical / square / wide video, an optional locked-cut modal, a card style guide, card and modal anatomy &amp; spec, and a mobile section. Saved to the project with a summary note.</td></tr>
+<tr><td><b>v2</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>The design felt cluttered; make it Instagram-like: 5 columns of previews only on desktop; click opens a modal with the video on the left filling the height and the existing details on the right; 3 to 2 columns of previews only on mobile.</td><td>Removed everything from the thumbnails (category, length, markers, play icon, title, description, tags). Desktop grid is now 5 columns of uniform 9:16 thumbnails with a 6px gap and a hover darken. The modal now has the video edge to edge on the left at full height (wider for square / wide clips) and the details on the right, with prev / next arrows outside the modal. Mobile grid is 3 columns (2 on phones 360px and under). The old card style guide and card anatomy were replaced by a single thumbnail anatomy &amp; spec; sections renumbered.</td></tr>
+<tr><td><b>v2.1</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Generate a better thumbnail.</td><td>Replaced the crude grey shapes with ten greyscale poster illustrations, one per clip (podcast host with mic, product on a pedestal, AI perfume bottle, talking-head tips, testimonial, AI avatar, kinetic text, landscape film, dashboard recap, vlog desk). The same art is used in the player, "Next up" and mobile screens. Wide clips got their own landscape poster for the 16:9 player. Added a light gradient over mobile viewer posters so white text stays readable.</td></tr>
+<tr><td><b>v2.2</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Refine the mobile design; too many elements. Right side should only have up / down buttons and a details button at the bottom right; tapping the title opens the details modal.</td><td>Mobile viewer reduced to four on-screen controls: ✕ top-left, ▲ ▼ to switch clips on the right, the title with › bottom-left, and an ⓘ details button bottom-right. Tapping the title or ⓘ opens the details bottom-sheet modal. Removed the sound, captions and details rail, the category label, length, tags, the scrub bar and the swipe hints from the video. Updated the wide-clip and landscape screens and rewrote the mobile rules table.</td></tr>
+<tr><td><b>v2.3</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Support private sections of videos: a lock button on the scrubber; reaching that timecode shows a translucent warning with a request for the full cut; clicking the lock skips to the timecode.</td><td>Added a 🔒 button on the scrubber at the private timecode, with a striped track for the private part. Playback stops there and a translucent warning card (name + email, "Request the full cut", "Watch the public part again") appears over the video; clicking the 🔒 jumps straight to the timecode and shows it. The scrubber is now click-to-seek (capped at the lock). Added mobile screens for a private clip and for the reached state; private clips get one slim scrubber above the title. Updated the modal anatomy (parts 4 and 13), the three private-clip states, and the behaviour tables.</td></tr>
+<tr><td><b>v2.4</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Add a Changelog section at the bottom detailing the changes in each request.</td><td>Added this section.</td></tr>
+<tr><td><b>v2.5</b><br><small style="color:var(--mid)">2 Oct 2026</small></td><td>Revise the grid: it doesn't have to be a solid 5 columns, but whatever makes sense for the screen size.</td><td>Replaced the fixed 5 / 3 / 2 columns with a fluid grid that fits as many columns as make sense (about 2 on narrow phones up to 7 on large displays), keeping thumbnails roughly 105 to 190px wide, with content capped at 1400px. Added section C2 showing the column count at seven screen sizes plus the rule, and updated the thumbnail spec, the mobile rules and the phone captions.</td></tr><tr><td><b>v2.6</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>On desktop, hovering a video autoplays it muted, in place, and blurs the rest of the page. On mobile, long-pressing a video pops it out in the centre like an Instagram post, autoplays it, and blurs the rest. Show it in the lo-fi design before it goes into the SRS.</td><td>Desktop: the live grid now previews on hover (300ms delay, muted loop, thumbnail stays put, thin progress bar and 🔇 badge, rest of the page blurs); new section B2 shows the frozen frame with callouts, timing and rules. Mobile: new live phone in E9 where press-and-hold fills a ring, then a centred pop-out card (native shape, title header, muted autoplay) appears over a blurred page and closes on release; plus the pressing and pop-out states for a vertical and a wide clip, and the rules. Replaced the old “darken on hover” state. SRS not changed yet, awaiting your review.</td></tr>
+<tr><td><b>v2.7</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>On desktop, when a video is already highlighted and the user hovers another one, use view transitions to move the outline to the next video; the blur should not switch off in between and should only turn off when the cursor leaves the grid.</td><td>Added a single sliding outline that wraps the active thumbnail and travels to the next one with a view transition (~240ms, with a CSS fallback). Switching between thumbnails is immediate (the 300ms delay only applies to the first one) and the blur stays on, including over the gaps. The blur and outline now fade out only when the pointer leaves the grid. B2 shows the outline as a new callout, plus an updated timing strip and rules. SRS not changed yet.</td></tr>
+<tr><td><b>v2.8</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>When switching from one video to another, the previous video should fade out and then the new one should fade in.</td><td>Switching thumbnails on desktop now runs in sequence: the playing video fades out (about 140ms) back to a dimmed poster, then the new video fades in (about 180ms) with its progress bar and mute badge, while the outline slides over and the blur stays on. Updated the B2 callouts, timing strip and rules. SRS not changed yet.</td></tr>
+<tr><td><b>v2.9</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>The next video should appear immediately; keep the fade-out animation for the previous video only.</td><td>Removed the fade-in and the wait before it. When switching on desktop, the new video now starts playing right away while only the previous one fades out (about 150ms) as the outline slides over. Updated the B2 callouts, timing strip and rules. SRS not changed yet.</td></tr>
+<tr><td><b>v2.10</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>Use a view transition to smooth the animation from the thumbnail to the pop-up video.</td><td>Opening a clip on desktop now grows the thumbnail into the modal's video pane (about 400ms), and closing shrinks the pane back to its thumbnail; the backdrop and details fade around it. The mobile long-press pop-out uses the same thumbnail-to-card transition on press and release. Added section B3 with the rules, the fallback and reduced-motion behaviour. SRS not changed yet.</td></tr>
+<tr><td><b>v2.11</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>Check that the animation behaviour is documented in the wireframe, and document it there and in the SRS if not.</td><td>It was only partly documented (spread across B2, B3 and E9), so I added section B4: one table of every animation with its trigger, what moves, duration and easing, and the reduced-motion fallback, plus the principles. Four animations that were never drawn (controls auto-hide, lock warning, details sheet, viewer clip switch) are listed as proposed defaults. Fixed two inconsistent timings: the blur now fades out in about 200ms, and the phone pop-out closes with the 400ms shrink-back. SRS updated to match (version 1.2).</td></tr>
+<tr><td><b>v2.12</b><br><small style="color:var(--mid)">3 Oct 2026</small></td><td>Adjust the timing for when the video autoplays on desktop.</td><td>The intent delay before the hover preview starts changed from 300ms to 800ms, so the preview only starts when the visitor lingers on a thumbnail. Switching between thumbnails while a preview is active is still immediate. Updated B2 (timing strip and rules) and B4. SRS updated (version 1.3).</td></tr>
+</table></div>
+
+<div class="legend"><b>Notes</b><ul>
+<li>The grid shows previews only. The category, title, description, results and tools moved into the modal, so the page stays clean and the filter chips do the sorting.</li>
+<li>Vertical 9:16 is the default; square and wide clips are cropped to 9:16 in the grid and shown in their full shape in the modal.</li>
+<li><b>Private clips</b> (section B) are optional. A 🔒 button on the scrubber marks the timecode where the private part starts; reaching it (or clicking the 🔒) shows a translucent warning with a request form. The public part before the lock plays freely.</li>
+<li><b>Previews</b> (B2, E9) are an extra on top of the clean grid: desktop plays a muted loop on hover, phones on long-press. Nothing is added to the thumbnails at rest.</li>
+<li>No intro line or sticky “Hire me” bar. Titles, tools and numbers are placeholders; real clips and posters replace the grey frames.</li></ul></div>
+</div>
+
+<script>
+/* ---------- poster art (greyscale placeholders) ---------- */
+const SV=(b,d='')=>`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 160' preserveAspectRatio='xMidYMid slice'><defs>${d}</defs>${b}</svg>`;
+const LG=(id,a,b)=>`<linearGradient id='${id}' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='${a}'/><stop offset='1' stop-color='${b}'/></linearGradient>`;
+const BG=(a,b)=>[`<rect width='90' height='160' fill='url(#a)'/>`,LG('a',a,b)];
+const PER=(cx,hy,sc,skin,shirt,hair)=>`<g transform='translate(${cx} ${hy}) scale(${sc})'><path d='M-36 130 L-36 90 C-36 52 -18 44 0 44 C18 44 36 52 36 90 L36 130Z' fill='${shirt}'/><rect x='-6' y='28' width='12' height='20' rx='4' fill='${skin}' opacity='.85'/><ellipse cx='0' cy='6' rx='15' ry='19' fill='${skin}'/><path d='M-16 4 C-18 -18 18 -18 16 4 C12 -6 -10 -6 -16 4Z' fill='${hair}'/></g>`;
+const STAR=(x,y,r,o=.7)=>`<path d='M${x} ${y-r} L${x+r*.25} ${y-r*.25} L${x+r} ${y} L${x+r*.25} ${y+r*.25} L${x} ${y+r} L${x-r*.25} ${y+r*.25} L${x-r} ${y} L${x-r*.25} ${y-r*.25}Z' fill='#fff' opacity='${o}'/>`;
+const bgA=(a,b)=>{const[r,d]=BG(a,b);return[r,d]};
+function art(a,b,body,extraDefs=''){const[r,d]=BG(a,b);return SV(r+body,d+extraDefs)}
+const POST=[
+/*0 podcast*/art('#6a6a6a','#232323',`<g fill='#fff' opacity='.07'><rect x='4' y='10' width='24' height='70' rx='2'/><rect x='34' y='10' width='24' height='70' rx='2'/><rect x='64' y='10' width='22' height='70' rx='2'/></g>${PER(45,66,1,'#b9b9b9','#8c8c8c','#2e2e2e')}<path d='M29 76 C28 50 62 50 61 76' stroke='#181818' stroke-width='3' fill='none'/><rect x='26' y='72' width='6' height='13' rx='3' fill='#181818'/><rect x='58' y='72' width='6' height='13' rx='3' fill='#181818'/><path d='M82 40 L66 68 L58 88' stroke='#181818' stroke-width='2' fill='none'/><ellipse cx='57' cy='92' rx='5' ry='8' fill='#e2e2e2' stroke='#181818'/>`),
+/*1 product*/art('#858585','#383838',`<polygon points='30,0 60,0 82,116 8,116' fill='#fff' opacity='.12'/><rect x='0' y='138' width='90' height='22' fill='#000' opacity='.28'/><rect x='15' y='110' width='60' height='30' fill='#a9a9a9'/><ellipse cx='45' cy='140' rx='30' ry='7' fill='#8a8a8a'/><ellipse cx='45' cy='110' rx='30' ry='7' fill='#d0d0d0'/><rect x='33' y='66' width='24' height='42' fill='#f0f0f0'/><polygon points='57,66 64,70 64,106 57,108' fill='#bcbcbc'/><rect x='37' y='78' width='16' height='3' fill='#777'/><rect x='37' y='85' width='10' height='2' fill='#999'/><rect x='37' y='96' width='16' height='5' rx='1' fill='#555'/>`),
+/*2 AI perfume*/art('#2a2a2a','#555',`<g fill='none' stroke='#fff' opacity='.25'><ellipse cx='45' cy='122' rx='14' ry='4'/><ellipse cx='45' cy='122' rx='26' ry='7'/><ellipse cx='45' cy='122' rx='38' ry='10'/></g><rect x='34' y='70' width='22' height='46' rx='4' fill='#c4c4c4'/><rect x='38' y='74' width='4' height='36' rx='2' fill='#fff' opacity='.55'/><rect x='41' y='62' width='8' height='9' fill='#8a8a8a'/><rect x='39' y='52' width='12' height='11' rx='2' fill='#e8e8e8'/><rect x='39' y='88' width='14' height='12' fill='#777' opacity='.7'/>${STAR(18,30,5)}${STAR(72,48,4)}${STAR(64,20,3,.5)}<circle cx='24' cy='96' r='1.2' fill='#fff' opacity='.5'/><circle cx='70' cy='86' r='1.6' fill='#fff' opacity='.4'/>`),
+/*3 tips*/art('#a6a6a6','#6c6c6c',`<rect x='58' y='0' width='32' height='96' fill='#fff' opacity='.16'/><g fill='#4a4a4a'><ellipse cx='12' cy='104' rx='4' ry='12' transform='rotate(-20 12 104)'/><ellipse cx='20' cy='102' rx='4' ry='13' transform='rotate(15 20 102)'/></g><rect x='8' y='116' width='16' height='16' rx='2' fill='#333'/>${PER(48,68,1.05,'#c6c6c6','#555','#222')}<path d='M41 112 L48 126 L55 112Z' fill='#e8e8e8'/><path d='M43 86 q5 4 10 0' stroke='#777' stroke-width='1' fill='none'/>`),
+/*4 testimonial*/art('#666','#262626',`${PER(34,74,.95,'#bdbdbd','#777','#1e1e1e')}<text x='50' y='64' font-family='Georgia,serif' font-size='70' fill='#fff' opacity='.3'>&#8220;</text><rect x='54' y='86' width='26' height='3' rx='1' fill='#fff' opacity='.4'/><rect x='54' y='93' width='20' height='3' rx='1' fill='#fff' opacity='.3'/>`),
+/*5 avatar*/art('#6a6a6a','#1e1e1e',`<g fill='none' stroke='#fff' opacity='.2'><circle cx='45' cy='72' r='26'/><circle cx='45' cy='72' r='38'/><circle cx='45' cy='72' r='52'/></g>${PER(45,66,1,'#d4d4d4','#9a9a9a','#444')}<g stroke='#6a6a6a' stroke-width='.5' fill='none'><ellipse cx='45' cy='72' rx='15' ry='19'/><ellipse cx='45' cy='72' rx='8' ry='19'/><ellipse cx='45' cy='72' rx='15' ry='9'/><path d='M30 72H60M45 53V91M20 125H70M26 112H64'/></g>${STAR(16,36,6)}${STAR(74,28,4)}${STAR(70,120,5,.5)}`),
+/*6 kinetic text*/art('#444','#2b2b2b',`<rect x='8' y='10' width='30' height='4' fill='#fff' opacity='.5'/><g fill='#f2f2f2'><rect x='8' y='24' width='13' height='22'/><rect x='24' y='24' width='11' height='22'/><rect x='38' y='24' width='13' height='22'/><rect x='54' y='24' width='24' height='22'/></g><g fill='#bdbdbd'><rect x='8' y='52' width='19' height='20'/><rect x='30' y='52' width='13' height='20'/><rect x='46' y='52' width='34' height='20'/></g><rect x='4' y='78' width='82' height='34' fill='#f2f2f2'/><g fill='#222'><rect x='10' y='84' width='15' height='22'/><rect x='28' y='84' width='13' height='22'/><rect x='44' y='84' width='13' height='22'/><rect x='60' y='84' width='20' height='22'/></g><g fill='#8e8e8e'><rect x='8' y='120' width='11' height='18'/><rect x='22' y='120' width='19' height='18'/><rect x='44' y='120' width='13' height='18'/><rect x='60' y='120' width='22' height='18'/></g><rect x='8' y='148' width='74' height='3' fill='#fff' opacity='.25'/><rect x='8' y='148' width='30' height='3' fill='#fff' opacity='.8'/>`),
+/*7 landscape*/art('#d4d4d4','#7c7c7c',`<circle cx='60' cy='72' r='26' fill='#fff' opacity='.25'/><circle cx='60' cy='72' r='11' fill='#f6f6f6'/><polygon points='0,120 18,94 32,106 52,86 72,108 90,98 90,124 0,124' fill='#8a8a8a'/><polygon points='0,130 24,102 44,120 66,100 90,122 90,134 0,134' fill='#5e5e5e'/><polygon points='0,160 0,138 30,126 60,136 90,128 90,160' fill='#2e2e2e'/><g stroke='#333' fill='none' stroke-width='.8'><path d='M16 56 q3 -3 6 0 q3 -3 6 0'/><path d='M28 48 q2 -2 4 0 q2 -2 4 0'/></g>`),
+/*8 dashboard*/art('#e8e8e8','#bcbcbc',`<rect width='90' height='14' fill='#2a2a2a'/><rect x='6' y='5' width='20' height='4' fill='#fff' opacity='.7'/><rect x='6' y='22' width='78' height='42' rx='3' fill='#fff' stroke='#bbb'/><g fill='#555'><rect x='12' y='46' width='7' height='12'/><rect x='23' y='38' width='7' height='20'/><rect x='34' y='42' width='7' height='16'/><rect x='45' y='30' width='7' height='28'/><rect x='56' y='36' width='7' height='22'/><rect x='67' y='28' width='7' height='30' fill='#222'/></g><rect x='6' y='70' width='36' height='36' rx='3' fill='#fff' stroke='#bbb'/><circle cx='24' cy='90' r='10' fill='none' stroke='#ccc' stroke-width='5'/><circle cx='24' cy='90' r='10' fill='none' stroke='#333' stroke-width='5' stroke-dasharray='40 63' transform='rotate(-90 24 90)'/><rect x='48' y='70' width='36' height='36' rx='3' fill='#fff' stroke='#bbb'/><polyline points='52,100 60,92 66,96 74,82 80,86' fill='none' stroke='#333' stroke-width='1.6'/><rect x='6' y='112' width='78' height='40' rx='3' fill='#fff' stroke='#bbb'/><g fill='#bbb'><rect x='12' y='118' width='46' height='4'/><rect x='12' y='128' width='60' height='4'/><rect x='12' y='138' width='36' height='4'/></g><g fill='#555'><rect x='62' y='118' width='16' height='4'/><rect x='72' y='138' width='6' height='4'/></g>`),
+/*9 vlog desk*/art('#b6b6b6','#7a7a7a',`<rect x='10' y='14' width='42' height='50' fill='#f0f0f0' stroke='#444' stroke-width='2'/><path d='M31 14V64M10 39H52' stroke='#444' stroke-width='1.5'/><circle cx='72' cy='36' r='12' fill='none' stroke='#f2f2f2' stroke-width='3'/><path d='M72 48V96' stroke='#444' stroke-width='2'/><rect x='0' y='112' width='90' height='48' fill='#3c3c3c'/><polygon points='18,114 72,114 78,122 12,122' fill='#8c8c8c'/><rect x='22' y='84' width='46' height='30' rx='2' fill='#222'/><rect x='25' y='87' width='40' height='24' fill='#8a8a8a'/><rect x='80' y='100' width='8' height='12' rx='1.5' fill='#e6e6e6'/><g fill='#4a4a4a'><ellipse cx='6' cy='100' rx='3' ry='10' transform='rotate(-15 6 100)'/><ellipse cx='13' cy='98' rx='3' ry='11' transform='rotate(12 13 98)'/></g><rect x='3' y='108' width='12' height='6' fill='#2c2c2c'/>`)
+];
+document.head.insertAdjacentHTML('beforeend','<style>'+POST.map((s,i)=>`.v${i}{background:url("data:image/svg+xml,${encodeURIComponent(s)}") center/cover no-repeat #555}`).join('')+'</style>');
+
+const WIDE=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='a' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#d6d6d6'/><stop offset='1' stop-color='#808080'/></linearGradient></defs><rect width='160' height='90' fill='url(#a)'/><circle cx='112' cy='38' r='20' fill='#fff' opacity='.25'/><circle cx='112' cy='38' r='8' fill='#f6f6f6'/><polygon points='0,66 24,40 40,54 66,32 92,56 120,44 160,62 160,72 0,72' fill='#8a8a8a'/><polygon points='0,76 30,52 56,68 90,48 124,70 160,58 160,82 0,82' fill='#5e5e5e'/><polygon points='0,90 0,78 40,70 80,80 120,72 160,80 160,90' fill='#2e2e2e'/><g stroke='#333' fill='none' stroke-width='.8'><path d='M30 22 q3 -3 6 0 q3 -3 6 0'/><path d='M44 16 q2 -2 4 0 q2 -2 4 0'/></g></svg>`;
+document.head.insertAdjacentHTML('beforeend',`<style>.scr.W.v7,.pmed.W.v7{background:url("data:image/svg+xml,${encodeURIComponent(WIDE)}") center/cover no-repeat #555}</style>`);
+
+const CAT={sm:'Short Form',mk:'Social Media Marketing',ai:'AI Generated'};
+const V=[
+{c:'sm',t:'Podcast Highlight Clip',o:'V',len:'0:28',s:28,d:'Long episode cut into a punchy, captioned hook.',g:['TikTok','CapCut'],v:0,r:['28s','TikTok','1 day']},
+{c:'mk',t:'Product Launch Teaser',o:'V',len:'0:15',s:15,d:'Launch-day teaser with a clear call to action.',g:['Reels','Canva'],v:1,r:['480K','210K','9.4K']},
+{c:'ai',t:'AI Product Showcase',o:'V',len:'0:12',s:12,d:'Studio-style product shots made without a shoot.',g:['Veo','Runway'],v:2,r:['Veo','3 hrs','9:16']},
+{c:'sm',t:'Talking-Head Tips Reel',o:'V',len:'0:34',s:34,d:'Quick tips with animated captions and b-roll.',g:['Shorts','Premiere'],v:3,r:['34s','Shorts','1 day']},
+{c:'mk',t:'Customer Testimonial Reel',o:'V',len:'0:30',s:30,lk:10,d:'Client story cut for social proof. Full cut is private.',g:['Reels','Meta Suite'],v:4,r:['120K','64K','3.1K']},
+{c:'ai',t:'AI Avatar Explainer',o:'V',len:'0:40',s:40,d:'Digital presenter explains a service in 40 seconds.',g:['HeyGen','ElevenLabs'],v:5,r:['HeyGen','2 hrs','9:16']},
+{c:'sm',t:'Kinetic Text Promo',o:'V',len:'0:18',s:18,d:'Text-driven promo, no footage needed.',g:['TikTok','After Effects'],v:6,r:['18s','TikTok','2 days']},
+{c:'ai',t:'AI Brand Film',o:'W',len:'0:20',s:20,d:'Cinematic brand mood film, generated and graded.',g:['Sora','Kling'],v:7,r:['Sora','5 hrs','16:9']},
+{c:'mk',t:'Weekly Recap Post',o:'S',len:'0:22',s:22,d:'Square recap of the week’s wins for feed posts.',g:['LinkedIn','Canva'],v:8,r:['38K','17K','860']},
+{c:'sm',t:'Behind-the-Scenes Vlog',o:'V',len:'0:26',s:26,d:'Day-in-the-life vlog cut for a founder’s feed.',g:['Reels','CapCut'],v:9,r:['26s','Reels','1 day']}
+];
+const ORDER=[0,1,2,3,4,5,6,7,8,9];
+const SH={V:'9:16',S:'1:1',W:'16:9'};
+const PVLEN=6,HOLD=450,HVDELAY=800,RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pvSecs=i=>Math.min(PVLEN,V[i].lk||V[i].s);
+const hvInner=i=>`<i class="pm"></i><span class="pmu">🔇</span><span class="pb"><i style="animation-duration:${pvSecs(i)}s"></i></span>`;
+const hvTh=i=>`<div class="th v${V[i].v} hv" data-i="${i}">${hvInner(i)}</div>`;
+
+const tg=a=>a.map(x=>`<span class="tag">${x}</span>`).join('');
+const th=(i,x)=>`<div class="th v${V[i].v}" data-i="${i}" ${x||''}></div>`;
+const wall=document.getElementById('wall');let curF='all';
+const list=f=>ORDER.filter(i=>f==='all'||V[i].c===f);
+function render(f){curF=f;wall.innerHTML=list(f).map(i=>th(i,'tabindex="0" title="'+V[i].t+'"')).join('')}
+render('all');
+document.getElementById('tabs').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');render(c.dataset.f)};
+
+/* ---------- player ---------- */
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const lockHTML=r=>`<div class="lcard"><span class="li">🔒</span>${r?'<div class="okm">✓ Request sent.<br>Dave will email the full video shortly.</div>':'<b>This part is private</b><span class="sub2">Request the full cut to keep watching.</span><div class="field">Your name</div><div class="field">Email address</div><span class="btn fill req">Request the full cut</span>'}<span class="lnk" data-replay>↺ Watch the public part again</span></div>`;
+function scr(d,t,pl,mu,withLock){return `<div class="scr v${d.v} ${d.o}${pl?' on':''}"><div class="rtop"><span></span><span class="dur">CC</span></div><span class="play" data-play>▶</span><div class="caps"><i></i><i></i></div>
+ <div class="ctl"><span class="cb" data-play>${pl?'❚❚':'▶'}</span><div class="sc"><i style="width:${t/d.s*100}%"></i>${d.lk?`<span class="pv" style="left:${d.lk/d.s*100}%"></span><button class="lkb" data-lock style="left:${d.lk/d.s*100}%" title="Private from ${fmt(d.lk)}">🔒</button>`:''}</div><span class="tm">${fmt(t)} / ${d.len}</span><span class="cb" data-mute>${mu?'🔇':'🔊'}</span></div>
+ ${d.lk&&withLock?`<div class="lockv">${lockHTML(0)}</div>`:''}</div>`}
+const resLabels={mk:['Views','Reach','Saves'],sm:['Length','Platform','Turnaround'],ai:['Tool','Time to make','Format']};
+function infoPanel(d,ids,inline){
+ const me=V.indexOf(d),nx=ids.filter(i=>i!==me&&V[i].c===d.c).concat(ids.filter(i=>i!==me&&V[i].c!==d.c)).slice(0,3);
+ return `<div class="vinfo">${inline?'':'<span class="close" data-close>✕</span>'}<span class="close" style="${inline?'':'display:none'}" data-close>✕</span>
+ <div><div class="vtop"><span class="badge dark">${CAT[d.c]}</span><span class="badge">${SH[d.o]}</span></div>
+ <h3 style="margin-top:12px">${d.t}</h3><p style="margin-top:6px">${d.d}</p></div>
+ <div class="a2"><div class="sec">Results</div><div class="res">${d.r.map((x,k)=>`<div><b>${x}</b><small>${resLabels[d.c][k]}</small></div>`).join('')}</div>
+ <div class="sec" style="margin-top:14px">Made with</div><div class="tags">${tg(d.g)}</div></div>
+ <div><div class="sec">Next up</div><div class="nu">${nx.map(i=>`<div class="t v${V[i].v}" data-go="${i}"><span>${V[i].len}</span></div>`).join('')}</div></div>
+ <div class="acts"><span class="btn fill">Open original post ↗</span><span class="btn">Copy link</span></div></div>`}
+function draw(el){const d=V[+el.dataset.i],ids=JSON.parse(el.dataset.ids),t=+el.dataset.t,pl=el.dataset.pl==='1',mu=el.dataset.mu==='1',inl=el.dataset.inl==='1',k=ids.indexOf(+el.dataset.i);
+ el.innerHTML=`<span class="arrow l${k<=0?' off':''}" data-nav="-1">‹</span><div class="vmod ${d.o}"><div class="vmed">${scr(d,t,pl,mu,1)}</div>${infoPanel(d,ids,0)}</div><span class="arrow r${k>=ids.length-1?' off':''}" data-nav="1">›</span>`;
+ const lv=el.querySelector('.lockv');if(lv){lv.innerHTML=lockHTML(el.dataset.req==='1');lv.classList.toggle('show',t>=d.lk)}}
+function mount(el,i,ids,inline,t0,play){el.dataset.i=i;el.dataset.ids=JSON.stringify(ids);el.dataset.t=t0||0;el.dataset.pl=play?'1':'0';el.dataset.mu='0';el.dataset.inl=inline?'1':'0';el.dataset.req='0';draw(el)}
+const sameCat=c=>ORDER.filter(i=>V[i].c===c);
+const VTok=!!document.startViewTransition&&!RM,de=document.documentElement;
+function openFrom(e){const c=e.target.closest('.th');if(!c)return;if(window.hvStop)hvStop();
+ const m=document.getElementById('modal'),dim=document.getElementById('dim');
+ const go=()=>{mount(m,+c.dataset.i,list(curF),0,0,1);dim.classList.add('show')};
+ if(!VTok){go();return}
+ /* thumbnail grows into the video pane (shared view-transition-name "vid") */
+ de.classList.add('vtm');c.style.viewTransitionName='vid';
+ const t=document.startViewTransition(()=>{c.style.viewTransitionName='';m.classList.add('vn');go()});
+ t.finished.finally(()=>{m.classList.remove('vn');de.classList.remove('vtm')})}
+wall.onclick=openFrom;wall.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openFrom(e)}};
+function closeM(){const dim=document.getElementById('dim'),m=document.getElementById('modal');if(!dim.classList.contains('show'))return;
+ const doClose=()=>{dim.classList.remove('show');m.dataset.pl='0'};
+ if(!VTok){doClose();return}
+ /* video pane shrinks back to its thumbnail, if that thumbnail is on the page */
+ const th=wall.querySelector('.th[data-i="'+m.dataset.i+'"]');
+ de.classList.add('vtm');m.classList.add('vn');
+ const t=document.startViewTransition(()=>{m.classList.remove('vn');doClose();if(th)th.style.viewTransitionName='vid'});
+ t.finished.finally(()=>{if(th)th.style.viewTransitionName='';de.classList.remove('vtm')})}
+document.getElementById('dim').onclick=e=>{if(e.target.id==='dim')closeM()};
+addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
+mount(document.getElementById('mA'),0,sameCat('sm'),1,8,0);
+mount(document.getElementById('mA2'),8,sameCat('mk'),1,6,0);
+mount(document.getElementById('mA3'),7,sameCat('ai'),1,6,0);
+mount(document.getElementById('mB'),4,sameCat('mk'),1,4,0);
+document.addEventListener('click',e=>{const el=e.target.closest('.vwrap[data-i]');if(!el)return;
+ if(e.target.closest('[data-close]')){if(el.id==='modal')closeM();return}
+ const d=V[+el.dataset.i],ids=JSON.parse(el.dataset.ids);
+ if(e.target.closest('.req')){el.dataset.req='1';draw(el);return}
+ if(e.target.closest('[data-lock]')){el.dataset.t=d.lk;el.dataset.pl='0';draw(el);return}
+ if(e.target.closest('[data-replay]')){el.dataset.t=0;el.dataset.pl='1';draw(el);return}
+ const scb=e.target.closest('.sc');if(scb){const r=scb.getBoundingClientRect();let t=(e.clientX-r.left)/r.width*d.s;el.dataset.t=Math.max(0,Math.min(t,d.lk||d.s));draw(el);return}
+ const n=e.target.closest('[data-nav]'),g=e.target.closest('[data-go]');
+ if(n){const k=ids.indexOf(+el.dataset.i)+(+n.dataset.nav);if(k>=0&&k<ids.length)mount(el,ids[k],ids,0,0,1);return}
+ if(g){mount(el,+g.dataset.go,ids,0,0,1);return}
+ if(e.target.closest('[data-mute]')){el.dataset.mu=el.dataset.mu==='1'?'0':'1';draw(el);return}
+ if(e.target.closest('[data-play]')){if(d.lk&&+el.dataset.t>=d.lk)return;if(+el.dataset.t>=d.s)el.dataset.t=0;el.dataset.pl=el.dataset.pl==='1'?'0':'1';draw(el)}});
+setInterval(()=>{document.querySelectorAll('.vwrap[data-pl="1"]').forEach(el=>{const d=V[+el.dataset.i];let t=+el.dataset.t+.25;const cap=d.lk||d.s;if(t>=cap){t=cap;el.dataset.pl='0'}el.dataset.t=t;draw(el)})},250);
+
+/* ---------- C: thumbnail anatomy ---------- */
+document.getElementById('anGrid').innerHTML=`<div class="mg">${[0,1,2,3,4,5].map(i=>th(i)).join('')}</div>
+ <div class="co l" style="top:22%"><i>1</i><span class="t">Poster image</span></div>
+ <div class="co l" style="top:72%"><i>2</i><span class="t">Frame &amp; radius</span></div>
+ <div class="co r" style="top:6%"><i>4</i><span class="t">Columns</span></div>
+ <div class="co r" style="top:50%"><i>3</i><span class="t">Gap</span></div>`;
+document.getElementById('states').innerHTML=
+ `<div class="st">${th(1)}Default</div><div class="st">${hvTh(1)}Hover: plays muted, page blurs</div><div class="st">${th(1,'class="th v1 fc"').replace('class="th v1" class="th v1 fc"','class="th v1 fc"')}Keyboard focus</div><div class="st"><div class="th sk"></div>Loading skeleton</div>`;
+document.querySelectorAll('#states .th')[2].classList.add('fc');
+document.getElementById('crops').innerHTML=
+ `<div class="cp"><div class="src v0" style="width:56px;aspect-ratio:9/16"><i style="left:0;right:0;transform:none;aspect-ratio:auto;top:0"></i></div>Vertical: fills the thumbnail</div>
+  <div class="cp"><div class="src v8" style="width:90px;aspect-ratio:1/1;height:90px"><i style="height:100%"></i></div>Square: centre-cropped</div>
+  <div class="cp"><div class="src v7" style="width:110px;aspect-ratio:16/9"><i style="height:100%"></i></div>Wide: centre-cropped</div>`;
+
+
+/* ---------- C2: columns by screen size ---------- */
+(function(){const demo=[[320,'Narrow phone'],[390,'Typical phone'],[600,'Large phone'],[768,'Tablet'],[1024,'Small laptop'],[1440,'Desktop'],[1920,'Large display']],k=.3;
+ document.getElementById('scrow').innerHTML=demo.map(([W,n])=>{const mob=W<=620,pad=mob?16:36,gap=mob?4:6,m=Math.max(104,Math.min(180,72+.08*W)),cw=Math.min(W,1400),gw=cw-2*pad,cols=Math.floor((gw+gap)/(m+gap)),tw=Math.round((gw-(cols-1)*gap)/cols),rows=cols>=5?2:3;
+  return `<div class="sc-it"><div class="scn" style="width:${W*k}px"><div class="bar"></div><div style="padding:${pad*k}px ${((W-cw)/2+pad)*k}px"><div class="g" style="grid-template-columns:repeat(${cols},1fr);gap:${gap*k}px">${'<i></i>'.repeat(cols*rows)}</div></div></div><b>${n}</b>${W}px · ${cols} columns<br>thumbs ≈ ${tw}px${W>1400?' (content capped at 1400px)':''}</div>`}).join('')})();
+/* ---------- D: modal anatomy ---------- */
+mount(document.getElementById('mE'),4,sameCat('mk'),0,7,0);
+function placeDots(){const w=document.querySelector('.anw'),wr=w.getBoundingClientRect(),m=document.getElementById('mE'),q=s=>m.querySelector(s);
+ const spots=[null,['.vmed','l'],['.scr .dur','c'],['.scr .play','c'],['.scr .sc','c'],['.scr .tm','c'],['.arrow.r','c'],['.vinfo h3','l'],['.res','l'],['.a2 .tags','l'],['.nu','l'],['.acts','l'],['.vinfo .close','c'],['.lkb','c']];
+ document.getElementById('dots').innerHTML=spots.map((sp,k)=>{let x,y;
+  if(!sp){x=-50;y=-14}else{const e=q(sp[0]);if(!e)return'';const r=e.getBoundingClientRect();
+   if(sp[1]==='c'){x=r.left+r.width*(k===4?0.72:0.5)-wr.left;y=r.top+r.height/2-wr.top}else{x=r.left-wr.left-(k===1?-14:14);y=r.top+(k===1?r.height/2:Math.min(r.height/2,10))-wr.top}}
+  return `<span class="dot" style="left:${x}px;top:${y}px">${k}</span>`}).join('')}
+placeDots();addEventListener('resize',placeDots);
+(function(){const dd=V[1],d4=V[4];
+ const mk=(d,t,pl,mu,lock)=>{const w=document.createElement('div');w.innerHTML=scr(d,t,pl,mu,1);const s=w.firstChild,lv=s.querySelector('.lockv');if(lv){lv.innerHTML=lockHTML(lock===2?1:0);lv.classList.toggle('show',!!lock)}return s.outerHTML};
+ document.getElementById('mst').innerHTML=
+ `<div class="c">${mk(dd,0,0,0)}<b>Paused</b><small>Big play button, controls visible.</small></div>
+  <div class="c">${mk(dd,7,1,0)}<b>Playing</b><small>Play button hidden; controls fade after 3s.</small></div>
+  <div class="c">${mk(dd,7,1,1)}<b>Muted</b><small>Mute icon switches; remembered for the next clips.</small></div>
+  <div class="c">${mk(d4,4,0,0,0)}<b>Private clip</b><small>🔒 button on the scrubber marks the private timecode; the striped track is the private part.</small></div>
+  <div class="c">${mk(d4,10,0,0,1)}<b>Timecode reached</b><small>Playback stops; translucent warning over the video. Scrubber stays usable.</small></div>
+  <div class="c">${mk(d4,10,0,0,2)}<b>After the request</b><small>Confirmation replaces the form; “watch again” stays.</small></div>`})();
+
+/* ---------- E: mobile ---------- */
+const imm=(d,inner)=>`<div class="ph2"><div class="v${d.v}" style="position:absolute;inset:0"></div>${inner}</div>`;
+const rail=(a)=>`<div class="rail"><div class="ib${a==='first'?' off':''}">▲</div><div class="ib${a==='last'?' off':''}">▼</div></div><div class="ib dbtn">ⓘ</div>`;
+const ctl2=(d,t)=>{const L=d.lk?d.lk/d.s*100:0;return `<div class="imm"><div class="itop"><span class="ib">✕</span></div><div class="ibot">${d.lk?`<div class="sc msc"><i style="width:${(t||0)/d.s*100}%"></i><span class="pv" style="left:${L}%"></span><span class="lkb" style="left:${L}%">🔒</span></div>`:''}<b>${d.t} <em>›</em></b></div></div>`};
+const head=`<div class="sb"></div><div class="rnav"><span>/DAVE</span><span>☰</span></div><div class="rh1">Videos</div><div class="rch"><span class="chip on">All</span><span class="chip">Short Form</span><span class="chip">Marketing</span><span class="chip">AI</span></div>`;
+const sheet=d=>`<div class="dimm"></div><div class="sheetb"><div class="grab"></div><span class="badge dark" style="font-size:9px;padding:0 8px">${CAT[d.c]}</span><h4>${d.t}</h4><p>${d.d}</p>
+<div class="res">${d.r.map((x,k)=>`<div><b>${x}</b><small>${resLabels[d.c][k]}</small></div>`).join('')}</div><div class="tags">${tg(d.g)}</div>
+<div class="nu" style="margin-top:8px">${[0,2,5].map(i=>`<div class="t v${V[i].v}" style="width:40px"><span>${V[i].len}</span></div>`).join('')}</div></div>`;
+const F=[];
+F.push(`<div class="rpi"><div class="ph2">${head}<div class="rg rg3">${[0,1,2,3,4,5,6,7,8,9,0,1].map(i=>th(i)).join('')}</div></div>
+<div class="cap"><b>E1 · Grid on a typical phone</b><span>About 3 columns (360–480px). Thumbnails only, 3px gaps. Chips scroll sideways and stick under the nav.</span></div></div>`);
+F.push(`<div class="rpi"><div class="ph2">${head}<div class="rg rg2">${[0,1,2,3,4,5,6,7].map(i=>th(i)).join('')}</div></div>
+<div class="cap"><b>E2 · Grid on a narrow phone</b><span>About 2 columns (≤340px). Same thumbnails, bigger tap targets.</span></div></div>`);
+F.push(`<div class="rpi">${imm(V[3],ctl2(V[3])+rail())}
+<div class="cap"><b>E3 · Viewer</b><span>Full-screen video with only four controls: ✕ (top-left), ▲ ▼ to switch clips (right), the title (bottom-left) and a details button ⓘ (bottom-right). Tap the video to play / pause.</span></div></div>`);
+F.push(`<div class="rpi">${imm(V[3],ctl2(V[3])+rail()+sheet(V[3]))}
+<div class="cap"><b>E4 · Details sheet</b><span>Opens when the title or ⓘ is tapped: category, description, results, tools and next-up thumbnails. Swipe down, tap outside or press Back to close.</span></div></div>`);
+F.push(`<div class="rpi">${imm(V[4],ctl2(V[4],4)+rail())}
+<div class="cap"><b>E5 · Private clip</b><span>Private clips get one slim scrubber above the title with a 🔒 button at the private timecode (the striped part is private). Tap the 🔒 to jump there.</span></div></div>`);
+F.push(`<div class="rpi">${imm(V[4],ctl2(V[4],10)+rail()+`<div class="lbox">${lockHTML(0)}</div>`)}
+<div class="cap"><b>E6 · Private timecode reached</b><span>Playback stops and a translucent warning covers the video. The request opens a bottom sheet with the email keyboard; ✕, ▲ ▼ and the scrubber still work.</span></div></div>`);
+F.push(`<div class="rpi"><div class="ph2"><div class="lbar"><div class="lbx v7"><span class="play" style="width:36px;height:36px;font-size:12px">▶</span></div></div>${ctl2(V[7])}${rail()}<span class="hint" style="bottom:70px">⟳ Rotate for full screen</span></div>
+<div class="cap"><b>E7 · Wide / square clip</b><span>Letterboxed in the centre of the viewer with the same four controls and a rotate hint for wide clips.</span></div></div>`);
+document.getElementById('rpg').innerHTML=F.join('');
+
+/* ---------- v2.6: hover preview (desktop) ---------- */
+(function(){const hd=document.getElementById('hvdim'),ring=document.getElementById('hvring'),fr=document.getElementById('s1');let T=null,cur=null,vt=false,px=0,py=0;addEventListener('pointermove',e=>{px=e.clientX;py=e.clientY},true);
+ const place=c=>{const r=c.getBoundingClientRect(),f=fr.getBoundingClientRect(),m=5;ring.style.left=(r.left-f.left-fr.clientLeft-m)+'px';ring.style.top=(r.top-f.top-fr.clientTop-m)+'px';ring.style.width=(r.width+2*m)+'px';ring.style.height=(r.height+2*m)+'px'};
+ const kill=n=>{if(n){clearTimeout(n._t);n.classList.remove('hv','fo');n.querySelectorAll('.pm,.pmu,.pb').forEach(x=>x.remove())}};
+ const clean=()=>{wall.querySelectorAll('.th.hv,.th.fo').forEach(kill);cur=null};
+ const fill=c=>c.insertAdjacentHTML('beforeend',hvInner(+c.dataset.i));
+ const start=c=>{clean();cur=c;c.classList.add('hv');fill(c);place(c);hd.classList.add('show');ring.classList.add('show')};
+ window.hvStop=function(){clearTimeout(T);clean();hd.classList.remove('show');ring.classList.remove('show')};
+ /* already highlighted: the next video starts at once, the previous one fades out; outline slides over (view transition); blur stays on */
+ const hop=c=>{const old=cur;kill(c);cur=c;c.classList.add('hv');fill(c);
+  if(old){old.classList.add('fo');old._t=setTimeout(()=>{if(old!==cur)kill(old)},150)}
+  if(!document.startViewTransition){ring.style.transition='all .22s ease';place(c);return}
+  vt=true;const t=document.startViewTransition(()=>place(c));
+  t.finished.finally(()=>{vt=false;const r=wall.getBoundingClientRect();if(px<r.left||px>r.right||py<r.top||py>r.bottom)hvStop()})};
+ wall.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||RM)return;const c=e.target.closest('.th');if(!c||c===cur)return;
+  clearTimeout(T);if(cur)hop(c);else T=setTimeout(()=>start(c),HVDELAY)});
+ wall.addEventListener('pointerleave',()=>{if(vt)return;hvStop()});
+ addEventListener('resize',()=>{if(cur)place(cur)});
+})();
+/* B2 frozen frame */
+(function(){const ids=[0,1,2,3,4,5,6,7,8,9,3,5];
+ document.getElementById('hvf').innerHTML=`<div class="nav" style="font-size:11px;padding-bottom:8px;margin-bottom:12px"><span>/DAVE</span><div class="links" style="gap:12px"><span>Services</span><span>Documents</span><span class="on">Videos</span><span>Contact</span></div></div>
+ <div class="hvtt">Videos</div><div class="tabs" style="margin-bottom:12px"><span class="chip on" style="font-size:10.5px;padding:2px 10px">All</span><span class="chip" style="font-size:10.5px;padding:2px 10px">Short Form</span><span class="chip" style="font-size:10.5px;padding:2px 10px">Marketing</span><span class="chip" style="font-size:10.5px;padding:2px 10px">AI</span></div>
+ <div class="hvg" id="hvg">${ids.map((i,k)=>k===8?hvTh(i):th(i)).join('')}</div><div class="hvdim show"></div><div class="hvring" id="hvring2"></div>`;
+ function place(){const w=document.querySelector('.hvw'),wr=w.getBoundingClientRect(),f=document.getElementById('hvf'),q=s=>f.querySelector(s);
+  const pt=(el,fx,fy)=>{const r=el.getBoundingClientRect();return [r.left+r.width*fx-wr.left,r.top+r.height*fy-wr.top]};
+  const hv=q('.th.hv'),hr=hv.getBoundingClientRect(),fr2=f.getBoundingClientRect(),rg=document.getElementById('hvring2');rg.style.left=(hr.left-fr2.left-f.clientLeft-5)+'px';rg.style.top=(hr.top-fr2.top-f.clientTop-5)+'px';rg.style.width=(hr.width+10)+'px';rg.style.height=(hr.height+10)+'px';
+  const pts=[pt(hv,0,.5),pt(q('.pb'),.5,.5),pt(q('.pmu'),.5,.5),pt(q('.tabs'),.8,.5),pt(rg,1,.25)];
+  document.getElementById('hdots').innerHTML=pts.map((p,k)=>`<span class="dot" style="left:${k===0?p[0]-4:p[0]}px;top:${p[1]}px">${k+1}</span>`).join('')}
+ place();addEventListener('resize',place)})();
+/* ---------- v2.6: long-press preview (mobile) ---------- */
+const peekHTML=(i,still)=>{const d=V[i];return `<div class="pcard ${d.o}"><div class="phd"><b>${d.t}</b></div><div class="pmed ${d.o} v${d.v}">${still?'':hvInner(i)}</div></div><span class="phint">Release to close</span>`};
+const grid9=(cls,extra)=>`<div class="rg rg3 ${cls||''}">${[0,1,2,3,4,5,6,7,8,9,0,1].map((i,k)=>extra&&extra[k]?extra[k]:th(i)).join('')}</div>`;
+const G9=[];
+G9.push(`<div class="rpi"><div class="ph2 lp" id="lph">${head}<div id="lgrid" class="lpg">${grid9()}</div><div class="peek" id="peek"></div></div>
+<div class="cap"><b>E9a · Try it (live)</b><span>Press and hold a thumbnail with the mouse or your finger. Release to close. A quick tap shows what opens the viewer.</span></div></div>`);
+G9.push(`<div class="rpi"><div class="ph2">${head}${grid9('',{4:`<div class="th v${V[4].v} pr"><span class="ring" style="--p:68%"></span></div>`})}</div>
+<div class="cap"><b>E9b · Pressing</b><span>After touching down the thumbnail shrinks, dims, and a ring fills over 450ms. Nothing else changes yet.</span></div></div>`);
+G9.push(`<div class="rpi"><div class="ph2">${head}${grid9()}<div class="peek show">${peekHTML(3)}</div></div>
+<div class="cap"><b>E9c · Pop-out (vertical)</b><span>Centred card in the clip’s own shape, title above, muted autoplay with a thin progress bar. The page behind is blurred. Lifting the finger closes it.</span></div></div>`);
+G9.push(`<div class="rpi"><div class="ph2">${head}${grid9()}<div class="peek show">${peekHTML(7)}</div></div>
+<div class="cap"><b>E9d · Pop-out (wide clip)</b><span>Square and wide clips pop out in their full shape (the grid only shows the 9:16 crop), centred, same blur and release rule.</span></div></div>`);
+document.getElementById('rpg9').innerHTML=G9.join('');
+(function(){const ph=document.getElementById('lph'),g=document.getElementById('lgrid'),pk=document.getElementById('peek');let T=null,raf=0,cur=null,peeked=false,sx=0,sy=0;
+ const clear=()=>{clearTimeout(T);cancelAnimationFrame(raf);if(cur){cur.classList.remove('pr');const r=cur.querySelector('.ring');if(r)r.remove()}cur=null};
+ const toast=m=>{ph.querySelectorAll('.toast').forEach(n=>n.remove());ph.insertAdjacentHTML('beforeend',`<span class="toast">${m}</span>`);setTimeout(()=>ph.querySelectorAll('.toast').forEach(n=>n.remove()),1600)};
+ g.addEventListener('contextmenu',e=>e.preventDefault());
+ g.addEventListener('pointerdown',e=>{const c=e.target.closest('.th');if(!c)return;clear();cur=c;peeked=false;sx=e.clientX;sy=e.clientY;
+  c.classList.add('pr');c.insertAdjacentHTML('beforeend','<span class="ring"></span>');const ring=c.querySelector('.ring'),t0=performance.now();
+  const step=now=>{const p=Math.min(1,(now-t0)/HOLD);ring.style.setProperty('--p',(p*100)+'%');if(p<1)raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step);
+  T=setTimeout(()=>{peeked=true;const i=+c.dataset.i;ring.remove();
+   const go=()=>{c.classList.remove('pr');pk.innerHTML=peekHTML(i,RM);pk.classList.add('show')};
+   if(!VTok){go();return}
+   de.classList.add('vtm');c.style.viewTransitionName='pk';
+   const t=document.startViewTransition(()=>{c.style.viewTransitionName='';pk.classList.add('vn');go()});
+   t.finished.finally(()=>{pk.classList.remove('vn');de.classList.remove('vtm')})},HOLD)});
+ g.addEventListener('pointermove',e=>{if(cur&&!peeked&&Math.hypot(e.clientX-sx,e.clientY-sy)>10)clear()});
+ if(VTok)pk.classList.add('vt');
+ const closePeek=c=>{const fin=()=>{pk.classList.remove('show');setTimeout(()=>{if(!pk.classList.contains('show'))pk.innerHTML=''},200)};
+  if(!VTok){fin();return}
+  de.classList.add('vtm');pk.classList.add('vn');
+  const t=document.startViewTransition(()=>{pk.classList.remove('vn');pk.classList.remove('show');pk.innerHTML='';c.style.viewTransitionName='pk'});
+  t.finished.finally(()=>{c.style.viewTransitionName='';de.classList.remove('vtm')})};
+ const up=e=>{if(!cur)return;const was=peeked,c=cur;clear();if(was){closePeek(c)}else if(e.type==='pointerup'){toast('Quick tap → opens the full viewer (E3)')}peeked=false};
+ addEventListener('pointerup',up);addEventListener('pointercancel',up);
+})();
+</script></body></html>

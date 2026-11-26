@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WordPress Admin – Sidebar &amp; Post Editor Wireframe v1</title>
+<style>
+:root{--bg:#ececec;--paper:#fff;--ink:#222;--mid:#8a8a8a;--line:#c9c9c9;--fill:#ddd;--fill2:#eee;--g1:#3a3a3a;--g2:#6b6b6b;--g3:#a8a8a8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;padding:32px 24px 80px}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mid);margin:0 0 24px;max-width:780px}
+.frame{background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:16px;position:relative;overflow:hidden;margin-bottom:28px}
+.chip{border:1.5px solid var(--ink);border-radius:20px;padding:4px 14px;font-size:13px;cursor:pointer;background:#fff;white-space:nowrap}.chip.on{background:var(--ink);color:#fff}
+.btn{display:inline-block;border:1.5px solid var(--ink);border-radius:6px;padding:7px 13px;cursor:pointer;background:#fff;text-align:center;font-size:13px;color:var(--ink)}.btn.fill{background:var(--ink);color:#fff}.btn.sm2{padding:3px 10px;font-size:12px}
+.tag{border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:10.5px;color:var(--mid);white-space:nowrap;font-weight:400;letter-spacing:0;text-transform:none}
+.badge{display:inline-block;border:1.5px solid var(--ink);border-radius:12px;font-size:11px;padding:1px 10px}.badge.dark{background:var(--ink);color:#fff}
+.sec{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin:0 0 5px}
+.note{position:absolute;background:#fff7b3;border:1px solid #c9b84a;padding:6px 9px;font-size:11.5px;max-width:210px;border-radius:3px;box-shadow:2px 3px 0 #0002;z-index:30}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;background:#ffe14d;color:var(--ink);border:1.5px solid var(--ink);display:grid;place-items:center;font-size:11px;font-weight:700;z-index:20;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #fff9;pointer-events:none}
+.label{display:flex;gap:10px;align-items:baseline;margin:34px 0 10px;flex-wrap:wrap}
+.label b{background:var(--ink);color:#fff;border-radius:50%;min-width:24px;height:24px;padding:0 6px;display:grid;place-items:center;font-size:12px;flex:none}
+.label h2{margin:0;font-size:16px}.label span{color:var(--mid)}
+.box{background:#fff;border:2px solid var(--ink);border-radius:8px;padding:30px}
+.spec{border-collapse:collapse;width:100%;font-size:12.5px}
+.spec th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);padding:6px 8px;border-bottom:1.5px solid var(--ink)}
+.spec td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}.spec td:first-child{white-space:nowrap}
+.spec td i{font-style:normal;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10.5px;margin-right:6px}
+.legend{background:#fff;border:1.5px dashed var(--mid);border-radius:8px;padding:18px 24px;margin-top:34px}.legend li{margin:4px 0}
+.hd{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin:26px 0 8px;font-weight:600}.hd:first-child{margin-top:0}
+.sm{font-size:11.5px;color:var(--mid)}
+.cap3{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin:18px 0 6px;display:flex;gap:8px;align-items:center}.cap3 .badge{font-size:10.5px;letter-spacing:0;text-transform:none}
+.two{display:grid;grid-template-columns:300px 1fr;gap:30px;align-items:start}
+.stage{background:#8d8d8d;border-radius:6px;padding:30px 70px 30px 30px;position:relative}
+.anw{position:relative;width:fit-content}
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+
+/* ============ WordPress admin shell (greyscale) ============ */
+.wp{display:grid;grid-template-columns:172px minmax(0,1fr);grid-template-rows:auto 1fr;border:2px solid var(--ink);border-radius:8px;overflow:hidden;background:#f1f1f1;min-height:640px}
+.wpbar{grid-column:1/-1;background:#3a3a3a;color:#ddd;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:12px}
+.wpbar .burger{display:none;cursor:pointer;font-size:16px;margin-right:8px}
+.wpbar .url{background:#222;border-radius:10px;padding:1px 12px;color:#aaa;font-size:11px}
+.wpside{background:var(--ink);color:#ccc;font-size:12.5px;padding-bottom:14px;min-width:0}
+.wpside.solo{width:200px;border-radius:6px;overflow:hidden}
+.mi{display:flex;gap:8px;align-items:center;padding:7px 12px;cursor:pointer;color:#ddd}
+.mi:hover{background:#3a3a3a;color:#fff}.mi.on{background:#fff;color:var(--ink);font-weight:700}
+.mi .ic{width:13px;height:13px;border:1.4px solid currentColor;border-radius:3px;flex:none;opacity:.8}
+.mi .bg{margin-left:auto;font-size:10px;border:1px solid currentColor;border-radius:9px;padding:0 6px;font-weight:400}
+.mi .lk{margin-left:auto;font-size:10px}
+.smn{background:#111;padding:4px 0 6px}
+.smn span{display:block;padding:4px 12px 4px 33px;color:#aaa;cursor:pointer;font-size:12px}.smn span:hover{color:#fff}.smn span.on{color:#fff;font-weight:700}
+.gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#888;padding:14px 12px 5px;border-top:1px solid #4a4a4a;margin-top:8px}
+.gl.n{border-top:1px solid #4a4a4a;margin-top:8px;padding:6px 0 0}
+.wpmain{padding:18px 20px 28px;min-width:0;background:#f1f1f1}
+.wpx{border:2px solid var(--ink);border-radius:8px;background:#f1f1f1;padding:18px 20px 24px;position:relative;min-width:0}
+.wpmain h2,.wpx h2{font-size:20px;margin:0 0 12px;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-family:inherit}
+.notice{border:1.5px solid var(--ink);border-left-width:6px;background:#fff;padding:7px 12px;margin:0 0 12px;font-size:12.5px}
+.notice.err{border-color:#b00020;color:#b00020}
+.egrid{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:16px;align-items:start}
+.eside,.emain{min-width:0}
+.mb{background:#fff;border:1.5px solid var(--ink);border-radius:6px;margin-bottom:14px;min-width:0}
+.mb h4{margin:0;padding:7px 10px;font-size:12px;border-bottom:1px solid var(--line);background:var(--fill2);display:flex;justify-content:space-between;align-items:center;gap:6px;border-radius:5px 5px 0 0}
+.mbd{padding:10px}
+.fld{margin:0 0 11px}.fld:last-child{margin-bottom:0}
+.fld>label{display:block;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mid);margin-bottom:4px;font-weight:600}
+.fld small{display:block;color:var(--mid);font-size:11px;margin-top:3px}
+.rq{color:#b00020}
+.inp,select.inp{width:100%;border:1.5px solid var(--line);border-radius:6px;padding:7px 10px;font:13px -apple-system,Segoe UI,Helvetica,Arial,sans-serif;background:#fff;color:var(--ink)}
+.inp:focus,.edb textarea:focus{outline:2px solid var(--ink);outline-offset:2px;border-color:var(--ink)}
+.inp.big{font-size:18px;padding:9px 12px;font-weight:600}
+.inp.bad,.edb.bad{border-color:#b00020}
+.err{color:#b00020;font-size:11.5px;margin-top:3px}
+.edb{border:1.5px solid var(--line);border-radius:6px;background:#fff;overflow:hidden}
+.edt{display:flex;gap:6px;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--fill2);font-size:12px;color:var(--mid);flex-wrap:wrap}
+.edt span{border:1px solid var(--line);border-radius:4px;padding:0 7px;background:#fff}
+.edb textarea{border:0;width:100%;min-height:92px;padding:10px;font:13px -apple-system,Segoe UI,Helvetica,Arial,sans-serif;resize:vertical;display:block;color:var(--ink)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv{display:flex;gap:6px;font-size:12.5px;margin:0 0 6px}.kv span{color:var(--mid)}
+.pbtn{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.lnkb{font-size:11.5px;text-decoration:underline;cursor:pointer;color:#444}
+.media{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1.5px dashed var(--line);border-radius:6px;padding:7px 9px;background:#fff}
+.media.has{border-style:solid;border-color:var(--ink)}
+.fchip{border:1px solid var(--ink);border-radius:4px;padding:2px 8px;font-size:12px;background:var(--fill2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thumbb{aspect-ratio:16/9;border:1.5px dashed var(--line);border-radius:6px;display:grid;place-items:center;background:#fff;cursor:pointer;font-size:12px;color:var(--mid);text-align:center;padding:6px}
+.thumbb.has{border:1.5px solid var(--ink);background:repeating-linear-gradient(45deg,var(--fill),var(--fill) 8px,var(--fill2) 8px,var(--fill2) 16px);color:var(--ink);cursor:default}
+.ci{display:flex;gap:7px;align-items:center;font-size:12.5px;margin:4px 0;cursor:pointer}.ci input{accent-color:#222;margin:0}
+.rh,.rrow{display:grid;grid-template-columns:18px minmax(0,1fr) 22px;gap:8px;align-items:center}
+.rh{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mid);margin-bottom:5px;font-weight:600}
+.rrow{margin-bottom:6px}
+.rin{display:grid;gap:8px;grid-template-columns:1fr 1fr;align-items:center;min-width:0}.rin.a{grid-template-columns:1fr 1.3fr 64px}
+.grab2{color:var(--mid);cursor:grab;font-size:12px;letter-spacing:-2px;user-select:none}
+.x{cursor:pointer;width:22px;height:22px;border:1.5px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:10px;background:#fff}.x:hover{border-color:var(--ink)}
+.addr{display:inline-block;border:1.5px dashed var(--ink);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;background:#fff;margin-top:4px}
+.emp{font-size:12px;color:var(--mid);padding:6px 0 4px}
+.wt{width:100%;border-collapse:collapse;background:#fff;border:1.5px solid var(--ink);font-size:12.5px}
+.wt th{text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink);font-size:12px;background:var(--fill2)}
+.wt td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.wt tr:hover td{background:#fafafa}
+.wt a{font-weight:700;cursor:pointer;text-decoration:underline}
+.ra{font-size:11px;color:var(--mid);margin-top:2px}
+.sbs{font-size:12px;color:var(--mid);margin:0 0 10px}.sbs b{color:var(--ink)}
+.tgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
+.ro{background:var(--fill2);border:1.5px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13px;min-height:33px}
+.stub{border:1.5px dashed var(--mid);border-radius:8px;padding:30px;text-align:center;color:var(--mid);background:#fff}
+.fx{background:#fff;border:1.5px solid var(--ink);border-radius:6px;overflow:hidden}
+.fxh{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:center;font-size:12.5px}.fxh:last-child{border:0}.fxh>b{font-size:12px}
+
+/* ============ phones ============ */
+.rpg{display:flex;gap:34px 28px;flex-wrap:wrap;justify-content:center}
+.rpi{width:250px}.rpi .cap{margin-top:12px;font-size:12.5px}.rpi .cap b{display:block;font-size:13.5px;margin-bottom:2px}.rpi .cap span{color:var(--mid)}
+.ph2{width:250px;height:500px;border:2px solid var(--ink);border-radius:28px;background:#f1f1f1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.ph2:before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:60px;height:5px;border-radius:3px;background:var(--line);z-index:9}
+.sb{height:26px;flex:none;background:#3a3a3a}
+.pbar{background:#3a3a3a;color:#fff;display:flex;justify-content:space-between;padding:6px 14px 8px;font-size:12px;flex:none}
+.pc{padding:10px 12px;overflow:hidden;flex:1;font-size:11.5px}
+.pc h3{font-size:15px;margin:0 0 8px;font-weight:600}
+.pc .mb{margin-bottom:8px}.pc .mb h4{padding:5px 8px;font-size:11px}.pc .mbd{padding:7px 8px}
+.pc .inp{font-size:11.5px;padding:5px 8px}.pc .inp.big{font-size:14px;padding:6px 9px}
+.pc .fld{margin-bottom:7px}.pc .fld>label{font-size:9.5px}
+.prow{background:#fff;border:1.5px solid var(--ink);border-radius:6px;padding:7px 9px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.prow small{display:block;color:var(--mid);font-size:10px}
+.dimm{position:absolute;inset:0;background:#0007;z-index:3}
+.drawer{position:absolute;left:0;top:0;bottom:0;width:170px;background:var(--ink);z-index:4;padding-top:58px;color:#ccc;font-size:12px;overflow:hidden}
+.drawer .mi{padding:4px 12px}.drawer .gl{padding:8px 12px 3px;margin-top:4px}
+.stickyb{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--ink);padding:8px 12px;display:flex;gap:8px;z-index:4}
+.stickyb .btn{flex:1;padding:8px 6px;min-height:44px;display:grid;place-items:center}
+
+@media(max-width:900px){.two{grid-template-columns:1fr}.stage{padding:24px 70px 24px 24px;overflow:auto}.sg{grid-template-columns:1fr}}
+@media(max-width:820px){.egrid,.tgrid{grid-template-columns:1fr}.box{padding:18px}}
+@media(max-width:700px){.wp{grid-template-columns:minmax(0,1fr)}.wpside{display:none}.wp.menu .wpside{display:block}.wpbar .burger{display:inline}.wpbar .url{display:none}.frame{padding:10px}.fxh{grid-template-columns:1fr}.wpside.solo{display:block}}
+@media(max-width:560px){.rin,.rin.a,.g2{grid-template-columns:1fr}.rh{display:none}.rh .a1{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.box,.frame{max-width:100%}.box{overflow-x:auto}
+</style></head>
+<body><div class="wrap">
+
+<h1>WordPress Admin – Sidebar &amp; Post Editor wireframe v1</h1>
+<p class="sub">What Dave sees in the WordPress admin once the Dave Portfolio plugin is active: the left sidebar (A) and the create / update screen for every content type in the backend user stories (B, C). Everything in the first frame is live: click sidebar items, open a list, press <b>Add New</b> or a title, leave the title empty and press <b>Publish</b>, add statistic rows, pick files. Section G maps every story to a screen.</p>
+
+<!-- ================= LIVE FRAME ================= -->
+<div class="frame" id="s1">
+ <div class="wp" id="wp">
+  <div class="wpbar"><span><span class="burger" id="burger">☰</span><b>⌂ Dave Portfolio</b> &nbsp;· 0 updates · + New</span><span class="url">yourdomain.com/wp-admin</span><span>Howdy, Dave</span></div>
+  <div class="wpside" id="wpside"></div>
+  <div class="wpmain" id="wpmain"></div>
+ </div>
+ <div class="note" style="left:28px;bottom:28px;max-width:140px">Live: click Videos → Add New. Title is required; Publish turns into Update.</div>
+</div>
+
+<!-- ================= A ================= -->
+<div class="label"><b>A</b><h2>Sidebar – anatomy &amp; spec</h2><span>one “Dave Portfolio” group with a menu item per content type; taxonomies sit inside their parent</span></div>
+<div class="box"><div class="two">
+ <div class="stage"><div class="anw" id="anSide"><div class="wpside solo" id="sideAn"></div></div></div>
+ <div><table class="spec"><tr><th>Part</th><th>Spec</th><th>Stories</th></tr>
+ <tr><td><i>1</i>Core items</td><td>Dashboard and Media stay as standard WordPress; nothing custom</td><td>—</td></tr>
+ <tr><td><i>2</i>Group label</td><td>“Dave Portfolio” small-caps divider with a 1px rule above. Everything the plugin adds sits under it</td><td>DPB-000</td></tr>
+ <tr><td><i>3</i>Content-type item</td><td>13px icon placeholder + plural name (Services, Videos, Documents, Collaterals, Software Tools, Testimonials, Statistics). Click opens “All …” list</td><td>001 · 003 · 005 · 006 · 008 · 010 · 016</td></tr>
+ <tr><td><i>4</i>Active item</td><td>Inverted: white row, ink bold text. Only the active group keeps its submenu open</td><td>—</td></tr>
+ <tr><td><i>5</i>Submenu</td><td>12px grey links indented 33px on #111: All …, Add New, then taxonomies. Current page is white bold</td><td>—</td></tr>
+ <tr><td><i>6</i>Taxonomy links</td><td>Video Categories, Aspect Ratios, Document Categories, Collateral Categories live under their parent type, not at top level</td><td>004 · 007 · 009 · 018</td></tr>
+ <tr><td><i>7</i>Read-only item</td><td>Interests with a 🔒 and a count badge for new submissions. Opens a list only: no Add New, no edit</td><td>017</td></tr>
+ <tr><td><i>8</i>Settings › Contact</td><td>“Contact” sits under Settings (not a post type). Opens a three-field form</td><td>002</td></tr>
+ <tr><td>Order</td><td>Mirrors the website nav: Services, Videos, Documents, Collaterals; then supporting content (Software Tools, Testimonials, Statistics, Interests). Proposed, easy to reorder</td><td>—</td></tr>
+ <tr><td>Hover / focus</td><td>Hover = #3a3a3a row. Focus = 2px white outline. Menu is a real list of links, keyboard reachable</td><td>—</td></tr>
+ <tr><td>Phones</td><td>Collapses behind ☰ (see F), same items and order</td><td>—</td></tr></table></div>
+</div></div>
+
+<!-- ================= B ================= -->
+<div class="label"><b>B</b><h2>Create &amp; update – Service</h2><span>hierarchical: a parent picker and an Order value; title is the only required field</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Service</div><div data-demo="service:create"></div><div class="cap3"><span class="badge">Update</span>Edit Service (child of “Web Creation / Management”)</div><div data-demo="service:update"></div></div>
+
+<div class="label"><b>B2</b><h2>Create &amp; update – Software Tool</h2><span>title, description, thumbnail, site URL and Order</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Software Tool</div><div data-demo="tool:create"></div><div class="cap3"><span class="badge">Update</span>Edit Software Tool</div><div data-demo="tool:update"></div></div>
+
+<div class="label"><b>B3</b><h2>Create &amp; update – Video</h2><span>the richest screen: media, links, length, tools, category, aspect ratio, statistics, highlight, order</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Video</div><div data-demo="video:create"></div><div class="cap3"><span class="badge">Update</span>Edit Video (numbered parts are explained in C)</div><div data-demo="video:update" data-anno="1" id="annoVideo"></div></div>
+
+<div class="label"><b>B4</b><h2>Create &amp; update – Document</h2><span>file or embed, file type, author, pages, category, statistics, highlight</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Document</div><div data-demo="doc:create"></div><div class="cap3"><span class="badge">Update</span>Edit Document</div><div data-demo="doc:update"></div></div>
+
+<div class="label"><b>B5</b><h2>Create &amp; update – Collateral</h2><span>Document-style fields plus paper size, software tools and an ordered Collateral Assets repeater</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Collateral</div><div data-demo="col:create"></div><div class="cap3"><span class="badge">Update</span>Edit Collateral</div><div data-demo="col:update"></div></div>
+
+<div class="label"><b>B6</b><h2>Create &amp; update – Testimonial</h2><span>here the description (editor) is the required part and the title is optional</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Testimonial</div><div data-demo="test:create"></div><div class="cap3"><span class="badge">Update</span>Edit Testimonial</div><div data-demo="test:update"></div></div>
+
+<div class="label"><b>B7</b><h2>Create &amp; update – Statistic</h2><span>the simplest type: a title and a value</span></div>
+<div class="box"><div class="cap3"><span class="badge dark">Create</span>Add New Statistic</div><div data-demo="stat:create"></div><div class="cap3"><span class="badge">Update</span>Edit Statistic</div><div data-demo="stat:update"></div></div>
+
+<!-- ================= C ================= -->
+<div class="label"><b>C</b><h2>Edit screen – anatomy &amp; spec (Video)</h2><span>the yellow dots in B3 “Update”; other types reuse the same boxes</span></div>
+<div class="box"><table class="spec"><tr><th>Part</th><th>Spec</th><th>Notes</th><th>Stories</th></tr>
+<tr><td><i>1</i>Title</td><td>18px bold input, placeholder “Add title”. Required: empty Publish shows “Title is required” in red under it</td><td>Optional on Testimonials</td><td>006 · 1</td></tr>
+<tr><td><i>2</i>Description (editor)</td><td>Classic editor: toolbar strip + text area. Optional</td><td>Required on Testimonials</td><td>006 · 2</td></tr>
+<tr><td><i>3</i>Video details</td><td>Video file (Media Library picker), Embed URL, Original post URL, Length in seconds</td><td>File and embed are alternatives; either can be filled</td><td>006 · 3 4 5 11</td></tr>
+<tr><td><i>4</i>Post statistics</td><td>Repeater: drag handle, Label, Value, ✕. “+ Add statistic” adds a row; rows are editable and removable</td><td>Rows persist after Update</td><td>011</td></tr>
+<tr><td><i>5</i>Publish box</td><td>Create: Status Draft, “Save Draft” + filled “Publish”. Update: Status Published, “Move to Trash” link + filled “Update”. A black-bordered notice confirms</td><td>One primary action only</td><td>006 · 9</td></tr>
+<tr><td><i>6</i>Page Attributes</td><td>Order number (lower = first on the site). Services also get a Parent picker</td><td>Hint under the field</td><td>001 · 006 · 10</td></tr>
+<tr><td><i>7</i>Thumbnail</td><td>16:9 dashed drop area “Set thumbnail”; when set shows the image with “Remove”</td><td>Stored as media id</td><td>005 · 006 · 008</td></tr>
+<tr><td><i>8</i>Video Category</td><td>Radio list, one choice, plus “+ Add New Video Category”</td><td>At least one category must exist first</td><td>004 · 006 · 7</td></tr>
+<tr><td><i>9</i>Aspect Ratio</td><td>Four radios: 16x9, 9x16, 1x1, 4x3</td><td>Preset terms</td><td>018</td></tr>
+<tr><td><i>10</i>Software Tools</td><td>Checklist, many allowed</td><td>At least one Software Tool must exist first</td><td>006 · 6</td></tr>
+<tr><td><i>11</i>Highlight</td><td>One checkbox: “Mark as one of my highlights”, with “(shows in Selected work on Home)”</td><td>Feeds the Selected work cards</td><td>006 · 12</td></tr>
+<tr><td>Create vs Update</td><td>Same screen. Heading, publish box and values change: “Add New Video” → “Edit Video”; Publish → Update. After the first Publish the live frame switches to Update in place</td><td>Try it in the live frame</td><td>All</td></tr>
+<tr><td>Layout</td><td>Two columns: main (fluid) + 232px side. Side boxes follow the order: Publish, Page Attributes, Thumbnail, taxonomies, tools, highlight. Below 820px the side boxes stack under the main column</td><td>Boxes are collapsible in real WordPress</td><td>—</td></tr>
+<tr><td>Block editor</td><td>If the block editor is on, the same boxes appear in the document sidebar and below the content; fields and order do not change</td><td>Assumption, see G2</td><td>—</td></tr></table></div>
+
+<!-- ================= D ================= -->
+<div class="label"><b>D</b><h2>Other screens</h2><span>list tables, taxonomy screens, the read-only Interests view, Contact settings and the Plugins screen</span></div>
+<div class="box">
+ <div class="cap3"><span class="badge dark">D1</span>List – All Videos (same pattern for every type; columns change)</div><div data-screen="list:video"></div>
+ <div class="cap3"><span class="badge dark">D2</span>Taxonomy – Video Categories (Document and Collateral Categories are identical)</div>
+ <div class="sg"><div><div class="sm" style="margin-bottom:6px">Add</div><div data-screen="term:video"></div></div><div><div class="sm" style="margin-bottom:6px">Edit (after “Edit” on a row)</div><div data-screen="termedit:video"></div></div></div>
+ <div class="cap3"><span class="badge dark">D3</span>Taxonomy – Aspect Ratios (preset, DPB-018)</div><div data-screen="term:ratio"></div>
+ <div class="cap3"><span class="badge dark">D4</span>Interests – list and read-only view (DPB-017)</div>
+ <div class="sg"><div data-screen="list:int"></div><div data-screen="view:int"></div></div>
+ <div class="cap3"><span class="badge dark">D5</span>Settings › Contact – empty and saved (DPB-002)</div>
+ <div class="sg"><div data-screen="settings:empty"></div><div data-screen="settings:saved"></div></div>
+ <div class="cap3"><span class="badge dark">D6</span>Plugins – Dave Portfolio loads every module (DPB-000)</div><div data-screen="plugins"></div>
+ <div class="hd" style="margin-top:26px">Rules for these screens</div>
+ <table class="spec"><tr><th>Screen</th><th>Rule</th></tr>
+ <tr><td>List</td><td>Title column links to the edit screen; hover shows “Edit | Trash”. Extra columns per type (Category, Ratio, Length, ★ highlight, Order…). “Add New” outline button beside the heading</td></tr>
+ <tr><td>Taxonomy add / edit</td><td>One field: Name. Add shows a filled “Add New …”; Edit shows “Update” + “Cancel”. Delete removes the term and unassigns it from entries</td></tr>
+ <tr><td>Aspect Ratios</td><td>Four preset terms (16x9, 9x16, 1x1, 4x3). Shown as a list with no add form; chosen on the Video screen</td></tr>
+ <tr><td>Interests</td><td>List only: Date, Name, Email, Service. A row opens a view where every value is a grey read-only block with a “Read-only” badge; there is no Publish, Update or Trash</td></tr>
+ <tr><td>Contact settings</td><td>Email, Upwork URL, LinkedIn URL and “Save Changes”. A notice confirms; values are still there after refresh</td></tr>
+ <tr><td>Plugins</td><td>“Dave Portfolio” row shows Active, with the six modules it loads. No PHP warnings are shown on activation</td></tr></table>
+</div>
+
+<!-- ================= E ================= -->
+<div class="label"><b>E</b><h2>Field components &amp; states</h2><span>the small parts every editor screen is built from</span></div>
+<div class="box">
+ <div class="sg" style="grid-template-columns:repeat(3,1fr)" id="comps"></div>
+ <table class="spec" style="margin-top:20px"><tr><th>Part</th><th>Spec</th><th>Notes</th></tr>
+ <tr><td>Text field</td><td>1.5px line border, 6px radius, 7 × 10px padding, 13px. Focus: 2px ink outline, 2px gap. Error: border #b00020 and red 11.5px message below</td><td>Message names the problem (“Title is required”)</td></tr>
+ <tr><td>Media file picker</td><td>Dashed box with “Select from Media Library”. When filled: solid ink border, file-name chip, “Replace” and “Remove” links</td><td>Opens the WordPress Media Library; returns the attachment id</td></tr>
+ <tr><td>Thumbnail</td><td>16:9 dashed area; when set, striped placeholder with the file name and a “Remove thumbnail” link</td><td>One image</td></tr>
+ <tr><td>Repeater (statistics)</td><td>Columns: handle 18px, Label, Value, ✕ 22px. Empty state: “No statistics yet.” + dashed “+ Add statistic”. Removing the last row returns to the empty state</td><td>Order = order shown; no extra order field</td></tr>
+ <tr><td>Repeater (assets)</td><td>Columns: handle, Label, Asset file picker, Order number, ✕. Labels must be unique: a repeated label shows “Label must be unique” on Publish / Update</td><td>Saved as an ordered collection</td></tr>
+ <tr><td>Checklist / radios</td><td>12.5px rows, black accent control. Radios for one choice (category, aspect ratio), checkboxes for many (software tools, highlight)</td><td>“+ Add New …” link opens the taxonomy screen</td></tr>
+ <tr><td>Notices</td><td>White bar, 6px left ink border, ✓ + message. Error variant uses red text and border</td><td>“✓ Video published.”, “✓ Video updated.”, “✓ Draft saved.”, “✓ Settings saved.”</td></tr>
+ <tr><td>Greyscale</td><td>No green or blue: WordPress colours are replaced by ink, grey and white. Red appears only for errors</td><td>Wireframe rule</td></tr></table>
+</div>
+
+<!-- ================= F ================= -->
+<div class="label"><b>F</b><h2>Responsive (mobile)</h2><span>WordPress admin already collapses its menu under 782px; this keeps that and adds one proposed convenience</span></div>
+<div class="box"><div class="rpg" id="rpg"></div>
+<table class="spec" style="margin-top:26px"><tr><th>Topic</th><th>Rule</th></tr>
+<tr><td>Sidebar</td><td>Hidden under 700px. A ☰ in the top bar opens it as a left drawer over a #0007 backdrop; same items and order. Tap outside or ✕ to close</td></tr>
+<tr><td>Edit screen</td><td>Single column: title, description, custom boxes, then Publish, Page Attributes, Thumbnail, taxonomies, tools, highlight. Collapsible boxes help keep the page short</td></tr>
+<tr><td>Repeaters</td><td>Label and Value stack (full-width), ✕ stays at the right; the drag handle is hidden on touch and ▲ ▼ reorder is proposed</td></tr>
+<tr><td>Publish bar <em>(proposed)</em></td><td>A sticky bottom bar with “Save Draft” and “Publish / Update” so the primary action is always in reach. Not native WordPress; confirm before building</td></tr>
+<tr><td>Lists</td><td>Table collapses to title rows with the key value under the title; row tap opens edit</td></tr>
+<tr><td>Targets</td><td>Buttons, rows, checkboxes and ✕ at least 44 × 44px on phones</td></tr>
+<tr><td>Use</td><td>Dave mostly edits on desktop; mobile is for quick fixes, so no mobile-specific features beyond the above</td></tr></table></div>
+
+<!-- ================= G ================= -->
+<div class="label"><b>G</b><h2>Story coverage &amp; open questions</h2><span>every backend story and where it appears in this document</span></div>
+<div class="box">
+<p class="hd">G1 · Coverage</p>
+<table class="spec"><tr><th>Story</th><th>What the admin sees</th><th>Where</th></tr>
+<tr><td>DPB-015</td><td>Local DDEV setup: no admin UI</td><td>n/a</td></tr>
+<tr><td>DPB-000</td><td>Plugin listed as active; “Dave Portfolio” group in the sidebar; no PHP errors</td><td>A · D6</td></tr>
+<tr><td>DPB-001</td><td>Services: title, optional editor, Parent, Order</td><td>B</td></tr>
+<tr><td>DPB-002</td><td>Settings › Contact: Email, Upwork URL, LinkedIn URL; values persist</td><td>D5</td></tr>
+<tr><td>DPB-003</td><td>Statistics: create, edit, delete; persists</td><td>B7 · D1 (list pattern)</td></tr>
+<tr><td>DPB-004</td><td>Video Categories: add, edit, delete; assignable on Videos</td><td>D2 · B3</td></tr>
+<tr><td>DPB-005</td><td>Software Tools: title, description, thumbnail, site URL, Order</td><td>B2</td></tr>
+<tr><td>DPB-006</td><td>Videos: all twelve acceptance points</td><td>B3 · C</td></tr>
+<tr><td>DPB-007</td><td>Document Categories</td><td>D2 (same as Video)</td></tr>
+<tr><td>DPB-008</td><td>Documents: all fourteen acceptance points</td><td>B4</td></tr>
+<tr><td>DPB-009</td><td>Collateral Categories</td><td>D2 (same as Video)</td></tr>
+<tr><td>DPB-010</td><td>Collaterals (Brand Collaterals)</td><td>B5</td></tr>
+<tr><td>DPB-011 · 012 · 013</td><td>Post statistics repeater on Video / Document / Collateral</td><td>B3 · B4 · B5 · E</td></tr>
+<tr><td>DPB-014</td><td>Collateral Assets repeater with unique labels, ordered</td><td>B5 · E</td></tr>
+<tr><td>DPB-016</td><td>Testimonials: description, optional title, name, company, Order</td><td>B6</td></tr>
+<tr><td>DPB-017</td><td>Interests: read-only list and view</td><td>D4</td></tr>
+<tr><td>DPB-018</td><td>Aspect Ratio: four preset ratios, saved on the video</td><td>D3 · B3</td></tr></table>
+
+<p class="hd">G2 · Things in the stories to confirm (assumption used in this wireframe)</p>
+<table class="spec"><tr><th>Story</th><th>What we noticed</th><th>Assumption used</th></tr>
+<tr><td>DPB-010</td><td>Acceptance criteria mention File Type and Author, but the field list has Paper size and no File Type / Author</td><td>Follow the field list: Paper size, no File Type or Author</td></tr>
+<tr><td>DPB-016</td><td>Acceptance criteria talk about a “Services item” and “Service entry”</td><td>Read as Testimonials: description required, title optional</td></tr>
+<tr><td>DPB-004 · 007 · 009</td><td>Called “post type” but titled and described as taxonomies</td><td>Treated as taxonomies under their parent type</td></tr>
+<tr><td>DPB-002</td><td>Called a “post type” but described as a Settings screen</td><td>Settings › Contact page, not a list</td></tr>
+<tr><td>DPB-006 · 011</td><td>Video lists DPB-011 as a prerequisite and DPB-011 lists DPB-006</td><td>Statistics shown inside the Video screen; build order is a dev call</td></tr>
+<tr><td>DPB-012 · 013</td><td>DPB-012 prerequisite says “a video record exists” for Documents; DPB-013 says “saving the Document” for Collaterals</td><td>Treated as copy-and-paste wording</td></tr>
+<tr><td>DPB-018</td><td>Aspect ratio is a taxonomy here but a string field on the Video</td><td>Four preset terms; one per video, chosen by radio</td></tr>
+<tr><td>DPB-003</td><td>Statistic has a title and an editor, but only the title appears in the acceptance criteria</td><td>Editor shown as an optional description</td></tr>
+<tr><td>All</td><td>“Post” is used loosely; editor type not stated</td><td>Classic-style meta boxes (same fields work in the block editor)</td></tr>
+<tr><td>Highlight</td><td>Described as “Selected work” on Videos, Documents and Collaterals</td><td>One checkbox on each, labelled “Mark as one of my highlights”</td></tr></table>
+</div>
+
+<!-- ================= H ================= -->
+<div class="label"><b>H</b><h2>Changelog</h2><span>newest last</span></div>
+<div class="box"><table class="spec"><tr><th>Version</th><th>Request</th><th>What changed</th></tr>
+<tr><td><b>v1</b><br><small style="color:var(--mid)">10 Oct 2026</small></td><td>Generate a lo-fi that shows the WordPress sidebar and the create / update post UI, based on the backend user stories.</td><td>Created the wireframe: a live WordPress admin frame (sidebar, lists, create / update, taxonomy, Interests, Contact settings, Plugins), sidebar anatomy, create and update screens for all seven content types, Video edit-screen anatomy, field components and states, mobile phones, a story coverage table and a list of points to confirm.</td></tr></table></div>
+
+<div class="legend"><b>Notes</b><ul>
+<li>This wireframe covers the <b>backend</b> (WordPress admin) only. The public portfolio pages are in the Home, Documents, Videos and Collaterals wireframes.</li>
+<li>Greyscale only; WordPress colours are replaced by ink, grey and white. Yellow marks annotations, red marks errors.</li>
+<li>Field names follow the user stories exactly. Sample titles, numbers, URLs and file names are placeholders.</li>
+<li>Menu order, the sticky mobile publish bar and the Aspect Ratio presets are proposals, flagged for confirmation in G2.</li>
+<li>Stories DPB-015 (DDEV setup) has no screen.</li></ul></div>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let uid=0;
+const TOOLS=['Canva','CapCut','Premiere Pro','HeyGen','Zapier'];
+const VCATS=['Short Form Videos','Social Media Marketing','AI Generated Videos'];
+const DCATS=['Brochures','Tri-folds','Flyers','Reports','Forms'];
+const CCATS=['Brochures','Tri-folds','Flyers','Vouchers','Cards','Posters'];
+const RATIOS=['16x9','9x16','1x1','4x3'];
+
+/* ---------- field builders ---------- */
+const D=n=>`data-dot="${n}"`;
+const mediaEmpty=()=>`<span class="btn sm2" data-act="pick">⤒ Select from Media Library</span><span class="sm">No file selected</span>`;
+const mediaHas=v=>`<span class="fchip">▤ ${esc(v)}</span><span class="lnkb" data-act="pick">Replace</span><span class="lnkb" data-act="unpick">Remove</span>`;
+const media=(label,val,sample,help)=>`<div class="fld"><label>${label}</label><div class="media ${val?'has':''}" data-media data-sample="${esc(sample)}">${val?mediaHas(val):mediaEmpty()}</div>${help?`<small>${help}</small>`:''}</div>`;
+const inp=(f,label,val,ph,o={})=>`<div class="fld"><label>${label}${o.req?' <b class="rq">*</b>':''}</label><input class="inp" data-f="${f}" ${o.type?`type="${o.type}"`:''} value="${esc(val)}" placeholder="${esc(ph||'')}" ${o.req?`data-req="${o.req}"`:''}><div class="err"></div>${o.help?`<small>${o.help}</small>`:''}</div>`;
+const mb=(id,title,body,story,dot)=>`<div class="mb ${id}" ${dot?D(dot):''}><h4><span>${title}</span>${story?`<span class="tag">${story}</span>`:''}</h4><div class="mbd">${body}</div></div>`;
+const radios=(list,sel,name)=>list.map((x,i)=>`<label class="ci"><input type="radio" name="${name}" ${i===sel?'checked':''}> ${x}</label>`).join('');
+const checks=(list,sel)=>list.map((x,i)=>`<label class="ci"><input type="checkbox" ${sel.includes(i)?'checked':''}> ${x}</label>`).join('');
+const thumbBody=(name)=>name?`<div class="thumbb has">▨ ${esc(name)}</div><div style="margin-top:6px"><span class="lnkb" data-act="unthumb">Remove thumbnail</span></div>`:`<div class="thumbb" data-act="thumb">＋ Set thumbnail</div>`;
+const statRow=(l,v)=>`<div class="rrow"><span class="grab2">⋮⋮</span><div class="rin"><input class="inp" data-f="slabel" placeholder="Label (e.g. Views)" value="${esc(l)}"><input class="inp" data-f="svalue" placeholder="Value (e.g. 480K)" value="${esc(v)}"></div><span class="x" data-act="rm" title="Remove">✕</span></div>`;
+const assetRow=(l,f,o)=>`<div class="rrow"><span class="grab2">⋮⋮</span><div class="rin a"><div><input class="inp" data-f="albl" placeholder="Label (unique)" value="${esc(l)}"><div class="err"></div></div><div class="media ${f?'has':''}" data-media data-sample="asset-file.png">${f?mediaHas(f):mediaEmpty()}</div><input class="inp" type="number" placeholder="Order" value="${esc(o)}"></div><span class="x" data-act="rm" title="Remove">✕</span></div>`;
+
+/* ---------- block library ---------- */
+const pubBody=(mode)=>mode==='update'
+ ?`<div class="kv"><span>Status:</span><b>Published</b></div><div class="kv"><span>Published on:</span><b>8 Oct 2026</b></div><div class="pbtn"><span class="lnkb">Move to Trash</span><span class="btn fill" data-act="update">Update</span></div>`
+ :`<div class="kv"><span>Status:</span><b>Draft</b></div><div class="kv"><span>Visibility:</span><b>Public</b></div><div class="kv"><span>Publish:</span><b>Immediately</b></div><div class="pbtn"><span class="btn" data-act="draft">Save Draft</span><span class="btn fill" data-act="publish">Publish</span></div>`;
+const BL={
+ title:(T,s)=>`<div class="fld" ${D(1)}><input class="inp big" data-f="title" ${T.reqTitle===false?'':'data-req="Title is required"'} placeholder="${T.reqTitle===false?'Add title (optional)':'Add title'}" value="${esc(s.title)}"><div class="err"></div></div>`,
+ editor:(T,s)=>`<div class="fld" ${D(2)}><label>${T.edLabel||'Description'}${T.reqEditor?' <b class="rq">*</b>':' <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>'}</label><div class="edb"><div class="edt"><span>Paragraph ▾</span><span><b>B</b></span><span><i>I</i></span><span>❝</span><span>•</span><span>1.</span><span>🔗</span></div><textarea data-f="editor" ${T.reqEditor?'data-req="Description is required"':''} placeholder="${esc(T.edPh||'Write a short description…')}">${esc(s.editor)}</textarea></div><div class="err"></div></div>`,
+ pub:(T,s,mode)=>mb('pubbox','Publish',pubBody(mode),'',5),
+ attrs:(T,s)=>mb('attrs','Page Attributes',`${T.hier?`<div class="fld"><label>Parent</label><select class="inp"><option>(no parent)</option>${['Social Media Marketing','Digital Marketing','Web Creation / Management'].map(x=>`<option ${s.parent===x?'selected':''}>${x}</option>`).join('')}</select><small>Create parent and child Services.</small></div>`:''}<div class="fld"><label>Order</label><input class="inp" type="number" data-f="order" value="${esc(s.order)}" placeholder="0"><small>Lower numbers show first on the site.</small></div>`,T.s,6),
+ thumb:(T,s)=>mb('thumb','Thumbnail',thumbBody(s.thumb),T.thumbStory||T.s,7),
+ vcat:(T,s)=>mb('vcat','Video Category',`<div class="cl">${radios(VCATS,s.vcat==null?-1:s.vcat,'vc'+uid)}</div><div class="lnkb" style="display:inline-block;margin-top:6px">＋ Add New Video Category</div>`,'DPB-004',8),
+ dcat:(T,s)=>mb('dcat','Document Category',`${radios(DCATS,s.dcat==null?-1:s.dcat,'dc'+uid)}<div class="lnkb" style="display:inline-block;margin-top:6px">＋ Add New Document Category</div>`,'DPB-007',8),
+ ccat:(T,s)=>mb('ccat','Collateral Category',`${radios(CCATS,s.ccat==null?-1:s.ccat,'cc'+uid)}<div class="lnkb" style="display:inline-block;margin-top:6px">＋ Add New Collateral Category</div>`,'DPB-009',8),
+ ratio:(T,s)=>mb('ratio','Aspect Ratio',radios(RATIOS,s.ratio==null?-1:s.ratio,'ar'+uid),'DPB-018',9),
+ tools:(T,s)=>mb('tools','Software Tools',checks(TOOLS,s.tools||[]),'DPB-005',10),
+ hl:(T,s)=>mb('hl','Highlight',`<label class="ci"><input type="checkbox" ${s.hl?'checked':''}> Mark as one of my highlights</label><div class="sm" style="margin-left:22px">Shows in “Selected work” on Home.</div>`,T.s,11),
+ d_tool:(T,s)=>mb('dt','Software Tool details',inp('site_url','Site URL',s.site_url,'https://'),'DPB-005'),
+ d_video:(T,s)=>mb('dv','Video details',media('Video file',s.video_file,'podcast-highlight.mp4')+`<div class="g2">${inp('embed','Embed URL',s.embed,'https://…',{help:'For externally hosted videos'})}${inp('post_url','Original post URL',s.post_url,'https://…',{help:'Where it was first published'})}</div>`+inp('length','Length (seconds)',s.length,'28',{type:'number'}),'DPB-006',3),
+ d_doc:(T,s)=>mb('dd','Document details',media('Document file',s.document_file,'onboarding-checklist.pdf')+`<div class="g2">${inp('embed','Embed URL',s.embed,'https://…',{help:'For externally hosted documents'})}${inp('filetype','File type',s.filetype,'PDF')}</div><div class="g2">${inp('author','Author',s.author,'Dave')}${inp('total_pages','Total pages',s.total_pages,'6',{type:'number'})}</div>`,'DPB-008'),
+ d_col:(T,s)=>mb('dc','Collateral details',media('Collateral file',s.document_file,'cafe-brochure.pdf')+`<div class="g2">${inp('embed','Embed URL',s.embed,'https://…',{help:'For externally hosted files'})}${inp('paper_size','Paper size',s.paper_size,'A5')}</div>`+inp('total_pages','Total pages',s.total_pages,'6',{type:'number'}),'DPB-010'),
+ d_test:(T,s)=>mb('dte','Testimonial details',`<div class="g2">${inp('name','Name',s.name,'Maya Ortiz')}${inp('company','Company',s.company,'Bloom Café')}</div>`,'DPB-016'),
+ stats:(T,s)=>mb('stats','Post statistics',`<div class="rh"><span></span><div class="rin"><span>Label</span><span>Value</span></div><span></span></div><div class="rlist">${(s.stats&&s.stats.length)?s.stats.map(r=>statRow(r[0],r[1])).join(''):'<div class="emp">No statistics yet.</div>'}</div><span class="addr" data-act="addstat">＋ Add statistic</span>`,T.statStory,4),
+ assets:(T,s)=>mb('assets','Collateral assets',`<div class="rh"><span></span><div class="rin a"><span>Label</span><span>Asset file</span><span>Order</span></div><span></span></div><div class="rlist assets">${(s.assets&&s.assets.length)?s.assets.map(r=>assetRow(r[0],r[1],r[2])).join(''):'<div class="emp">No assets yet.</div>'}</div><span class="addr" data-act="addasset">＋ Add asset</span><small class="sm" style="display:block;margin-top:6px">Labels must be unique. Assets are returned in this order.</small>`,'DPB-014')
+};
+
+/* ---------- content types ---------- */
+const TYPES={
+ service:{n:'Service',p:'Services',s:'DPB-001',hier:true,main:['title','editor'],side:['pub','attrs'],cols:['Order','Parent'],
+  rows:[['Social Media Marketing','1','—'],['Digital Marketing','2','—'],['Web Creation / Management','3','—'],['— Website Maintenance','1','Web Creation / Management']],
+  sample:{title:'Website Maintenance',editor:'Updates, backups and small fixes so the site stays fast and safe.',order:1,parent:'Web Creation / Management'}},
+ tool:{n:'Software Tool',p:'Software Tools',s:'DPB-005',main:['title','editor','d_tool'],side:['pub','attrs','thumb'],cols:['Site URL','Order'],
+  rows:[['Canva','canva.com','1'],['CapCut','capcut.com','2'],['Zapier','zapier.com','3']],
+  sample:{title:'Canva',editor:'Design tool for social posts and print-ready collaterals.',site_url:'https://www.canva.com',order:1,thumb:'canva-logo.png'}},
+ video:{n:'Video',p:'Videos',s:'DPB-006',statStory:'DPB-011',main:['title','editor','d_video','stats'],side:['pub','attrs','thumb','vcat','ratio','tools','hl'],cols:['Category','Ratio','Length','★'],
+  rows:[['Podcast Highlight Clip','Short Form Videos','9x16','0:28','★'],['Product Launch Teaser','Social Media Marketing','9x16','0:15','★'],['AI Product Showcase','AI Generated Videos','9x16','0:12',''],['Weekly Recap Post','Social Media Marketing','1x1','0:22','']],
+  sample:{title:'Podcast Highlight Clip',editor:'Long episode cut into a punchy, captioned hook.',video_file:'podcast-highlight.mp4',embed:'',post_url:'https://www.tiktok.com/@dave/video/123',length:28,order:1,thumb:'poster.jpg',vcat:0,ratio:1,tools:[1],hl:true,stats:[['Views','480K'],['Reach','210K'],['Saves','9.4K']]}},
+ doc:{n:'Document',p:'Documents',s:'DPB-008',statStory:'DPB-012',main:['title','editor','d_doc','stats'],side:['pub','attrs','thumb','dcat','hl'],cols:['Category','File type','Pages','★'],
+  rows:[['Spring Menu Brochure','Brochures','PDF','6','★'],['Onboarding Checklist','Forms','PDF','2',''],['Monthly Report','Reports','PDF','12','★']],
+  sample:{title:'Spring Menu Brochure',editor:'Six-page brochure for a café’s seasonal menu.',document_file:'spring-menu.pdf',embed:'',filetype:'PDF',author:'Dave',total_pages:6,order:1,thumb:'cover.png',dcat:0,hl:true,stats:[['Pages','6'],['Downloads','320']]}},
+ col:{n:'Collateral',p:'Collaterals',s:'DPB-010',statStory:'DPB-013',main:['title','editor','d_col','assets','stats'],side:['pub','attrs','thumb','ccat','tools','hl'],cols:['Category','Paper size','Pages','★'],
+  rows:[['Café Brochure','Brochures','A5','6','★'],['Gym Flyer','Flyers','A5','2',''],['Gift Voucher','Vouchers','DL','2','']],
+  sample:{title:'Café Brochure',editor:'Tri-fold brochure with menu highlights and opening hours.',document_file:'cafe-brochure.pdf',embed:'',paper_size:'A5',total_pages:6,order:1,thumb:'cover.png',ccat:0,tools:[0],hl:true,stats:[['Print run','500'],['Size','A5']],assets:[['Front cover','cover-front.png',1],['Inside spread','spread.png',2],['Print-ready PDF','print.pdf',3]]}},
+ test:{n:'Testimonial',p:'Testimonials',s:'DPB-016',reqTitle:false,reqEditor:true,edLabel:'Testimonial',edPh:'“Dave saved us hours every week…”',main:['title','editor','d_test'],side:['pub','attrs'],cols:['Name','Company','Order'],
+  rows:[['Weekly reporting','Maya Ortiz','Bloom Café','1'],['(no title)','Jon Reyes','Peak Gym','2']],
+  sample:{title:'Weekly reporting',editor:'Dave took over our weekly reports and reminders. We got hours back every week.',name:'Maya Ortiz',company:'Bloom Café',order:1}},
+ stat:{n:'Statistic',p:'Statistics',s:'DPB-003',edLabel:'Description',edPh:'e.g. 7+ years of experience',main:['title','editor'],side:['pub'],cols:['Description'],
+  rows:[['Years of experience','7+'],['Clients supported','40+']],
+  sample:{title:'Years of experience',editor:'7+'}},
+ int:{n:'Interest',p:'Interests',s:'DPB-017',cols:['Name','Email','Service'],ro:true,
+  rows:[['8 Oct 2026, 14:32','Maya Ortiz','maya@bloom.example','Social Media Marketing'],['6 Oct 2026, 09:10','Jon Reyes','jon@peak.example','Web Creation / Management'],['3 Oct 2026, 18:45','Ari Cole','ari@mail.example','Digital Marketing']]}
+};
+const TERMS={
+ video:{n:'Video Category',p:'Video Categories',list:VCATS,counts:[4,3,3],s:'DPB-004'},
+ doc:{n:'Document Category',p:'Document Categories',list:DCATS,counts:[2,3,1,1,1],s:'DPB-007'},
+ col:{n:'Collateral Category',p:'Collateral Categories',list:CCATS,counts:[2,1,1,1,1,1],s:'DPB-009'},
+ ratio:{n:'Aspect Ratio',p:'Aspect Ratios',list:RATIOS,counts:[2,5,1,0],s:'DPB-018',fixed:true}
+};
+
+/* ---------- screens ---------- */
+function scrEdit(k,mode,title,notice){const T=TYPES[k];uid++;const s=mode==='update'?Object.assign({},T.sample,title?{title}:{}):{};
+ return `<h2 class="ph1">${mode==='update'?'Edit':'Add New'} ${T.n}</h2>${notice?`<div class="notice">✓ ${notice}</div>`:''}<div class="egrid"><div class="emain">${T.main.map(b=>BL[b](T,s,mode)).join('')}</div><div class="eside">${T.side.map(b=>BL[b](T,s,mode)).join('')}</div></div>`}
+function scrList(k){const T=TYPES[k];const head=T.ro?`<h2>${T.p} <span class="badge">🔒 Read-only</span></h2><div class="sbs"><b>All (${T.rows.length})</b> · Submissions from the website contact form</div>`:`<h2>${T.p} <span class="btn sm2" data-go="${k}:new">Add New</span></h2><div class="sbs"><b>All (${T.rows.length})</b> | Published (${T.rows.length-1}) | Draft (1)</div>`;
+ const cols=T.ro?['Date',...T.cols]:['Title',...T.cols];
+ const rows=T.rows.map((r,i)=>{const first=T.ro?`<a data-view="${i}">${esc(r[0])}</a>`:`<a data-edit="${esc(r[0])}" data-k="${k}">${esc(r[0])}${i===T.rows.length-1&&!T.ro?' — Draft':''}</a><div class="ra">${T.ro?'View':'Edit | Trash'}</div>`;
+  return `<tr><td>${first}</td>${r.slice(1).map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`}).join('');
+ return head+`<table class="wt"><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>${rows}</table>`}
+function termLeft(k,edit){const T=TERMS[k];if(T.fixed)return `<div class="mb"><h4><span>${T.p}</span><span class="tag">${T.s}</span></h4><div class="mbd sm">Preset terms added by the plugin. Pick one on each Video.</div></div>`;
+ return `<div class="mb"><h4><span>${edit?'Edit':'Add New'} ${T.n}</span><span class="tag">${T.s}</span></h4><div class="mbd"><div class="fld"><label>Name <b class="rq">*</b></label><input class="inp" data-f="term" data-req="Name is required" value="${edit?esc(T.list[0]):''}" placeholder="e.g. ${esc(T.list[1]||T.list[0])}"><div class="err"></div></div>${edit?`<span class="btn fill" data-act="termsave">Update</span> <span class="lnkb" data-act="termcancel" data-k="${k}">Cancel</span>`:`<span class="btn fill" data-act="termadd">Add New ${T.n}</span>`}</div></div>`}
+function scrTerm(k,edit){const T=TERMS[k];
+ return `<h2>${T.p}</h2><div class="tgrid"><div class="tleft" data-k="${k}">${termLeft(k,edit)}</div><div><table class="wt trm"><tr><th>Name</th><th>Count</th></tr>${T.list.map((x,i)=>`<tr><td><b>${x}</b>${T.fixed?'':`<div class="ra"><span class="lnkb" data-act="termedit" data-k="${k}">Edit</span> | <span class="lnkb" data-act="termdel">Delete</span></div>`}</td><td>${T.counts[i]}</td></tr>`).join('')}</table></div></div>`}
+function scrView(i){const r=TYPES.int.rows[i||0];const ro=(l,v)=>`<div class="fld"><label>${l}</label><div class="ro">${v}</div></div>`;
+ return `<h2>View Interest <span class="badge">🔒 Read-only</span></h2><div class="mb"><h4><span>Submission</span><span class="tag">DPB-017</span></h4><div class="mbd">${ro('Date and time',r[0])}<div class="g2">${ro('Name',r[1])}${ro('Email',r[2])}</div>${ro('Service',r[3])}${ro('Message','Hi Dave, I run a small café and would love help with weekly posts and a simple website refresh.')}<div class="sm">Submissions cannot be edited or published from here. Admins can only view them.</div></div></div>`}
+function scrSettings(saved){const v=saved?['hello@dave.example','https://upwork.com/freelancers/dave','https://linkedin.com/in/dave']:['','',''];uid++;
+ return `<h2>Contact settings</h2>${saved?'<div class="notice">✓ Settings saved.</div>':''}<div class="mb"><h4><span>Contact links</span><span class="tag">DPB-002</span></h4><div class="mbd">${inp('email','Email',v[0],'hello@yourdomain.com',{type:'email'})}${inp('upwork_url','Upwork URL',v[1],'https://www.upwork.com/…')}${inp('linkedin_url','LinkedIn URL',v[2],'https://www.linkedin.com/in/…')}<span class="btn fill" data-act="savesettings">Save Changes</span> <span class="sm">${saved?'Saved values stay after refresh.':''}</span></div></div>`}
+function scrPlugins(){return `<h2>Plugins</h2><table class="wt"><tr><th>Plugin</th><th>Description</th></tr><tr><td><b>Dave Portfolio</b><div class="ra">Deactivate</div></td><td>Loads all portfolio modules when active.<div class="tags" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${['Services','Contact','Statistics','Videos','Documents','Collaterals'].map(x=>`<span class="tag">${x}</span>`).join('')}</div><div class="sm" style="margin-top:6px">✓ Activated with no PHP errors or warnings.</div></td></tr></table>`}
+const stub=n=>`<h2>${n}</h2><div class="stub">Standard WordPress screen. Not part of this scope.</div>`;
+
+/* ---------- sidebar ---------- */
+const SIDE=[
+ {k:'dash',t:'Dashboard',dot:1},{k:'media',t:'Media'},
+ {g:'Dave Portfolio',dot:2},
+ {k:'service',t:'Services',dot:3},
+ {k:'video',t:'Videos',sub:[['list','All Videos'],['new','Add New'],['cat','Video Categories'],['ratio','Aspect Ratios']],tax:[2,3]},
+ {k:'doc',t:'Documents',sub:[['list','All Documents'],['new','Add New'],['cat','Document Categories']]},
+ {k:'col',t:'Collaterals',sub:[['list','All Collaterals'],['new','Add New'],['cat','Collateral Categories']]},
+ {k:'tool',t:'Software Tools'},{k:'test',t:'Testimonials'},{k:'stat',t:'Statistics'},
+ {k:'int',t:'Interests',ro:1,badge:'3',dot:7},
+ {sep:1},
+ {k:'plugins',t:'Plugins'},
+ {k:'settings',t:'Settings',sub:[['gen','General'],['contact','Contact']],contact:1}
+];
+function sideHTML(S,all,anno){return SIDE.map(it=>{
+ if(it.g)return `<div class="gl" ${anno&&it.dot?D(it.dot)+' data-side="r"':''}>${it.g}</div>`;
+ if(it.sep)return `<div class="gl n"></div>`;
+ const on=S&&S.t===it.k;
+ const dn=anno&&it.dot?`${D(it.dot)} data-side="r"`:(anno&&it.k==='video'&&on?`${D(4)} data-side="r"`:'');
+ let h=`<div class="mi ${on?'on':''}" data-go="${it.k}:${it.sub?it.sub[0][0]:'list'}" ${dn}><span class="ic"></span>${it.t}${it.badge?`<span class="bg">${it.badge}</span><span class="lk">🔒</span>`:''}</div>`;
+ if(it.sub&&(on||all)){h+=`<div class="smn" ${anno&&it.k==='video'?D(5)+' data-side="r"':''}>${it.sub.map((s,j)=>`<span class="${on&&(S.v===s[0]||(s[0]==='list'&&S.v==='edit'))?'on':''}" data-go="${it.k}:${s[0]}" ${anno&&it.k==='video'&&j===2?D(6)+' data-side="r"':''} ${anno&&it.contact&&s[0]==='contact'?D(8)+' data-side="r"':''}>${s[1]}</span>`).join('')}</div>`}
+ return h}).join('')}
+
+/* ---------- live frame ---------- */
+const S={t:'video',v:'list'};
+function screen(){const t=S.t,v=S.v;
+ if(t==='dash')return stub('Dashboard');if(t==='media')return stub('Media');if(t==='plugins')return scrPlugins();
+ if(t==='settings')return v==='contact'?scrSettings(false):stub('General settings');
+ if(t==='int')return v==='view'?scrView(S.i):scrList('int');
+ if(v==='cat')return scrTerm(t);if(v==='ratio')return scrTerm('ratio');
+ if(v==='new')return scrEdit(t,'create');if(v==='edit')return scrEdit(t,'update',S.title);
+ return scrList(t)}
+function renderLive(){$('#wpside').innerHTML=sideHTML(S,false,false);$('#wpmain').innerHTML=screen();$('#wp').classList.remove('menu')}
+
+/* ---------- interactions ---------- */
+function validate(root){let ok=true;root.querySelectorAll('[data-req]').forEach(i=>{const bad=!i.value.trim();(i.closest('.edb')||i).classList.toggle('bad',bad);const e=i.closest('.fld').querySelector('.err');if(e)e.textContent=bad?i.dataset.req:'';if(bad)ok=false});
+ const seen={};root.querySelectorAll('.assets [data-f="albl"]').forEach(i=>{const v=i.value.trim().toLowerCase(),e=i.parentNode.querySelector('.err');let dup=v&&seen[v];seen[v]=true;i.classList.toggle('bad',!!dup);if(e)e.textContent=dup?'Label must be unique':'';if(dup)ok=false});return ok}
+function notice(root,msg,err){const h=root.querySelector('.ph1')||root.querySelector('h2');root.querySelectorAll(':scope > .notice').forEach(n=>n.remove());if(h)h.insertAdjacentHTML('afterend',`<div class="notice ${err?'err':''}">${err?'':'✓ '}${msg}</div>`)}
+document.addEventListener('click',e=>{
+ const live=e.target.closest('#wp');
+ const g=e.target.closest('[data-go]');
+ if(g&&live){const [k,v]=g.dataset.go.split(':');S.t=k;S.v=v;S.title=null;renderLive();return}
+ const ed=e.target.closest('[data-edit]');if(ed&&live){S.t=ed.dataset.k;S.v='edit';S.title=ed.dataset.edit;renderLive();return}
+ const vw=e.target.closest('[data-view]');if(vw&&live){S.v='view';S.i=+vw.dataset.view;renderLive();return}
+ if(e.target.closest('#burger')){$('#wp').classList.toggle('menu');return}
+ const a=e.target.closest('[data-act]');if(!a)return;
+ const root=a.closest('.wpx,#wpmain');if(!root)return;const act=a.dataset.act;
+ if(act==='pick'){const m=a.closest('[data-media]');m.classList.add('has');m.innerHTML=mediaHas(m.dataset.sample)}
+ else if(act==='unpick'){const m=a.closest('[data-media]');m.classList.remove('has');m.innerHTML=mediaEmpty()}
+ else if(act==='thumb'){a.closest('.mbd').innerHTML=thumbBody('new-thumbnail.jpg')}
+ else if(act==='unthumb'){a.closest('.mbd').innerHTML=thumbBody('')}
+ else if(act==='rm'){const l=a.closest('.rlist'),r=a.closest('.rrow');r.remove();if(!l.querySelector('.rrow'))l.innerHTML=`<div class="emp">${l.classList.contains('assets')?'No assets yet.':'No statistics yet.'}</div>`}
+ else if(act==='addstat'){const l=a.closest('.mb').querySelector('.rlist');const em=l.querySelector('.emp');if(em)em.remove();l.insertAdjacentHTML('beforeend',statRow('',''));l.lastElementChild.querySelector('input').focus()}
+ else if(act==='addasset'){const l=a.closest('.mb').querySelector('.rlist');const em=l.querySelector('.emp');if(em)em.remove();l.insertAdjacentHTML('beforeend',assetRow('','',l.querySelectorAll('.rrow').length+1));l.lastElementChild.querySelector('input').focus()}
+ else if(act==='draft'){notice(root,'Draft saved.')}
+ else if(act==='publish'||act==='update'){
+  const T=Object.values(TYPES).find(t=>root.querySelector('.ph1')&&root.querySelector('.ph1').textContent.endsWith(t.n));
+  if(!validate(root)){notice(root,'Please fix the highlighted fields.',true);return}
+  const nm=T?T.n:'Entry';
+  if(act==='publish'){notice(root,nm+' published.');const h=root.querySelector('.ph1');if(h)h.textContent='Edit '+nm;const pb=root.querySelector('.pubbox .mbd');if(pb)pb.innerHTML=pubBody('update')}
+  else notice(root,nm+' updated.')}
+ else if(act==='termadd'){const i=root.querySelector('[data-f="term"]');if(!validate(root))return;const k=a.closest('.tleft').dataset.k;root.querySelector('.trm').insertAdjacentHTML('beforeend',`<tr><td><b>${esc(i.value)}</b><div class="ra"><span class="lnkb" data-act="termedit" data-k="${k}">Edit</span> | <span class="lnkb" data-act="termdel">Delete</span></div></td><td>0</td></tr>`);i.value=''}
+ else if(act==='termdel'){a.closest('tr').remove()}
+ else if(act==='termedit'){const k=a.dataset.k;root.querySelector('.tleft').innerHTML=termLeft(k,true);root.querySelector('[data-f="term"]').value=a.closest('td').querySelector('b').textContent}
+ else if(act==='termcancel'||act==='termsave'){const k=root.querySelector('.tleft').dataset.k;root.querySelector('.tleft').innerHTML=termLeft(k,false)}
+ else if(act==='savesettings'){const h=root.querySelector('h2');root.querySelectorAll('.notice').forEach(n=>n.remove());h.insertAdjacentHTML('afterend','<div class="notice">✓ Settings saved.</div>')}
+});
+
+/* ---------- annotation dots ---------- */
+function placeDots(root){root.querySelectorAll(':scope > .dot').forEach(d=>d.remove());const rr=root.getBoundingClientRect();
+ root.querySelectorAll('[data-dot]').forEach(el=>{const r=el.getBoundingClientRect();let x,y;
+  if(el.dataset.side==='r'){const sd=el.closest('.wpside').getBoundingClientRect();x=sd.right-rr.left+16;y=r.top-rr.top+Math.min(r.height/2,12)}
+  else{x=r.left-rr.left-12;y=r.top-rr.top+Math.min(r.height/2,14)}
+  root.insertAdjacentHTML('beforeend',`<span class="dot" style="left:${x}px;top:${y}px">${el.dataset.dot}</span>`)})}
+
+/* ---------- static sections ---------- */
+document.querySelectorAll('[data-demo]').forEach(el=>{const [k,m]=el.dataset.demo.split(':');
+ el.innerHTML=`<div class="wpx ${el.dataset.anno?'anno':''}" style="${el.dataset.anno?'':''}">${scrEdit(k,m==='update'?'update':'create',null,m==='update'?TYPES[k].n+' updated.':'')}</div>`;
+ el.removeAttribute('data-demo')});
+const wrapX=h=>`<div class="wpx">${h}</div>`;
+document.querySelectorAll('[data-screen]').forEach(el=>{const [a,b]=el.dataset.screen.split(':');let h='';
+ if(a==='list')h=scrList(b);else if(a==='term')h=scrTerm(b);else if(a==='termedit')h=scrTerm(b,true);else if(a==='view')h=scrView(0);
+ else if(a==='settings')h=scrSettings(b==='saved');else if(a==='plugins')h=scrPlugins();
+ el.innerHTML=wrapX(h)});
+
+/* sidebar anatomy */
+$('#sideAn').innerHTML=sideHTML({t:'video',v:'list'},true,true);
+
+/* components */
+$('#comps').innerHTML=`
+<div><div class="sec">Text field</div>${inp('a','Original post URL','','https://…')}${inp('b','Title','', 'Add title',{req:'Title is required'}).replace('class="err"></div>','class="err">Title is required</div>').replace('class="inp"','class="inp bad"')}</div>
+<div><div class="sec">Media picker</div>${media('Empty','', 'a.mp4')}${media('Selected','podcast-highlight.mp4','a.mp4')}</div>
+<div><div class="sec">Thumbnail</div><div class="mbd" style="padding:0 0 10px">${thumbBody('')}</div><div class="mbd" style="padding:0">${thumbBody('poster.jpg')}</div></div>
+<div><div class="sec">Repeater · empty</div><div class="mb"><div class="mbd"><div class="rlist"><div class="emp">No statistics yet.</div></div><span class="addr">＋ Add statistic</span></div></div></div>
+<div><div class="sec">Repeater · filled</div><div class="mb"><div class="mbd">${statRow('Views','480K')}${statRow('Reach','210K')}<span class="addr">＋ Add statistic</span></div></div></div>
+<div><div class="sec">Asset row · duplicate label</div><div class="mb"><div class="mbd">${assetRow('Front cover','cover-front.png',1).replace('class="err"></div>','class="err">Label must be unique</div>').replace('class="inp" data-f="albl"','class="inp bad" data-f="albl"')}</div></div></div>
+<div><div class="sec">Checklist &amp; highlight</div><div class="mb"><div class="mbd">${checks(['Canva','CapCut'],[0])}<label class="ci"><input type="checkbox" checked> Mark as one of my highlights</label></div></div></div>
+<div><div class="sec">Notices</div><div class="notice">✓ Video published.</div><div class="notice">✓ Video updated.</div><div class="notice err">Please fix the highlighted fields.</div></div>
+<div><div class="sec">Publish box · create / update</div><div class="mb"><div class="mbd">${pubBody('create')}</div></div><div class="mb"><div class="mbd">${pubBody('update')}</div></div></div>`;
+
+/* phones */
+const pf=(inner,extra)=>`<div class="ph2"><div class="sb"></div>${inner}${extra||''}</div>`;
+const pbar=`<div class="pbar"><span>☰ &nbsp;Dave Portfolio</span><span>＋</span></div>`;
+const rowsP=['Podcast Highlight Clip','Product Launch Teaser','AI Product Showcase','Weekly Recap Post'].map((t,i)=>`<div class="prow"><div><b>${t}</b><small>${['Short Form','Marketing','AI','Marketing'][i]} · ${['0:28','0:15','0:12','0:22'][i]}</small></div><span>${i<2?'★':''}</span></div>`).join('');
+const sidePhone=SIDE.map(it=>it.g?`<div class="gl">${it.g}</div>`:it.sep?'':`<div class="mi ${it.k==='video'?'on':''}"><span class="ic"></span>${it.t}</div>`).join('');
+const P=[];
+P.push(`<div class="rpi">${pf(pbar+`<div class="pc"><h3>Videos <span class="btn sm2" style="font-size:10px">Add New</span></h3>${rowsP}</div>`)}<div class="cap"><b>F1 · List</b><span>Top bar with ☰. Title rows with the key value under each title.</span></div></div>`);
+P.push(`<div class="rpi">${pf(pbar+`<div class="pc"><h3>Videos</h3>${rowsP}</div>`,`<div class="dimm"></div><div class="drawer">${sidePhone}</div>`)}<div class="cap"><b>F2 · Menu drawer</b><span>The sidebar slides in over a dimmed page. Same items, same order.</span></div></div>`);
+const sT=TYPES.video,sx={};
+P.push(`<div class="rpi">${pf(pbar+`<div class="pc"><h3>Add New Video</h3><div class="fld"><input class="inp big" placeholder="Add title"></div><div class="fld"><div class="edb"><div class="edt"><span>B</span><span>I</span><span>🔗</span></div><textarea placeholder="Description" style="min-height:44px"></textarea></div></div>${mb('pm','Video details',media('Video file','', 'a.mp4')+inp('l','Length (seconds)','','28'))}</div>`)}<div class="cap"><b>F3 · Edit: top</b><span>One column. Title, description, then the custom boxes.</span></div></div>`);
+P.push(`<div class="rpi">${pf(pbar+`<div class="pc"><h3>Add New Video</h3>${mb('pm','Post statistics',`<div class="rrow" style="grid-template-columns:1fr 22px"><div class="rin" style="grid-template-columns:1fr"><input class="inp" placeholder="Label" value="Views"><input class="inp" placeholder="Value" value="480K"></div><span class="x">✕</span></div><span class="addr">＋ Add statistic</span>`)}${mb('pm','Video Category','<label class="ci"><input type="radio" checked> Short Form Videos</label><label class="ci"><input type="radio"> Marketing</label>')}</div><div style="height:60px"></div>`,`<div class="stickyb"><span class="btn">Save Draft</span><span class="btn fill">Publish</span></div>`)}<div class="cap"><b>F4 · Edit: boxes + publish bar</b><span>Repeater rows stack. A sticky Publish bar is proposed (not native WordPress).</span></div></div>`);
+$('#rpg').innerHTML=P.join('');
+
+/* start */
+renderLive();
+function allDots(){placeDots($('#anSide'));const a=$('#annoVideo .wpx');if(a)placeDots(a)}
+allDots();addEventListener('resize',allDots);
+</script>
+</body></html>
